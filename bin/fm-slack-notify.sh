@@ -24,6 +24,7 @@
 #
 # Test-only environment:
 #   FM_SLACK_NOTIFY_ALLOW_LOOPBACK=1 permits an http://127.0.0.1:<port>/ endpoint.
+set +x
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -74,6 +75,10 @@ setup_webhook() {
       diag 'could not create the private config directory'
       return 1
     }
+  fi
+  if [ -d "$SECRET" ] && [ ! -L "$SECRET" ]; then
+    diag 'webhook path must not be a directory'
+    return 1
   fi
   printf 'Paste Slack Incoming Webhook URL: ' >&2
   IFS= read -r -s value || true

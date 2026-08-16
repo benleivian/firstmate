@@ -119,6 +119,49 @@ test_setup_atomically_replaces_a_symlink() {
   pass "setup atomically replaces an existing symlink with one private local secret"
 }
 
+test_setup_rejects_a_directory_target() {
+  local home out rc mode
+  home=$(make_home setup-directory)
+  mkdir "$home/config/slack-webhook-url"
+  chmod 700 "$home/config/slack-webhook-url"
+  printf 'unrelated data\n' > "$home/config/slack-webhook-url/marker"
+  out=$(printf 'http://127.0.0.1:%s/directory\n' "$PORT" | \
+    FM_HOME="$home" FM_SLACK_NOTIFY_ALLOW_LOOPBACK=1 "$NOTIFY" setup 2>&1)
+  rc=$?
+  [ "$rc" -ne 0 ] || fail "setup accepted a directory as the webhook target"
+  printf '%s' "$out" | grep -F 'must not be a directory' >/dev/null \
+    || fail "setup did not explain the invalid webhook target"
+  mode=$(if [ "$(uname)" = Darwin ]; then stat -f %Lp "$home/config/slack-webhook-url"; else stat -c %a "$home/config/slack-webhook-url"; fi)
+  [ "$mode" = 700 ] || fail "setup changed the directory target mode"
+  [ "$(cat "$home/config/slack-webhook-url/marker")" = 'unrelated data' ] \
+    || fail "setup changed unrelated directory contents"
+  [ "$(find "$home/config/slack-webhook-url" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')" = 1 ] \
+    || fail "setup moved its temporary file into the directory target"
+  pass "setup rejects a directory target without mutating it"
+}
+
+test_shell_trace_does_not_expose_the_webhook() {
+  local home path webhook setup_trace send_trace before after
+  home=$(make_home trace)
+  path=/trace-secret-token
+  webhook="http://127.0.0.1:$PORT$path"
+  setup_trace=$(printf '%s\n' "$webhook" | \
+    FM_HOME="$home" FM_SLACK_NOTIFY_ALLOW_LOOPBACK=1 bash -x "$NOTIFY" setup 2>&1) \
+    || fail "setup failed under shell tracing"
+  printf '%s' "$setup_trace" | grep -F "$webhook" >/dev/null \
+    && fail "setup shell trace exposed the webhook"
+  [ "$(cat "$home/config/slack-webhook-url")" = "$webhook" ] \
+    || fail "setup under shell tracing did not persist the webhook"
+  before=$(count_path "$path")
+  send_trace=$(printf '%s\n' 'Alpha needs a release decision.' | \
+    FM_HOME="$home" FM_SLACK_NOTIFY_ALLOW_LOOPBACK=1 bash -x "$NOTIFY" send 2>&1)
+  printf '%s' "$send_trace" | grep -F "$webhook" >/dev/null \
+    && fail "send shell trace exposed the webhook"
+  after=$(count_path "$path")
+  [ "$after" -eq $((before + 1)) ] || fail "send under shell tracing did not deliver"
+  pass "shell tracing stays disabled throughout webhook handling"
+}
+
 test_direct_send_shapes_one_way_payload() {
   local home path before after text
   home=$(make_home success)
@@ -188,6 +231,8 @@ test_explicit_harmless_test() {
 
 test_absent_configuration_is_inert
 test_setup_atomically_replaces_a_symlink
+test_setup_rejects_a_directory_target
+test_shell_trace_does_not_expose_the_webhook
 test_direct_send_shapes_one_way_payload
 test_direct_send_has_no_deduplication
 test_failure_is_bounded_and_best_effort
