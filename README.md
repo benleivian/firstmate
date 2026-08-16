@@ -53,7 +53,7 @@ Launching a supported harness inside it instantiates your first mate - and makes
 - **Strict project boundary** - the first mate is read-only over your projects except for the narrow guarded and captain-approved operations authorized by [hard rule 1](AGENTS.md#1-identity-and-prime-directives), including fleet sync's guarded safe branch pruning; crewmates make every other project change behind the configured merge authority.
 - **Restart-proof** - all state lives on disk and in the active session backend (tmux by hard default, herdr or cmux when selected or auto-detected, zellij/orca when explicitly selected); kill the session anytime and the next one reconciles, including confirmed-dead secondmate agents, and carries on.
 
-Full detail on every feature lives in [docs/architecture.md](docs/architecture.md).
+Maintainer architecture lives in [docs/architecture.md](docs/architecture.md).
 
 ## Quick Start
 
