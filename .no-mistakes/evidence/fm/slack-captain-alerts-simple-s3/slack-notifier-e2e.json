@@ -1,0 +1,62 @@
+{
+  "scenario": "Firstmate direct Slack notifier against a local fake Incoming Webhook endpoint",
+  "setup": {
+    "exit_code": 0,
+    "stdout": "slack-notify: configured\n",
+    "stderr": "Paste Slack Incoming Webhook URL: \n",
+    "elapsed_seconds": 0.02
+  },
+  "stored_secret_contract": {
+    "kind": "regular non-symlink file",
+    "mode": "0o600"
+  },
+  "explicit_test": {
+    "exit_code": 0,
+    "stdout": "slack-notify: test delivered\n",
+    "stderr": "",
+    "elapsed_seconds": 0.04
+  },
+  "direct_send": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "elapsed_seconds": 0.04
+  },
+  "fake_endpoint_received": [
+    {
+      "path": "/notify",
+      "content_type": "application/json; charset=utf-8",
+      "payload": {
+        "text": "Firstmate Slack setup test. No action is required.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."
+      }
+    },
+    {
+      "path": "/notify",
+      "content_type": "application/json; charset=utf-8",
+      "payload": {
+        "text": "Alpha is ready for your release approval.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."
+      }
+    },
+    {
+      "path": "/slow",
+      "content_type": "application/json; charset=utf-8",
+      "payload": {
+        "text": "Alpha needs your decision.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."
+      }
+    }
+  ],
+  "unconfigured_send": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "elapsed_seconds": 0.01,
+    "requests_made": 0
+  },
+  "delivery_timeout": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "slack-notify: delivery failed; the trusted-channel escalation still continues\n",
+    "elapsed_seconds": 5.19
+  },
+  "interpretation": "Setup created a 0600 regular local secret; test and send delivered outbound-only payloads; absent config made no request; timeout returned success with a generic trusted-channel-continuation diagnostic."
+}

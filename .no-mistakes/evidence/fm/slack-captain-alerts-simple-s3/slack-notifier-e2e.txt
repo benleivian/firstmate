@@ -1,0 +1,28 @@
+Direct Slack notifier end-to-end verification
+
+SETUP
+exit=0
+stdout: slack-notify: configured
+stderr: Paste Slack Incoming Webhook URL:
+stored secret: regular non-symlink file, mode 0o600
+
+EXPLICIT TEST
+exit=0
+stdout: slack-notify: test delivered
+received payload: {"text": "Firstmate Slack setup test. No action is required.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."}
+
+GENUINE CAPTAIN-ACTION SEND
+exit=0
+stdout: <silent success>
+stderr: <silent>
+received payload: {"text": "Alpha is ready for your release approval.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."}
+
+UNCONFIGURED SEND
+exit=0
+output: <silent>
+requests made: 0
+
+FAILED DELIVERY
+exit=0
+elapsed=5.19s
+stderr: slack-notify: delivery failed; the trusted-channel escalation still continues
