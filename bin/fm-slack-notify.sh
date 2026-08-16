@@ -76,7 +76,7 @@ setup_webhook() {
       return 1
     }
   fi
-  if [ -d "$SECRET" ] && [ ! -L "$SECRET" ]; then
+  if [ -d "$SECRET" ]; then
     diag 'webhook path must not be a directory'
     return 1
   fi
@@ -92,11 +92,20 @@ setup_webhook() {
     return 1
   }
   chmod 600 "$tmp" 2>/dev/null || { rm -f "$tmp"; return 1; }
+  if [ -d "$SECRET" ]; then
+    rm -f "$tmp"
+    diag 'webhook path must not be a directory'
+    return 1
+  fi
   if ! printf '%s\n' "$value" > "$tmp" || ! mv -f "$tmp" "$SECRET"; then
     rm -f "$tmp"
     diag 'could not store the webhook'
     return 1
   fi
+  [ -f "$SECRET" ] && [ ! -L "$SECRET" ] || {
+    diag 'could not store the webhook as a private local file'
+    return 1
+  }
   chmod 600 "$SECRET" 2>/dev/null || {
     diag 'could not secure the webhook file'
     return 1

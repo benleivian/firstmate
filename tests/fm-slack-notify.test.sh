@@ -140,6 +140,31 @@ test_setup_rejects_a_directory_target() {
   pass "setup rejects a directory target without mutating it"
 }
 
+test_setup_rejects_a_symlink_to_a_directory() {
+  local home outside out rc mode
+  home=$(make_home setup-symlink-directory)
+  outside="$home/outside-directory"
+  mkdir "$outside"
+  chmod 700 "$outside"
+  printf 'unrelated data\n' > "$outside/marker"
+  ln -s "$outside" "$home/config/slack-webhook-url"
+  out=$(printf 'http://127.0.0.1:%s/symlink-directory\n' "$PORT" | \
+    FM_HOME="$home" FM_SLACK_NOTIFY_ALLOW_LOOPBACK=1 "$NOTIFY" setup 2>&1)
+  rc=$?
+  [ "$rc" -ne 0 ] || fail "setup accepted a symlink resolving to a directory"
+  printf '%s' "$out" | grep -F 'must not be a directory' >/dev/null \
+    || fail "setup did not explain the symlinked directory target"
+  [ -L "$home/config/slack-webhook-url" ] \
+    || fail "setup replaced the symlinked directory target"
+  mode=$(if [ "$(uname)" = Darwin ]; then stat -f %Lp "$outside"; else stat -c %a "$outside"; fi)
+  [ "$mode" = 700 ] || fail "setup changed the symlinked directory mode"
+  [ "$(cat "$outside/marker")" = 'unrelated data' ] \
+    || fail "setup changed unrelated symlinked directory contents"
+  [ "$(find "$outside" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')" = 1 ] \
+    || fail "setup moved its temporary file through the directory symlink"
+  pass "setup rejects a symlinked directory without mutating its target"
+}
+
 test_shell_trace_does_not_expose_the_webhook() {
   local home path webhook setup_trace send_trace before after
   home=$(make_home trace)
@@ -232,6 +257,7 @@ test_explicit_harmless_test() {
 test_absent_configuration_is_inert
 test_setup_atomically_replaces_a_symlink
 test_setup_rejects_a_directory_target
+test_setup_rejects_a_symlink_to_a_directory
 test_shell_trace_does_not_expose_the_webhook
 test_direct_send_shapes_one_way_payload
 test_direct_send_has_no_deduplication
