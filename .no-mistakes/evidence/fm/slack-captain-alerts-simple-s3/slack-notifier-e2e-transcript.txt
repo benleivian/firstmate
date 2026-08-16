@@ -1,0 +1,27 @@
+$ fm-slack-notify.sh setup  # webhook supplied over hidden stdin
+Paste Slack Incoming Webhook URL: 
+slack-notify: configured
+stored secret mode: 600 (content intentionally not displayed)
+
+$ fm-slack-notify.sh test
+slack-notify: test delivered
+
+$ printf <captain action> | fm-slack-notify.sh send
+send exit: 0; local output bytes: 0
+unconfigured send exit: 0; local output bytes: 0; webhook requests before/after: 2/2
+
+Fake endpoint received (webhook URL/secret omitted):
+[
+  {
+    "path": "/captain-alert",
+    "body": {
+      "text": "Firstmate Slack setup test. No action is required.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."
+    }
+  },
+  {
+    "path": "/captain-alert",
+    "body": {
+      "text": "Release alpha needs your approval.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."
+    }
+  }
+]
