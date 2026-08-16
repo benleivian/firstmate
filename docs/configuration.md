@@ -106,6 +106,14 @@ That keeps a tmux pane nested inside herdr on the tmux transport, matching the r
 Target detection uses `FM_SUPERVISOR_TARGET`, then `$TMUX_PANE`, then `"${HERDR_SESSION:-default}:${HERDR_PANE_ID}"` under herdr, then the legacy `firstmate:0` tmux fallback with a warning.
 Selecting any other supervisor backend, including `zellij`, `orca`, or `cmux`, refuses at daemon startup instead of trying tmux injection primitives against a non-tmux pane.
 
+## Direct Slack notifications (config/slack-webhook-url)
+
+`bin/fm-slack-notify.sh` can send one direct, best-effort Slack Incoming Webhook notification when Firstmate is already sending a genuine captain-action escalation through the trusted channel.
+Run `bin/fm-slack-notify.sh setup`, then `bin/fm-slack-notify.sh test`; the command's `--help` owns exact setup, rotation, disabling, and notification-only boundaries.
+The owner-only webhook file is local and gitignored, is not inherited into secondmate homes, and has no effect when absent.
+This path adds no scanner, watcher hook, event identity, deduplication state, command ingestion, approval channel, or background service.
+It is an ordinary host command independent of every primary harness and runtime backend, so no adapter-specific integration applies.
+
 ## Away-mode wedge alarm channels (config/wedge-alarm)
 
 When away-mode injection wedges past `FM_MAX_DEFER_SECS`, the sub-supervisor raises a loud, rate-limited alarm.
