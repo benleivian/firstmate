@@ -71,10 +71,10 @@ setup_webhook() {
       return 1
     }
   else
-    mkdir -m 700 -p "$CONFIG" 2>/dev/null || {
+    if ! mkdir -p "$CONFIG" 2>/dev/null || ! chmod 700 "$CONFIG" 2>/dev/null; then
       diag 'could not create the private config directory'
       return 1
-    }
+    fi
   fi
   if [ -d "$SECRET" ]; then
     diag 'webhook path must not be a directory'
@@ -174,7 +174,7 @@ post_payload() {
 }
 
 send_message() {
-  local message= payload load_rc
+  local message='' payload load_rc
   load_webhook
   load_rc=$?
   case "$load_rc" in
