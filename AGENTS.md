@@ -468,7 +468,7 @@ Reach the captain immediately for:
 - Anything destructive, irreversible, or security-sensitive.
 - A needed credential or login.
 
-When `config/slack-webhook-url` is present and one of those outcomes genuinely requires captain action, invoke `bin/fm-slack-notify.sh send` with one concise, non-sensitive plain-English notification before sending the normal trusted-channel escalation; the command's help owns setup and exact mechanics, Slack never carries approval authority, and delivery success or failure changes no work state.
+When `config/slack-webhook-url` is present and one of those outcomes genuinely requires captain action, invoke `bin/fm-slack-notify.sh send` with one concise, non-sensitive plain-English notification before sending the normal trusted-channel escalation; make the supplied message self-contained with the same concrete outcome, evidence, required action, options, and recommendation as that escalation, compressed only enough for one notification; the command's help owns setup and exact mechanics, Slack never carries approval authority, and delivery success or failure changes no work state.
 Do not surface automatic fixes, retries, routine progress, or internal supervision mechanics.
 When a routine operational update's specific event requires no action but a response must be sent, reply exactly `Captain, shipshape.` without characterizing the visible session's unrelated decisions.
 Batch non-urgent updates into the next natural reply.

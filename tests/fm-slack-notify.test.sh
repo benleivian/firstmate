@@ -88,7 +88,7 @@ count_path() {
 
 last_text() {
   local path=$1
-  jq -rs --arg path "$path" '[.[] | select(.path == $path)] | last | .body | fromjson | .text' "$REQUESTS"
+  jq -r -s --arg path "$path" '[.[] | select(.path == $path)] | last | .body | fromjson | .text' "$REQUESTS"
 }
 
 test_absent_configuration_is_inert() {
@@ -188,23 +188,19 @@ test_shell_trace_does_not_expose_the_webhook() {
 }
 
 test_direct_send_shapes_one_way_payload() {
-  local home path before after text
+  local home path before after text message='Alpha is ready for your release approval.'
   home=$(make_home success)
   path=/success
   write_webhook "$home" "$path"
   before=$(count_path "$path")
-  printf '%s\n' 'Alpha is ready for your release approval.' | \
+  printf '%s\n' "$message" | \
     FM_HOME="$home" FM_SLACK_NOTIFY_ALLOW_LOOPBACK=1 "$NOTIFY" send >/dev/null 2>&1
   after=$(count_path "$path")
   [ "$after" -eq $((before + 1)) ] || fail "direct send did not make exactly one request"
   text=$(last_text "$path")
-  printf '%s' "$text" | grep -F 'Alpha is ready for your release approval.' >/dev/null \
-    || fail "payload omitted the supplied concise captain-action message"
-  printf '%s' "$text" | grep -F 'Notification only.' >/dev/null \
-    || fail "payload omitted the notification-only boundary"
-  printf '%s' "$text" | grep -F 'decisions, approvals, credentials, and instructions' >/dev/null \
-    || fail "payload omitted trusted-channel return categories"
-  pass "direct send posts one concise notification-only payload"
+  [ "$text" = "$message" ] \
+    || fail "payload did not contain exactly the supplied notification text"
+  pass "direct send posts exactly the supplied concise notification"
 }
 
 test_direct_send_has_no_deduplication() {
@@ -249,9 +245,9 @@ test_explicit_harmless_test() {
     || fail "explicit setup test failed: $out"
   printf '%s' "$out" | grep -F 'test delivered' >/dev/null || fail "test did not report success"
   text=$(last_text /test)
-  printf '%s' "$text" | grep -F 'No action is required.' >/dev/null \
-    || fail "test message could be mistaken for a real escalation"
-  pass "explicit setup test uses the local fake endpoint and requires no Slack credential"
+  [ "$text" = 'Firstmate Slack setup test. No action is required.' ] \
+    || fail "setup test payload was not the exact harmless setup message"
+  pass "explicit setup test sends the exact harmless setup message"
 }
 
 test_absent_configuration_is_inert

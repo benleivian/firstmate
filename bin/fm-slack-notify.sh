@@ -13,8 +13,8 @@
 # Firstmate home's gitignored config/slack-webhook-url with mode 0600.
 # `send` is best-effort: absent configuration is a silent no-op, and delivery
 # failure prints one generic local diagnostic but returns success so the normal
-# trusted-channel escalation always continues. It accepts one plain-text line,
-# adds the notification-only boundary, attempts one POST, and never retries.
+# trusted-channel escalation always continues. It sends one supplied plain-text
+# line unchanged, attempts one POST, and never retries.
 # `test` sends one fixed harmless setup message and returns nonzero on failure.
 #
 # Slack is outbound notification only. Decisions, approvals, credentials, and
@@ -140,9 +140,7 @@ safe_message() {
 }
 
 payload_for() {
-  local message=$1 text
-  text=$(printf '%s\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel.' "$message")
-  printf '%s' "$text" | jq -Rs '{text:.}'
+  printf '%s' "$1" | jq -Rs '{text:.}'
 }
 
 post_payload() {
