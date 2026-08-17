@@ -1,0 +1,25 @@
+Firstmate Slack notification end-to-end evidence
+direct send exit: 0
+direct send local output bytes: 0
+setup test exit: 0
+setup test local output: slack-notify: test delivered
+absent-config send exit: 0
+absent-config local output bytes: 0
+captured POST count: 2
+captured webhook requests:
+[
+  {
+    "path": "/direct",
+    "content_type": "application/json; charset=utf-8",
+    "payload": {
+      "text": "Release v2.4 passed staging and needs your go/no-go. Choose release now or hold; recommend release now."
+    }
+  },
+  {
+    "path": "/setup-test",
+    "content_type": "application/json; charset=utf-8",
+    "payload": {
+      "text": "Firstmate Slack setup test. No action is required."
+    }
+  }
+]

@@ -1,0 +1,7 @@
+Firstmate Slack baseline regression reproduction
+executed base commit: 7adf3b5388096c2dba261ce66c672b180d1c59b5
+baseline send exit: 0
+captured baseline webhook payload:
+{
+  "text": "Release v2.4 passed staging and needs your go/no-go. Choose release now or hold; recommend release now.\n\nNotification only. Return decisions, approvals, credentials, and instructions through the trusted Firstmate captain channel."
+}
