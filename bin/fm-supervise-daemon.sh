@@ -207,8 +207,9 @@ WEDGE_ALARM_NOTIFIER_PID=
 # The captain-relevant verb set and the status classifiers (last_status_line,
 # status_is_captain_relevant, window_to_task, scan_captain_relevant_statuses) now
 # live in bin/fm-classify-lib.sh, shared with the always-on watcher.
-# Composer-empty detection, submit acknowledgement, and the harness-scoped
-# supervisor-pane busy guard live in bin/fm-tmux-lib.sh.
+# Composer-empty detection and submit acknowledgement live in
+# bin/fm-tmux-lib.sh. The supervisor-pane busy guard below composes Claude's
+# semantic turn source with the existing native/rendered delivery sources.
 # FM_BUSY_REGEX also overrides Grok's isolated task-state fallback.
 INJECT_FAIL_SLEEP_DEFAULT=30
 INJECT_CONFIRM_RETRIES_DEFAULT=3
@@ -219,6 +220,12 @@ CRASH_BACKOFF_DEFAULT=60
 CRASH_NORMAL_SLEEP_DEFAULT=5
 LOG_MAX_BYTES_DEFAULT=1048576
 LOG_KEEP_LINES_DEFAULT=2000
+# The daemon arms this private record only for a Claude primary while it owns
+# away-mode delivery. Claude lifecycle hooks update it through
+# bin/fm-primary-busy-hook.sh; a missing or unknown record falls back to the
+# existing native/rendered guard.
+FM_DAEMON_PRIMARY_BUSY_ID=.primary
+FM_DAEMON_PRIMARY_BUSY_READY=0
 
 # --- presence-gating --------------------------------------------------------
 # bin/fm-operational-input.sh owns the U+2063 FIRSTMATE_OP bytes and typed
@@ -572,10 +579,10 @@ mark_escalated_seen() {  # <kind> <arg> <state>
 # case statement here). <backend> defaults to tmux when omitted, so every
 # existing caller/test that passes only <target> is unaffected.
 #
-# This rendered reader applies only to the supervisor pane during away-mode
-# injection. It never classifies a recorded worker task. The detected primary
-# harness selects exactly one signature, so output from another harness cannot
-# make the primary read busy.
+# This guard applies only to the supervisor pane during away-mode injection.
+# It never classifies a recorded worker task. Claude's daemon-owned semantic
+# record wins when exact; otherwise the detected primary harness selects one
+# rendered signature, so output from another harness cannot make it read busy.
 #
 # Resolved lazily and memoized: harness detection walks process ancestry, which
 # is too heavy to pay on every source of this library (the unit tests and the
@@ -589,8 +596,16 @@ fm_daemon_primary_harness() {
 }
 
 pane_is_busy() {  # <target> [backend]
-  local target=$1 backend=${2:-tmux} native tail40 harness
+  local target=$1 backend=${2:-tmux} native tail40 harness semantic
   harness=$(fm_daemon_primary_harness)
+  if [ "$harness" = claude ] && [ "$FM_DAEMON_PRIMARY_BUSY_READY" = 1 ]; then
+    semantic=$(fm_busy_classify "$backend" "$target" "$harness" \
+      "$FM_DAEMON_PRIMARY_BUSY_ID" "$(_state_root)")
+    case "${semantic%% *}" in
+      busy) return 0 ;;
+      idle) return 1 ;;
+    esac
+  fi
   native=$(fm_backend_busy_state "$backend" "$target" 2>/dev/null)
   case "$native" in
     busy) return 0 ;;
@@ -1361,6 +1376,7 @@ fm_super_main() {
   local LOCK="$STATE/.supervise-daemon.lock"
   local PIDFILE="$STATE/.supervise-daemon.pid"
   local INJECT_FAIL_SLEEP=${FM_INJECT_FAIL_SLEEP:-$INJECT_FAIL_SLEEP_DEFAULT}
+  local PRIMARY_BUSY_GEN=""
   local CRASH_THRESHOLD=${FM_CRASH_THRESHOLD:-$CRASH_THRESHOLD_DEFAULT}
   local CRASH_WINDOW=${FM_CRASH_WINDOW:-$CRASH_WINDOW_DEFAULT}
   local CRASH_BACKOFF=${FM_CRASH_BACKOFF:-$CRASH_BACKOFF_DEFAULT}
@@ -1454,6 +1470,20 @@ fm_super_main() {
     exit 1
   fi
 
+  # A Claude primary can keep Herdr's native agent_status=working while an
+  # intentionally tracked background shell (including this daemon) survives
+  # between turns. Arm a fresh unknown record before relying on Claude's own
+  # turn hooks, so no stale idle verdict from an earlier daemon can be trusted.
+  if [ "$(fm_daemon_primary_harness)" = claude ]; then
+    if PRIMARY_BUSY_GEN=$("$FM_DAEMON_DIR/fm-busy-event.sh" arm "$STATE" \
+      "$FM_DAEMON_PRIMARY_BUSY_ID" --state unknown --source fm-recovery \
+      --event daemon-start 2>/dev/null); then
+      FM_DAEMON_PRIMARY_BUSY_READY=1
+    else
+      log "primary busy source unavailable; preserving native/rendered delivery guard"
+    fi
+  fi
+
   local afk_status="off"
   afk_active "$STATE" && afk_status="on"
   log "daemon starting (pid $$); target=$TARGET; target_source=$target_source; backend=$BACKEND; backend_source=$backend_source; afk=$afk_status; inject_skip='${FM_INJECT_SKIP:-$INJECT_SKIP_DEFAULT}'; stale_escalate=${FM_STALE_ESCALATE_SECS:-$STALE_ESCALATE_SECS_DEFAULT}s; batch=${FM_ESCALATE_BATCH_SECS:-$ESCALATE_BATCH_SECS_DEFAULT}s"
@@ -1471,6 +1501,10 @@ fm_super_main() {
     fi
     if [ -n "${CUR_TMP:-}" ]; then
       rm -f "$CUR_TMP" 2>/dev/null || true
+    fi
+    if [ -n "$PRIMARY_BUSY_GEN" ]; then
+      "$FM_DAEMON_DIR/fm-busy-event.sh" retire "$STATE" \
+        "$FM_DAEMON_PRIMARY_BUSY_ID" --gen "$PRIMARY_BUSY_GEN" >/dev/null 2>&1 || true
     fi
     fm_lock_release "$LOCK" 2>/dev/null || true
     rm -f "$PIDFILE" 2>/dev/null || true

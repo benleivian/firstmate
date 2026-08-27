@@ -1772,6 +1772,90 @@ test_pane_is_busy_herdr_native_busy_state() {
   pass "pane_is_busy: herdr native busy_state='busy' short-circuits without a capture fallback"
 }
 
+test_primary_busy_hook_tracks_claude_turns() {
+  local dir state gen out
+  dir=$(make_supercase primary-claude-hook)
+  state="$dir/state"
+  gen=$("$ROOT/bin/fm-busy-event.sh" arm "$state" .primary \
+    --state unknown --source fm-recovery --event daemon-start)
+
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-primary-busy-hook.sh" busy user-prompt-submit
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "busy claude-hook" ] || fail "primary submit hook did not report busy: $out"
+
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-primary-busy-hook.sh" idle stop
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "idle claude-hook" ] || fail "primary stop hook did not report idle: $out"
+
+  "$ROOT/bin/fm-busy-event.sh" retire "$state" .primary --gen "$gen"
+  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-primary-busy-hook.sh" busy user-prompt-submit \
+    || fail "primary hook should be inert outside an armed away daemon"
+  assert_absent "$state/.primary.busy-state" "inert primary hook recreated a retired record"
+  pass "primary Claude hooks report busy/idle only while the away daemon owns a generation"
+}
+
+test_claude_semantic_busy_precedes_herdr_native_for_injection() {
+  local dir state gen
+  dir=$(make_supercase primary-claude-semantic)
+  state="$dir/state"
+  afk_enter "$state"
+  gen=$("$ROOT/bin/fm-busy-event.sh" arm "$state" .primary \
+    --state idle --source claude-hook --event stop)
+  escalate_add "$state" "fake.status: done: ready"
+
+  (
+    fm_backend_target_exists() { return 0; }
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { fail "native busy must not override Claude's exact semantic idle"; }
+    fm_backend_composer_state() { printf 'empty'; }
+    fm_backend_send_text_submit() { printf 'empty'; }
+    FM_DAEMON_PRIMARY_BUSY_READY=1
+    FM_DAEMON_PRIMARY_HARNESS=claude
+    FM_SUPERVISOR_BACKEND=herdr
+    FM_SUPERVISOR_TARGET=default:w1:p2
+    FM_STATE_OVERRIDE="$state"
+    export FM_DAEMON_PRIMARY_BUSY_READY FM_DAEMON_PRIMARY_HARNESS
+    export FM_SUPERVISOR_BACKEND FM_SUPERVISOR_TARGET FM_STATE_OVERRIDE
+    escalate_flush "$state" \
+      || fail "an idle Claude primary should accept the queued escalation despite Herdr native busy"
+  ) || fail "semantic-idle escalation subshell failed"
+  [ ! -s "$state/.subsuper-escalations" ] \
+    || fail "successful semantic-idle delivery left the escalation buffered"
+
+  "$ROOT/bin/fm-busy-event.sh" apply "$state" .primary busy --gen "$gen" \
+    --source claude-hook --event user-prompt-submit
+  escalate_add "$state" "fake.status: done: still ready"
+  (
+    fm_backend_target_exists() { return 0; }
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { fail "native idle must not override Claude's exact semantic busy"; }
+    fm_backend_composer_state() { fail "composer must not be read during a genuine Claude turn"; }
+    fm_backend_send_text_submit() { fail "submit must not run during a genuine Claude turn"; }
+    FM_DAEMON_PRIMARY_BUSY_READY=1
+    FM_DAEMON_PRIMARY_HARNESS=claude
+    FM_SUPERVISOR_BACKEND=herdr
+    FM_SUPERVISOR_TARGET=default:w1:p2
+    FM_STATE_OVERRIDE="$state"
+    export FM_DAEMON_PRIMARY_BUSY_READY FM_DAEMON_PRIMARY_HARNESS
+    export FM_SUPERVISOR_BACKEND FM_SUPERVISOR_TARGET FM_STATE_OVERRIDE
+    if escalate_flush "$state"; then
+      fail "a genuinely mid-turn Claude primary should defer the queued escalation"
+    fi
+  ) || fail "semantic-busy escalation subshell failed"
+  [ -s "$state/.subsuper-escalations" ] \
+    || fail "semantic-busy deferral lost the queued escalation"
+
+  printf 'malformed\n' > "$state/.primary.busy-state"
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { fail "unknown semantic state should preserve native busy deferral"; }
+    FM_DAEMON_PRIMARY_BUSY_READY=1 FM_DAEMON_PRIMARY_HARNESS=claude \
+      FM_STATE_OVERRIDE="$state" pane_is_busy default:w1:p2 herdr \
+      || fail "unknown Claude semantic state weakened the existing native busy guard"
+  ) || fail "semantic-unknown fallback subshell failed"
+  pass "Claude semantic idle delivers over false Herdr busy, semantic busy defers, and unknown preserves the old guard"
+}
+
 test_primary_busy_guard_is_harness_scoped() {
   (
     fm_backend_busy_state() { printf 'unknown'; }
@@ -2017,6 +2101,8 @@ test_fm_send_exits_nonzero_on_unproven_submit
 test_discover_supervisor_backend_precedence
 test_discover_supervisor_target_herdr
 test_pane_is_busy_herdr_native_busy_state
+test_primary_busy_hook_tracks_claude_turns
+test_claude_semantic_busy_precedes_herdr_native_for_injection
 test_primary_busy_guard_is_harness_scoped
 test_pane_is_busy_defaults_to_tmux_when_backend_omitted
 test_pane_input_pending_herdr_dispatch

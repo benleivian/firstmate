@@ -288,6 +288,8 @@ There is still one watcher process; the event reader is a bounded child of that 
 The away daemon supports tmux and Herdr supervisor panes only.
 It refuses Zellij, Orca, and cmux as supervisor backends rather than applying the wrong transport.
 For Herdr, target existence, native state, capture, composer state, and verified submit all route through the shared backend dispatcher and the explicit named-session CLI owner.
+A Claude primary is the narrow exception to native-state precedence: while the daemon is active, Claude's own turn hooks report semantic busy or idle through `bin/fm-busy-lib.sh`, and an exact verdict outranks Herdr native state because a tracked background shell can keep native `agent_status` working after Claude has ended the turn.
+An unavailable or unknown hook verdict preserves the native-then-rendered guard, and every other harness keeps that path unchanged.
 The pane-independent max-defer alert is configured in [`wedge-alarm.md`](wedge-alarm.md).
 
 Harnesses with native tracked background execution can run the daemon in their terminal.
