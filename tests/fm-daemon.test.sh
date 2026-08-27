@@ -1773,25 +1773,81 @@ test_pane_is_busy_herdr_native_busy_state() {
 }
 
 test_primary_busy_hook_tracks_claude_turns() {
-  local dir state gen out
+  local dir home state gen out fake_claude submit_cmd stop_cmd owner_pid status
   dir=$(make_supercase primary-claude-hook)
-  state="$dir/state"
+  home="$dir/home"
+  state="$home/state"
+  mkdir -p "$state" "$home/bin"
+  git init -q "$home"
+  git -C "$home" commit -q --allow-empty -m init
+  : > "$home/AGENTS.md"
+  ln -s /bin/bash "$dir/fakebin/claude"
+  fake_claude="$dir/fakebin/claude"
   gen=$("$ROOT/bin/fm-busy-event.sh" arm "$state" .primary \
     --state unknown --source fm-recovery --event daemon-start)
+  submit_cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$ROOT/.claude/settings.json")
+  stop_cmd=$(jq -r '.hooks.Stop[0].hooks[0].command' "$ROOT/.claude/settings.json")
 
-  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-primary-busy-hook.sh" busy user-prompt-submit
+  run_owned_hook() {
+    local command=$1 payload=$2
+    FM_ROOT_OVERRIDE="$home" FM_HOME="$home" CLAUDE_PROJECT_DIR="$ROOT" \
+      FM_TEST_HOOK_COMMAND="$command" FM_TEST_HOOK_PAYLOAD="$payload" \
+      "$fake_claude" -c '
+        printf "%s\n" "$$" > "$FM_HOME/state/.lock"
+        printf "%s" "$FM_TEST_HOOK_PAYLOAD" | bash -c "$FM_TEST_HOOK_COMMAND"
+        rc=$?
+        exit "$rc"
+      '
+  }
+
+  run_owned_hook "$submit_cmd" '{"hook_event_name":"UserPromptSubmit","session_id":"owner"}' \
+    || fail "lock-owning primary submit hook failed"
   out=$(fm_busy_classify tmux fake claude .primary "$state")
   [ "$out" = "busy claude-hook" ] || fail "primary submit hook did not report busy: $out"
 
-  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-primary-busy-hook.sh" idle stop
+  run_owned_hook "$stop_cmd" '{"hook_event_name":"Stop","session_id":"owner","stop_hook_active":false}' \
+    || fail "accepted Stop boundary failed"
   out=$(fm_busy_classify tmux fake claude .primary "$state")
-  [ "$out" = "idle claude-hook" ] || fail "primary stop hook did not report idle: $out"
+  [ "$out" = "idle claude-hook" ] || fail "accepted Stop boundary did not report idle: $out"
+
+  : > "$state/task.meta"
+  run_owned_hook "$submit_cmd" '{"hook_event_name":"UserPromptSubmit","session_id":"owner"}'
+  status=0
+  run_owned_hook "$stop_cmd" '{"hook_event_name":"Stop","session_id":"owner","stop_hook_active":false}' \
+    >/dev/null 2>&1 || status=$?
+  expect_code 2 "$status" "forced Stop continuation must preserve the hook refusal"
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "busy claude-hook" ] \
+    || fail "forced Stop continuation published false idle: $out"
+  rm -f "$state/task.meta"
+
+  "$ROOT/bin/fm-busy-event.sh" apply "$state" .primary idle --gen "$gen" \
+    --source claude-hook --event test-reset
+  FM_HOME="$home" "$fake_claude" -c 'sleep 20; :' &
+  owner_pid=$!
+  printf '%s\n' "$owner_pid" > "$state/.lock"
+  printf '%s' '{"hook_event_name":"UserPromptSubmit","session_id":"competitor"}' \
+    | FM_ROOT_OVERRIDE="$home" FM_HOME="$home" CLAUDE_PROJECT_DIR="$ROOT" \
+      "$fake_claude" -c '
+        "$CLAUDE_PROJECT_DIR/bin/fm-primary-busy-hook.sh" busy user-prompt-submit
+        rc=$?
+        exit "$rc"
+      '
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "idle claude-hook" ] || fail "non-owner mutated the primary verdict: $out"
+  kill "$owner_pid" 2>/dev/null || true
+  wait "$owner_pid" 2>/dev/null || true
+
+  run_owned_hook "$submit_cmd" \
+    '{"hook_event_name":"UserPromptSubmit","session_id":"foreign","cursor_version":"2026.08.11"}'
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "idle claude-hook" ] || fail "foreign hook host mutated the primary verdict: $out"
 
   "$ROOT/bin/fm-busy-event.sh" retire "$state" .primary --gen "$gen"
-  FM_STATE_OVERRIDE="$state" "$ROOT/bin/fm-primary-busy-hook.sh" busy user-prompt-submit \
+  run_owned_hook "$submit_cmd" '{"hook_event_name":"UserPromptSubmit","session_id":"owner"}' \
     || fail "primary hook should be inert outside an armed away daemon"
   assert_absent "$state/.primary.busy-state" "inert primary hook recreated a retired record"
-  pass "primary Claude hooks report busy/idle only while the away daemon owns a generation"
+  pass "primary Claude hooks publish only accepted owner-session lifecycle transitions"
 }
 
 test_claude_semantic_busy_precedes_herdr_native_for_injection() {

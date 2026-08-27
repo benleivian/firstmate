@@ -263,6 +263,22 @@ Observed 2026-08-19:
 ok - live Herdr submit confirm: Claude Code (2.1.236 (Claude Code)) on herdr 0.8.0 reports empty for a landed idle steer
 ```
 
+### Claude primary semantic busy guard
+
+Measured 2026-08-27 against Herdr 0.7.4 and Claude Code 2.1.247 in an isolated named lab with the default-session tripwire intact.
+The live guard asked Claude to keep a tracked background Bash `sleep` alive, observed `idle claude-hook` concurrently with Herdr native `busy`, and delivered a queued escalation through the real semantic, composer, and submit guards.
+Refresh the proof with:
+
+```sh
+FM_PRIMARY_BUSY_HERDR_LIVE=1 tests/fm-primary-busy-herdr-live-e2e.test.sh
+```
+
+Observed 2026-08-27:
+
+```text
+ok - live Claude primary busy guard: 2.1.247 (Claude Code) on herdr 0.7.4 reproduces native busy at semantic idle and delivers in an isolated named lab
+```
+
 ### Prune and respawn
 
 The real label-collision reproduction is owned by:

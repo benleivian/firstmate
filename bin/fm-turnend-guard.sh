@@ -143,6 +143,23 @@ fi
 # so this exempts them while guarding every real secondmate home.
 fm_primary_scope_matches "$FM_ROOT" "$STATE" || exit 0
 
+claude_publish_turn_state() {  # <busy|idle> <event>
+  [ "$CLAUDE_MODE" -eq 1 ] || return 0
+  printf '%s' "$PAYLOAD" \
+    | "$SCRIPT_DIR/fm-primary-busy-hook.sh" "$1" "$2" >/dev/null 2>&1 \
+    || true
+}
+
+allow_stop() {  # [busy|idle] [event]
+  claude_publish_turn_state "${1:-idle}" "${2:-stop}"
+  exit 0
+}
+
+continue_turn() {  # [event]
+  claude_publish_turn_state busy "${1:-stop-continuation}"
+  exit 2
+}
+
 # --- the actual predicate ----------------------------------------------------
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
@@ -163,12 +180,12 @@ budget_reset() {
 fm_supervision_status "$STATE" "$GRACE"
 if [ "$FM_SUP_NEEDED" = false ]; then
   [ -e "$FAILURE_NOTICE" ] || budget_reset
-  exit 0
+  allow_stop
 fi
 if fm_watcher_healthy "$STATE" "$WATCH" "$GRACE" "$FM_HOME"; then
   [ "$CLAUDE_MODE" -eq 1 ] || exit 0
-  fm_failure_episode_reset "$STATE" && exit 0
-  exit 2
+  fm_failure_episode_reset "$STATE" && allow_stop
+  continue_turn stop-recovery
 fi
 
 block_stop() {
@@ -196,7 +213,7 @@ block_stop() {
     printf '●  %s\n' "$reason"
     printf '●%s\n' "$rule"
   } >&2
-  exit 2
+  continue_turn
 }
 
 if [ "$CLAUDE_MODE" -eq 0 ]; then
@@ -258,7 +275,11 @@ budget_account_current_epoch() {
 
 autoarm_owns_recovery() {
   local pid role outcome age
-  fm_watcher_healthy "$STATE" "$WATCH" "$GRACE" "$FM_HOME" && return 0
+  AUTOARM_RECOVERY_KIND=
+  if fm_watcher_healthy "$STATE" "$WATCH" "$GRACE" "$FM_HOME"; then
+    AUTOARM_RECOVERY_KIND=watcher
+    return 0
+  fi
   pid=$(cat "$OWNER_LOCK/pid" 2>/dev/null || true)
   role=$(fm_lock_role "$OWNER_LOCK" 2>/dev/null || true)
   # A live auto-arm owner is only evidence of ownership while its supervision
@@ -271,6 +292,7 @@ autoarm_owns_recovery() {
   if fm_pid_alive "$pid" && [ "$role" = autoarm ] \
     && ! fm_autoarm_claim_abandoned "$STATE"; then
     [ ! -e "$FAILURE_NOTICE" ] || budget_account_current_epoch || true
+    AUTOARM_RECOVERY_KIND=claim
     return 0
   fi
   outcome=$(sed -n 's/^.*outcome=\([a-z][a-z-]*\) .*$/\1/p' "$STATE/.claude-autoarm-epoch" 2>/dev/null || true)
@@ -279,6 +301,7 @@ autoarm_owns_recovery() {
       age=$(fm_path_age "$STATE/.claude-autoarm-epoch")
       if [ "$age" -lt "$EPOCH_FRESH" ]; then
         [ ! -e "$FAILURE_NOTICE" ] || budget_account_current_epoch || true
+        AUTOARM_RECOVERY_KIND=rewake
         return 0
       fi
       ;;
@@ -286,7 +309,10 @@ autoarm_owns_recovery() {
       age=$(fm_path_age "$STATE/.claude-autoarm-epoch")
       if [ "$age" -lt "$EPOCH_FRESH" ] && [ -e "$FAILURE_NOTICE" ] \
         && budget_account_current_epoch; then
-        [ "$BUDGET_INITIALIZED_FAILURE" -eq 1 ] && return 0
+        if [ "$BUDGET_INITIALIZED_FAILURE" -eq 1 ]; then
+          AUTOARM_RECOVERY_KIND=rewake
+          return 0
+        fi
       fi
       ;;
     failed-suppressed)
@@ -377,18 +403,24 @@ i=0
 while [ "$i" -lt $((SYNC_WAIT_MS / 100)) ]; do
   if autoarm_owns_recovery; then
     if fm_watcher_healthy "$STATE" "$WATCH" "$GRACE" "$FM_HOME"; then
-      fm_failure_episode_reset "$STATE" || exit 2
+      fm_failure_episode_reset "$STATE" || continue_turn stop-recovery
     fi
-    exit 0
+    if [ "$AUTOARM_RECOVERY_KIND" = rewake ]; then
+      allow_stop busy autoarm-rewake
+    fi
+    allow_stop
   fi
   sleep 0.1
   i=$((i + 1))
 done
 if autoarm_owns_recovery; then
   if fm_watcher_healthy "$STATE" "$WATCH" "$GRACE" "$FM_HOME"; then
-    fm_failure_episode_reset "$STATE" || exit 2
+    fm_failure_episode_reset "$STATE" || continue_turn stop-recovery
   fi
-  exit 0
+  if [ "$AUTOARM_RECOVERY_KIND" = rewake ]; then
+    allow_stop busy autoarm-rewake
+  fi
+  allow_stop
 fi
 
 # The auto-arm genuinely failed to establish: consume the bounded re-block
@@ -405,7 +437,7 @@ if [ "$terminal_status" -eq 0 ]; then
     NEED_DESC="X-mode relay polling active"
   fi
   printf '{"systemMessage":"FIRSTMATE SUPERVISION IS GENUINELY DOWN: %s, the Stop-owned auto-arm exhausted its bounded retries and one failure notice, no watcher or automatic continuation exists, and the block budget is exhausted. Keep this session attended and diagnose the automatic Stop-hook and watcher startup before relying on unattended supervision."}\n' "$NEED_DESC"
-  exit 0
+  allow_stop
 fi
-[ "$terminal_status" -eq 2 ] && exit 0
+[ "$terminal_status" -eq 2 ] && allow_stop
 block_stop

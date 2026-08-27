@@ -93,6 +93,7 @@ injection, dispatched through `bin/fm-backend.sh` for the supervisor's own
 backend (tmux or herdr; see "Auto-discovered supervisor pane" below):
 
 - **Primary-pane busy guard** - for a Claude primary, the daemon arms Claude's hook-owned semantic turn record and trusts its exact `busy` or `idle` verdict ahead of Herdr native state.
+  Only the lock-owning native Claude primary may update that record, Stop publishes idle only from the shared accepted-turn boundary, and either continuation path restores busy before its exit-2 rewake.
   A missing, malformed, or unknown semantic verdict preserves the prior guard: Herdr native `busy` wins when available, otherwise rendered output is matched against only the detected primary harness's signature.
   Other primary harnesses keep that native-then-rendered path unchanged.
   This narrow delivery guard never classifies a recorded worker task and never uses a global union of vendor patterns.

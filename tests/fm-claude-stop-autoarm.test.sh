@@ -33,8 +33,12 @@ install_autoarm_scripts() {
   cp "$ROOT/bin/fm-session-lock-lib.sh" "$dir/bin/fm-session-lock-lib.sh"
   cp "$ROOT/bin/fm-cursor-lib.sh" "$dir/bin/fm-cursor-lib.sh"
   cp "$ROOT/bin/fm-hook-host-lib.sh" "$dir/bin/fm-hook-host-lib.sh"
+  cp "$ROOT/bin/fm-primary-busy-hook.sh" "$dir/bin/fm-primary-busy-hook.sh"
+  cp "$ROOT/bin/fm-busy-event.sh" "$dir/bin/fm-busy-event.sh"
+  cp "$ROOT/bin/fm-busy-lib.sh" "$dir/bin/fm-busy-lib.sh"
   cp "$ROOT/bin/fm-lock.sh" "$dir/bin/fm-lock.sh"
-  chmod +x "$dir/bin/fm-claude-stop-autoarm.sh" "$dir/bin/fm-lock.sh"
+  chmod +x "$dir/bin/fm-claude-stop-autoarm.sh" "$dir/bin/fm-primary-busy-hook.sh" \
+    "$dir/bin/fm-busy-event.sh" "$dir/bin/fm-lock.sh"
 }
 
 make_primary_dir() {
@@ -331,10 +335,12 @@ test_inert_when_fleet_idle() {
 # --- the armed cycle ----------------------------------------------------------
 
 test_actionable_close_rewakes_with_reason() {
-  local dir out status
+  local dir out status verdict
   dir=$(make_primary_dir "$TMP_ROOT/actionable")
   : > "$dir/state/task.meta"
   write_arm_fixture "$dir" actionable
+  "$dir/bin/fm-busy-event.sh" arm "$dir/state" .primary \
+    --state idle --source claude-hook --event stop >/dev/null
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
   expect_code 2 "$status" "an actionable arm close must exit 2 so Claude rewakes"
   assert_contains "$out" "firstmate watcher wake" "rewake must carry the wake banner"
@@ -344,7 +350,11 @@ test_actionable_close_rewakes_with_reason() {
   [ "$(epoch_outcome "$dir")" = rewake ] || fail "epoch must record outcome=rewake, got: $(epoch_outcome "$dir")"
   [ ! -e "$dir/state/.claude-autoarm.lock" ] || fail "owner lock must be released after the cycle"
   [ -e "$dir/state/arm-ran" ] || fail "hook never foregrounded the arm wrapper"
-  pass "auto-arm: actionable close translates to exactly one exit-2 rewake with reason"
+  verdict=$(bash -c '. "$1"; fm_busy_classify tmux fake claude .primary "$2"' \
+    _ "$dir/bin/fm-busy-lib.sh" "$dir/state")
+  [ "$verdict" = "busy claude-hook" ] \
+    || fail "actionable auto-arm continuation did not restore semantic busy: $verdict"
+  pass "auto-arm: actionable close restores busy and exits 2 with its reason"
 }
 
 test_actionable_close_with_live_successor_rewakes_once() {
