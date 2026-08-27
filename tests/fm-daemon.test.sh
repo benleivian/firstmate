@@ -1790,6 +1790,7 @@ test_primary_busy_hook_tracks_claude_turns() {
 
   run_owned_hook() {
     local command=$1 payload=$2
+    # shellcheck disable=SC2016 # Expand these variables in the child shell.
     FM_ROOT_OVERRIDE="$home" FM_HOME="$home" CLAUDE_PROJECT_DIR="$ROOT" \
       FM_TEST_HOOK_COMMAND="$command" FM_TEST_HOOK_PAYLOAD="$payload" \
       "$fake_claude" -c '
@@ -1826,6 +1827,7 @@ test_primary_busy_hook_tracks_claude_turns() {
   FM_HOME="$home" "$fake_claude" -c 'sleep 20; :' &
   owner_pid=$!
   printf '%s\n' "$owner_pid" > "$state/.lock"
+  # shellcheck disable=SC2016 # Expand these variables in the child shell.
   printf '%s' '{"hook_event_name":"UserPromptSubmit","session_id":"competitor"}' \
     | FM_ROOT_OVERRIDE="$home" FM_HOME="$home" CLAUDE_PROJECT_DIR="$ROOT" \
       "$fake_claude" -c '
