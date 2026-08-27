@@ -1,0 +1,1 @@
+ok - live Claude primary busy guard: 2.1.247 (Claude Code) on herdr 0.7.4 reproduces native busy at semantic idle and delivers in an isolated named lab
