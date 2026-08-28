@@ -89,6 +89,12 @@ esac
 # is inspected before anything else runs.
 PAYLOAD=$(cat 2>/dev/null || true)
 
+publish_rewake_busy() {
+  printf '%s' "$PAYLOAD" \
+    | "$SCRIPT_DIR/fm-primary-busy-hook.sh" busy autoarm-rewake >/dev/null 2>&1 \
+    || true
+}
+
 # Cursor loads the tracked Claude settings too. Cursor has no asyncRewake, so if
 # a future Cursor build starts firing the Claude-shaped Stop entry, this arm
 # would run SYNCHRONOUSLY inside Cursor's stop step and hold that turn open for
@@ -245,6 +251,7 @@ if [ "$HEALTHY" -eq 1 ]; then
   write_epoch failed-suppressed
   [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
   [ -e "$FAILURE_ALARM" ] && exit 0
+  publish_rewake_busy
   exit 2
 fi
 
@@ -264,6 +271,7 @@ if [ "$ACTIONABLE" -eq 1 ]; then
     printf 'Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.\n'
   } >&2
   [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
+  publish_rewake_busy
   exit 2
 fi
 
@@ -279,8 +287,10 @@ if [ ! -e "$FAILURE_NOTICE" ]; then
   } >&2
   : > "$FAILURE_NOTICE" 2>/dev/null || true
   [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
+  publish_rewake_busy
   exit 2
 fi
 write_epoch failed-suppressed
 [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
+publish_rewake_busy
 exit 2

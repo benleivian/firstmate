@@ -193,6 +193,7 @@ family_for_basename() {
     fm-grok-stop-live-e2e.test.sh|fm-harness-liveness-drift-live-e2e.test.sh|\
     fm-muse-signals-live-e2e.test.sh|\
     fm-herdr-version-floor-live-e2e.test.sh|\
+    fm-primary-busy-herdr-live-e2e.test.sh|\
     fm-opencode-primary-live-e2e.test.sh|fm-pi-primary-live-e2e.test.sh|\
     fm-sessionstart-hook-live-e2e.test.sh|fm-sessionstart-instruction-refresh-live-e2e.test.sh|\
     fm-quota-array-dispatch-live-e2e.test.sh|fm-send-secondmate-marker-herdr-e2e.test.sh|\
@@ -934,8 +935,14 @@ families_for_changed_path() {
       printf '%s\n' real-herdr-gated
       ;;
     bin/fm-watch*|bin/fm-wake*|bin/fm-inactive-reconcile.sh|\
+    bin/fm-claude-stop-autoarm.sh|bin/fm-primary-busy-hook.sh|bin/fm-session-lock-lib.sh|\
     bin/fm-classify-lib.sh|bin/fm-daemon*|bin/fm-turnend-guard*|bin/fm-guard.sh)
       printf '%s\n' watcher-wake-lock
+      case "$path" in
+        bin/fm-claude-stop-autoarm.sh|bin/fm-primary-busy-hook.sh|bin/fm-session-lock-lib.sh)
+          printf '%s\n' live-harness-optin
+          ;;
+      esac
       ;;
     bin/fm-afk*)
       printf '%s\n' afk

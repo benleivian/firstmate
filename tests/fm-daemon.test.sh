@@ -1772,6 +1772,148 @@ test_pane_is_busy_herdr_native_busy_state() {
   pass "pane_is_busy: herdr native busy_state='busy' short-circuits without a capture fallback"
 }
 
+test_primary_busy_hook_tracks_claude_turns() {
+  local dir home state gen out fake_claude submit_cmd stop_cmd owner_pid status
+  dir=$(make_supercase primary-claude-hook)
+  home="$dir/home"
+  state="$home/state"
+  mkdir -p "$state" "$home/bin"
+  git init -q "$home"
+  git -C "$home" commit -q --allow-empty -m init
+  : > "$home/AGENTS.md"
+  ln -s /bin/bash "$dir/fakebin/claude"
+  fake_claude="$dir/fakebin/claude"
+  gen=$("$ROOT/bin/fm-busy-event.sh" arm "$state" .primary \
+    --state unknown --source fm-recovery --event daemon-start)
+  submit_cmd=$(jq -r '.hooks.UserPromptSubmit[0].hooks[0].command' "$ROOT/.claude/settings.json")
+  stop_cmd=$(jq -r '.hooks.Stop[0].hooks[0].command' "$ROOT/.claude/settings.json")
+
+  run_owned_hook() {
+    local command=$1 payload=$2
+    # shellcheck disable=SC2016 # Expand these variables in the child shell.
+    FM_ROOT_OVERRIDE="$home" FM_HOME="$home" CLAUDE_PROJECT_DIR="$ROOT" \
+      FM_TEST_HOOK_COMMAND="$command" FM_TEST_HOOK_PAYLOAD="$payload" \
+      "$fake_claude" -c '
+        printf "%s\n" "$$" > "$FM_HOME/state/.lock"
+        printf "%s" "$FM_TEST_HOOK_PAYLOAD" | bash -c "$FM_TEST_HOOK_COMMAND"
+        rc=$?
+        exit "$rc"
+      '
+  }
+
+  run_owned_hook "$submit_cmd" '{"hook_event_name":"UserPromptSubmit","session_id":"owner"}' \
+    || fail "lock-owning primary submit hook failed"
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "busy claude-hook" ] || fail "primary submit hook did not report busy: $out"
+
+  run_owned_hook "$stop_cmd" '{"hook_event_name":"Stop","session_id":"owner","stop_hook_active":false}' \
+    || fail "accepted Stop boundary failed"
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "idle claude-hook" ] || fail "accepted Stop boundary did not report idle: $out"
+
+  : > "$state/task.meta"
+  run_owned_hook "$submit_cmd" '{"hook_event_name":"UserPromptSubmit","session_id":"owner"}'
+  status=0
+  run_owned_hook "$stop_cmd" '{"hook_event_name":"Stop","session_id":"owner","stop_hook_active":false}' \
+    >/dev/null 2>&1 || status=$?
+  expect_code 2 "$status" "forced Stop continuation must preserve the hook refusal"
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "busy claude-hook" ] \
+    || fail "forced Stop continuation published false idle: $out"
+  rm -f "$state/task.meta"
+
+  "$ROOT/bin/fm-busy-event.sh" apply "$state" .primary idle --gen "$gen" \
+    --source claude-hook --event test-reset
+  FM_HOME="$home" "$fake_claude" -c 'sleep 20; :' &
+  owner_pid=$!
+  printf '%s\n' "$owner_pid" > "$state/.lock"
+  # shellcheck disable=SC2016 # Expand these variables in the child shell.
+  printf '%s' '{"hook_event_name":"UserPromptSubmit","session_id":"competitor"}' \
+    | FM_ROOT_OVERRIDE="$home" FM_HOME="$home" CLAUDE_PROJECT_DIR="$ROOT" \
+      "$fake_claude" -c '
+        "$CLAUDE_PROJECT_DIR/bin/fm-primary-busy-hook.sh" busy user-prompt-submit
+        rc=$?
+        exit "$rc"
+      '
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "idle claude-hook" ] || fail "non-owner mutated the primary verdict: $out"
+  kill "$owner_pid" 2>/dev/null || true
+  wait "$owner_pid" 2>/dev/null || true
+
+  run_owned_hook "$submit_cmd" \
+    '{"hook_event_name":"UserPromptSubmit","session_id":"foreign","cursor_version":"2026.08.11"}'
+  out=$(fm_busy_classify tmux fake claude .primary "$state")
+  [ "$out" = "idle claude-hook" ] || fail "foreign hook host mutated the primary verdict: $out"
+
+  "$ROOT/bin/fm-busy-event.sh" retire "$state" .primary --gen "$gen"
+  run_owned_hook "$submit_cmd" '{"hook_event_name":"UserPromptSubmit","session_id":"owner"}' \
+    || fail "primary hook should be inert outside an armed away daemon"
+  assert_absent "$state/.primary.busy-state" "inert primary hook recreated a retired record"
+  pass "primary Claude hooks publish only accepted owner-session lifecycle transitions"
+}
+
+test_claude_semantic_busy_precedes_herdr_native_for_injection() {
+  local dir state gen
+  dir=$(make_supercase primary-claude-semantic)
+  state="$dir/state"
+  afk_enter "$state"
+  gen=$("$ROOT/bin/fm-busy-event.sh" arm "$state" .primary \
+    --state idle --source claude-hook --event stop)
+  escalate_add "$state" "fake.status: done: ready"
+
+  (
+    fm_backend_target_exists() { return 0; }
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { fail "native busy must not override Claude's exact semantic idle"; }
+    fm_backend_composer_state() { printf 'empty'; }
+    fm_backend_send_text_submit() { printf 'empty'; }
+    FM_DAEMON_PRIMARY_BUSY_READY=1
+    FM_DAEMON_PRIMARY_HARNESS=claude
+    FM_SUPERVISOR_BACKEND=herdr
+    FM_SUPERVISOR_TARGET=default:w1:p2
+    FM_STATE_OVERRIDE="$state"
+    export FM_DAEMON_PRIMARY_BUSY_READY FM_DAEMON_PRIMARY_HARNESS
+    export FM_SUPERVISOR_BACKEND FM_SUPERVISOR_TARGET FM_STATE_OVERRIDE
+    escalate_flush "$state" \
+      || fail "an idle Claude primary should accept the queued escalation despite Herdr native busy"
+  ) || fail "semantic-idle escalation subshell failed"
+  [ ! -s "$state/.subsuper-escalations" ] \
+    || fail "successful semantic-idle delivery left the escalation buffered"
+
+  "$ROOT/bin/fm-busy-event.sh" apply "$state" .primary busy --gen "$gen" \
+    --source claude-hook --event user-prompt-submit
+  escalate_add "$state" "fake.status: done: still ready"
+  (
+    fm_backend_target_exists() { return 0; }
+    fm_backend_busy_state() { printf 'idle'; }
+    fm_backend_capture() { fail "native idle must not override Claude's exact semantic busy"; }
+    fm_backend_composer_state() { fail "composer must not be read during a genuine Claude turn"; }
+    fm_backend_send_text_submit() { fail "submit must not run during a genuine Claude turn"; }
+    FM_DAEMON_PRIMARY_BUSY_READY=1
+    FM_DAEMON_PRIMARY_HARNESS=claude
+    FM_SUPERVISOR_BACKEND=herdr
+    FM_SUPERVISOR_TARGET=default:w1:p2
+    FM_STATE_OVERRIDE="$state"
+    export FM_DAEMON_PRIMARY_BUSY_READY FM_DAEMON_PRIMARY_HARNESS
+    export FM_SUPERVISOR_BACKEND FM_SUPERVISOR_TARGET FM_STATE_OVERRIDE
+    if escalate_flush "$state"; then
+      fail "a genuinely mid-turn Claude primary should defer the queued escalation"
+    fi
+  ) || fail "semantic-busy escalation subshell failed"
+  [ -s "$state/.subsuper-escalations" ] \
+    || fail "semantic-busy deferral lost the queued escalation"
+
+  printf 'malformed\n' > "$state/.primary.busy-state"
+  (
+    fm_backend_busy_state() { printf 'busy'; }
+    fm_backend_capture() { fail "unknown semantic state should preserve native busy deferral"; }
+    FM_DAEMON_PRIMARY_BUSY_READY=1 FM_DAEMON_PRIMARY_HARNESS=claude \
+      FM_STATE_OVERRIDE="$state" pane_is_busy default:w1:p2 herdr \
+      || fail "unknown Claude semantic state weakened the existing native busy guard"
+  ) || fail "semantic-unknown fallback subshell failed"
+  pass "Claude semantic idle delivers over false Herdr busy, semantic busy defers, and unknown preserves the old guard"
+}
+
 test_primary_busy_guard_is_harness_scoped() {
   (
     fm_backend_busy_state() { printf 'unknown'; }
@@ -2017,6 +2159,8 @@ test_fm_send_exits_nonzero_on_unproven_submit
 test_discover_supervisor_backend_precedence
 test_discover_supervisor_target_herdr
 test_pane_is_busy_herdr_native_busy_state
+test_primary_busy_hook_tracks_claude_turns
+test_claude_semantic_busy_precedes_herdr_native_for_injection
 test_primary_busy_guard_is_harness_scoped
 test_pane_is_busy_defaults_to_tmux_when_backend_omitted
 test_pane_input_pending_herdr_dispatch

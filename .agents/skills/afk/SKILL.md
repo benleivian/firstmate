@@ -92,7 +92,10 @@ The daemon never injects into an in-use pane. Two checks run before every
 injection, dispatched through `bin/fm-backend.sh` for the supervisor's own
 backend (tmux or herdr; see "Auto-discovered supervisor pane" below):
 
-- **Primary-pane busy guard** - `pane_is_busy` trusts Herdr native `busy` when available, otherwise matches rendered output against only the detected primary harness's signature.
+- **Primary-pane busy guard** - for a Claude primary, the daemon arms Claude's hook-owned semantic turn record and trusts its exact `busy` or `idle` verdict ahead of Herdr native state.
+  Only the lock-owning native Claude primary may update that record, Stop publishes idle only from the shared accepted-turn boundary, and either continuation path restores busy before its exit-2 rewake.
+  A missing, malformed, or unknown semantic verdict preserves the prior guard: Herdr native `busy` wins when available, otherwise rendered output is matched against only the detected primary harness's signature.
+  Other primary harnesses keep that native-then-rendered path unchanged.
   This narrow delivery guard never classifies a recorded worker task and never uses a global union of vendor patterns.
 - **Composer-state guard** - `inject_msg` reads the full `empty`/`pending`/`pending-unproven`/`unknown` verdict from `fm_backend_composer_state` and injects only when it is affirmatively `empty`.
   Every other or future verdict defers, including an unreadable pane, ambiguous geometry, a blank unidentified row, and a bare shell prompt left after the agent exits.
@@ -170,7 +173,8 @@ the operational prefix lets firstmate distinguish it from a real captain message
 - **Single-line digest** - embedded newlines are collapsed to a literal
   separator before injection, so submission is unambiguous regardless of
   harness.
-- **Busy and composer guards on the supervisor pane** - before injecting, the daemon runs the detected-primary-harness rendered busy guard and reads `fm_backend_composer_state` directly.
+- **Busy and composer guards on the supervisor pane** - before injecting, the daemon reads the Claude primary's hook-owned semantic turn state when armed, then preserves the native/rendered fallback for an unavailable or unknown semantic result, and reads `fm_backend_composer_state` directly.
+  This prevents a tracked background shell from making Herdr native state look mid-turn after Claude's Stop hook has proved the turn idle, without weakening the genuine-turn or unknown-state deferral.
   Only `empty` permits injection; `pending` protects half-typed or swallowed input, and `unknown` protects unreadable panes and bare dead-shell prompts.
   Every other result preserves the buffer for retry, so the daemon never merges its digest into the captain's half-typed line or types it into a shell.
 - The active backend passes its capture plus declarative styled, cursor, identity, and row capabilities to the shared screen classifier; all structural recognition and verdict logic remains in `bin/fm-composer-lib.sh`.
