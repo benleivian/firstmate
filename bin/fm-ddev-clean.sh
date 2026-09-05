@@ -8,8 +8,9 @@
 # Dry-run is the default. With --worktree, delete only DDEV projects whose
 # resolved approot is inside that worktree. Without it, first stop and unlist
 # missing approots under ~/.no-mistakes/worktrees or ~/.treehouse/*/<slot>/*,
-# then delete non-live projects under those roots, prune dangling Docker volumes
-# and images, and delete DDEV-built images. It never uses Docker's --all prune.
+# then delete non-live projects under those roots.
+# Docker volume prune, image prune, and DDEV image deletion are host-wide,
+# dangling-only operations. It never uses -a/--all for cleanup.
 # `state/*.meta` worktree= entries identify live treehouse worktrees in this home.
 # Every ddev, docker, and JSON-parser call has FM_DDEV_CLEAN_TIMEOUT_SECS seconds
 # (default 30); failed cleanup commands warn and do not stop later cleanup.
@@ -28,7 +29,7 @@ MODE=fleet
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
 
 usage() {
-  sed -n '2,13s/^# \{0,1\}//p' "$0"
+  sed -n '2,16s/^# \{0,1\}//p' "$0"
 }
 
 die() {
@@ -191,9 +192,9 @@ if [ "$APPLY" -ne 1 ]; then
     printf 'would: ddev delete -Oy %s\n' "$name"
   done
   if [ -z "$WORKTREE" ]; then
-    echo 'would: docker volume prune -f'
-    echo 'would: docker image prune -f'
-    echo 'would: ddev delete images -y'
+    echo 'would: docker volume prune -f (host-wide, dangling-only)'
+    echo 'would: docker image prune -f (host-wide, dangling-only)'
+    echo 'would: ddev delete images -y (host-wide, dangling-only)'
   fi
   printf 'summary: stop-unlist=%s delete=%s mode=%s\n' \
     "$STOP_COUNT" "$DELETE_COUNT" "$MODE"

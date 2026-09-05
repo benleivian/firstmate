@@ -93,6 +93,9 @@ test_sweep_dry_run_classifies_only_managed_projects() {
   assert_contains "$out" 'would: ddev delete -Oy smileadvantage-v3-smileadvantage-v3-5ed446-3' "dry-run missed the other orphan pool project"
   assert_not_contains "$out" 'smileadvantage-v3-a4' "dry-run selected a live pool project"
   assert_not_contains "$out" 'acst-assessments' "dry-run selected a project outside managed roots"
+  assert_contains "$out" 'would: docker volume prune -f (host-wide, dangling-only)' "dry-run omitted volume prune scope"
+  assert_contains "$out" 'would: docker image prune -f (host-wide, dangling-only)' "dry-run omitted image prune scope"
+  assert_contains "$out" 'would: ddev delete images -y (host-wide, dangling-only)' "dry-run omitted DDEV image deletion scope"
   [ ! -s "$ACTION_LOG" ] || fail "dry-run invoked a mutating command: $(cat "$ACTION_LOG")"
   pass "fm-ddev-clean: dry-run keeps live pool and Sites projects while classifying stale projects"
 }
