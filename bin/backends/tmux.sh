@@ -44,6 +44,7 @@ fm_backend_tmux_capture() {  # <target> <lines>
   tmux capture-pane -p -t "$1" -S -"$2"
 }
 
+# `-J` joins soft-wrapped screen lines before the watcher hashes the capture.
 fm_backend_tmux_capture_unwrapped() {  # <target> <lines>
   tmux capture-pane -J -p -t "$1" -S -"$2"
 }

@@ -2604,6 +2604,8 @@ fm_backend_herdr_capture() {  # <target> <lines>
   printf '%s' "$out" | tail -n "$lines"
 }
 
+# `recent-unwrapped` returns logical lines, keeping watcher comparisons stable
+# when a pane reflows at a different width.
 fm_backend_herdr_capture_unwrapped() {  # <target> <lines>
   fm_backend_herdr_target_ready "$1" || return 1
   local lines=${2:-200} fetch out

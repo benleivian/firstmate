@@ -711,6 +711,9 @@ fm_backend_capture() {  # <backend> <target> <lines> [expected-label]
   esac
 }
 
+# fm_backend_capture_unwrapped: bounded logical-line capture for comparisons
+# that must ignore terminal-width rewraps. Backends without that capability use
+# their ordinary capture.
 fm_backend_capture_unwrapped() {  # <backend> <target> <lines> [expected-label]
   local backend=$1
   shift
