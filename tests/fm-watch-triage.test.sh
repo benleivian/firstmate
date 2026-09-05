@@ -860,6 +860,7 @@ test_turn_ended_churning_pane_absorbed() {
   # The previous poll recorded DIFFERENT pane content, so this poll's capture is
   # churn: the crew rendered output between the two polls.
   printf '%s' "$(hash_text 'reading the brief')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   # The codex verdict verbatim: a verified dispatch adapter with no verified
   # semantic busy source, so crew_is_provably_working can never be satisfied.
@@ -882,6 +883,38 @@ test_turn_ended_churning_pane_absorbed() {
   pass "a bare turn-end from a pane that churned since the previous poll is absorbed"
 }
 
+test_legacy_churn_hash_surfaces_turn_end() {
+  local dir state fakebin out drain_out narrow wide window key legacy_hash pid
+  dir=$(make_case legacy-churn-hash); state="$dir/state"; fakebin="$dir/fakebin"
+  out="$dir/watch.out"; drain_out="$dir/drain.out"; narrow="$dir/narrow"; wide="$dir/wide"
+  window="test:fm-legacy-churn"
+  : > "$state/legacy-churn.turn-ended"
+  printf 'window=%s\nkind=ship\nharness=codex\n' "$window" > "$state/legacy-churn.meta"
+  printf 'done: https://example.test/artifacts/very-long-\ntoken\n' > "$narrow"
+  printf 'done: https://example.test/artifacts/very-long-token\n' > "$wide"
+  key=$(printf '%s' "$window" | tr ':/. ' '____')
+  legacy_hash=$(hash_text "$(cat "$narrow")")
+  printf '%s' "$legacy_hash" > "$state/.hash-$key"
+  printf '0\n' > "$state/.count-$key"
+  export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
+  PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$narrow" \
+    FM_FAKE_TMUX_CAPTURE_UNWRAPPED="$wide" FM_CONFIG_OVERRIDE="$(churn_config "$dir")" \
+    FM_STATE_OVERRIDE="$state" FM_CREW_STATE_BIN="$fakebin/fm-crew-state.sh" FM_POLL=3 FM_SIGNAL_GRACE=1 \
+    FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$out" &
+  pid=$!
+  wait_for_exit "$pid" 100 || fail "legacy hash churn absorbed a finished worker turn-end"
+  grep -F "signal: $state/legacy-churn.turn-ended" "$out" >/dev/null \
+    || fail "legacy hash churn did not surface the turn-end"
+  FM_STATE_OVERRIDE="$state" "$DRAIN" > "$drain_out" 2>/dev/null \
+    || fail "drain after the legacy churn turn-end failed"
+  grep "$(printf '\tsignal\t')" "$drain_out" | grep -F "$state/legacy-churn.turn-ended" >/dev/null \
+    || fail "legacy churn turn-end was not queued"
+  [ ! -e "$state/.churn-since-$key" ] || fail "legacy hash churn opened a deferral window"
+  [ ! -e "$state/.hash-format-v2-$key" ] || fail "turn-end churn migrated hash state before stale classification"
+  unset FM_FAKE_CREW_STATE
+  pass "legacy hash churn surfaces a turn-end until stale state rebaselines"
+}
+
 test_turn_ended_churn_resets_prior_stale_classification() {
   local dir state fakebin out capture_file window key old_hash active_hash pid i
   dir=$(make_case turn-ended-churn-resets-stale); state="$dir/state"; fakebin="$dir/fakebin"
@@ -894,6 +927,7 @@ test_turn_ended_churn_resets_prior_stale_classification() {
   printf 'rendering a new turn' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf '%s' "$old_hash" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '1\n' > "$state/.count-$key"
   printf '%s' "$old_hash" > "$state/.stale-$key"
   date +%s > "$state/.stale-since-$key"
@@ -938,6 +972,7 @@ test_turn_ended_churn_resets_wedge_state_before_stale_poll() {
   printf 'rendering a new turn' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf '%s' "$(hash_text 'idle output from the prior interval')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '2\n' > "$state/.wedge-escalations-$key"
   export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
   PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture_file" \
@@ -972,6 +1007,7 @@ test_turn_ended_still_pane_surfaced() {
   key=$(printf '%s' "$window" | tr ':/.' '___')
   # The previous poll recorded THIS pane content: nothing rendered since.
   printf '%s' "$(hash_text 'apply_patch: writing bin/thing.sh')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
   PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture_file" \
@@ -999,6 +1035,7 @@ test_turn_ended_malformed_prior_hash_surfaced() {
   printf 'stopped after rendering this' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf 'x' > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
   PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture_file" \
@@ -1027,6 +1064,7 @@ test_turn_ended_trailing_newline_prior_hash_surfaced() {
   printf 'rendered after the prior poll' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf '%s\n' "$(hash_text 'the previous render')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
   PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture_file" \
@@ -1149,6 +1187,7 @@ test_turn_ended_mixed_positive_evidence_batch_absorbed() {
   second_key=$(printf '%s' "$second_window" | tr ':/.' '___')
   printf '%s' "$(hash_text 'first task static pane')" > "$state/.hash-$first_key"
   printf '%s' "$(hash_text 'second task previous render')" > "$state/.hash-$second_key"
+  : > "$state/.hash-format-v2-$second_key"
   printf '0\n' > "$state/.count-$first_key"
   printf '0\n' > "$state/.count-$second_key"
   export FM_FAKE_CREW_STATE_first='state: working · source: run-step · running'
@@ -1299,6 +1338,7 @@ test_turn_ended_churn_absorb_bounded() {
   printf 'a background renderer that never stops' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf '%s' "$(hash_text 'the previous frame')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   # This endpoint has already been riding churn evidence longer than the bound.
   printf '%s' "$(( $(date +%s) - 600 ))" > "$state/.churn-since-$key"
@@ -1332,6 +1372,7 @@ test_turn_ended_churn_timer_write_failure_surfaced() {
   printf 'rendered after the previous poll' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf '%s' "$(hash_text 'the previous render')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   mkdir "$state/.churn-since-$key"
   export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
@@ -1361,6 +1402,7 @@ test_turn_ended_invalid_churn_bound_surfaced() {
   printf 'rendered after the previous poll' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf '%s' "$(hash_text 'the previous render')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
   PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture_file" \
@@ -1391,6 +1433,7 @@ test_turn_ended_oversized_churn_bound_surfaced() {
   printf 'rendered after the previous poll' > "$capture_file"
   key=$(printf '%s' "$window" | tr ':/.' '___')
   printf '%s' "$(hash_text 'the previous render')" > "$state/.hash-$key"
+  : > "$state/.hash-format-v2-$key"
   printf '0\n' > "$state/.count-$key"
   export FM_FAKE_CREW_STATE='state: unknown · source: pane · harness state unavailable (unknown codex-unverified)'
   PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture_file" \
@@ -1424,6 +1467,7 @@ test_turn_ended_invalid_churn_deadline_surfaced() {
     key=$(printf '%s' "$window" | tr ':/.' '___')
     marker="$state/.churn-since-$key"
     printf '%s' "$(hash_text 'the previous render')" > "$state/.hash-$key"
+    : > "$state/.hash-format-v2-$key"
     printf '0\n' > "$state/.count-$key"
     case "$variant" in
       empty)        value='' ;;
@@ -1467,6 +1511,8 @@ test_turn_ended_surfaced_batch_opens_no_partial_deadline() {
   second_key=$(printf '%s' "$second_window" | tr ':/.' '___')
   printf '%s' "$(hash_text 'first previous render')" > "$state/.hash-$first_key"
   printf '%s' "$(hash_text 'second previous render')" > "$state/.hash-$second_key"
+  : > "$state/.hash-format-v2-$first_key"
+  : > "$state/.hash-format-v2-$second_key"
   printf '0\n' > "$state/.count-$first_key"
   printf '0\n' > "$state/.count-$second_key"
   printf 'bogus' > "$state/.churn-since-$second_key"
@@ -4075,6 +4121,7 @@ test_provably_working_signal_absorbed
 test_turn_ended_provably_working_absorbed
 test_turn_ended_not_working_surfaced
 test_turn_ended_churning_pane_absorbed
+test_legacy_churn_hash_surfaces_turn_end
 test_turn_ended_churn_resets_prior_stale_classification
 test_turn_ended_churn_resets_wedge_state_before_stale_poll
 test_turn_ended_still_pane_surfaced

@@ -536,12 +536,13 @@ signal_turnend_panes_churned() {  # <file> ...
     backend=${snapshot_backends[$task_index]}
     label=${snapshot_labels[$task_index]}
     hash_file="$STATE/.hash-$key"
+    [ -e "$STATE/.hash-format-v2-$key" ] || return 1
     hash_bytes=$(LC_ALL=C wc -c 2>/dev/null < "$hash_file") || return 1
     hash_bytes=${hash_bytes//[[:space:]]/}
     [ "$hash_bytes" = 32 ] || return 1
     prev=$(cat "$hash_file" 2>/dev/null) || return 1
     [[ $prev =~ ^[0-9a-f]{32}$ ]] || return 1
-    now=$(fm_backend_capture "$backend" "$w" 40 "$label" 2>/dev/null) || return 1
+    now=$(fm_backend_capture_unwrapped "$backend" "$w" 40 "$label" 2>/dev/null) || return 1
     [ -n "$now" ] || return 1
     [ "$(printf '%s' "$now" | hash_pane)" != "$prev" ] || return 1
     churned_keys+=("$key")
