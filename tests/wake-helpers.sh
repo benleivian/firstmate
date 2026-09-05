@@ -88,6 +88,11 @@ if [ "${1:-}" = "capture-pane" ]; then
     done
   fi
   if [ -n "${FM_FAKE_TMUX_CAPTURE:-}" ]; then
+    if [ -n "${FM_FAKE_TMUX_CAPTURE_UNWRAPPED:-}" ]; then
+      for _arg in "$@"; do
+        [ "$_arg" = -J ] && { cat "$FM_FAKE_TMUX_CAPTURE_UNWRAPPED"; exit 0; }
+      done
+    fi
     cat "$FM_FAKE_TMUX_CAPTURE"
   fi
   exit 0

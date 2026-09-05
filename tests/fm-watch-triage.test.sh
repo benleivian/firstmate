@@ -320,6 +320,54 @@ test_pane_hash_ignores_rewraps() {
   pass "pane hashing ignores rewraps but detects changed content"
 }
 
+test_pane_capture_joins_soft_wrapped_tokens() {
+  local dir state narrow wide captured narrow_hash wide_hash
+  dir=$(make_case pane-capture-soft-wrap); state="$dir/state"
+  narrow="$dir/narrow"; wide="$dir/wide"
+  printf 'done: https://example.test/artifacts/very-long-\ntoken\n' > "$narrow"
+  printf 'done: https://example.test/artifacts/very-long-token\n' > "$wide"
+  captured=$(PATH="$dir/fakebin:$PATH" FM_STATE_OVERRIDE="$state" \
+    FM_FAKE_TMUX_CAPTURE="$narrow" FM_FAKE_TMUX_CAPTURE_UNWRAPPED="$wide" \
+    bash -c '. "$1"; fm_backend_capture_unwrapped tmux test:fm-wrap 40' _ "$WATCH")
+  narrow_hash=$(printf '%s' "$(cat "$narrow")" | FM_STATE_OVERRIDE="$state" bash -c '. "$1"; hash_pane' _ "$WATCH")
+  wide_hash=$(printf '%s' "$captured" | FM_STATE_OVERRIDE="$state" bash -c '. "$1"; hash_pane' _ "$WATCH")
+  [ "$narrow_hash" != "$wide_hash" ] || fail "the fixture did not distinguish a soft-wrapped token"
+  [ "$wide_hash" = "$(printf '%s' "$(cat "$wide")" | FM_STATE_OVERRIDE="$state" bash -c '. "$1"; hash_pane' _ "$WATCH")" ] \
+    || fail "the watcher capture did not join a soft-wrapped token"
+  pass "pane capture joins soft-wrapped tokens before stale hashing"
+}
+
+test_legacy_stale_hash_rebaselines_without_waking() {
+  local dir state fakebin out capture_file statusf window key legacy_hash current_hash sig pid
+  dir=$(make_case legacy-stale-rebaseline); state="$dir/state"; fakebin="$dir/fakebin"
+  out="$dir/watch.out"; capture_file="$dir/pane.txt"; window="test:fm-legacy-stale"
+  printf 'done: https://example.test/artifacts/very-long-token\n' > "$capture_file"
+  printf 'window=%s\nkind=ship\n' "$window" > "$state/legacy-stale.meta"
+  statusf="$state/legacy-stale.status"
+  printf 'done: shipped\n' > "$statusf"
+  sig=$(seen_sig "$statusf"); printf '%s' "$sig" > "$state/.seen-legacy-stale_status"
+  key=$(printf '%s' "$window" | tr ':/. ' '____')
+  legacy_hash=$(hash_text $'done: https://example.test/artifacts/very-long-\ntoken')
+  current_hash=$(printf '%s' "$(cat "$capture_file")" | FM_STATE_OVERRIDE="$state" bash -c '. "$1"; hash_pane' _ "$WATCH")
+  printf '%s' "$legacy_hash" > "$state/.hash-$key"
+  printf '%s' "$legacy_hash" > "$state/.stale-$key"
+  printf '1\n' > "$state/.count-$key"
+  PATH="$fakebin:$PATH" FM_FAKE_TMUX_WINDOW="$window" FM_FAKE_TMUX_CAPTURE="$capture_file" \
+    FM_STATE_OVERRIDE="$state" FM_CREW_STATE_BIN="$fakebin/fm-crew-state.sh" FM_POLL=1 FM_SIGNAL_GRACE=1 \
+    FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$out" &
+  pid=$!
+  if ! wait_poll_cycle "$state" "$pid"; then
+    reap "$pid"; fail "legacy stale state woke during hash-format rebaseline: $(cat "$out")"
+  fi
+  [ "$(cat "$state/.hash-$key" 2>/dev/null || true)" = "$current_hash" ] \
+    || { reap "$pid"; fail "legacy hash was not rebaselined"; }
+  [ "$(cat "$state/.stale-$key" 2>/dev/null || true)" = "$current_hash" ] \
+    || { reap "$pid"; fail "legacy stale suppressor was not rebaselined"; }
+  [ -e "$state/.hash-format-v2-$key" ] || { reap "$pid"; fail "hash-format marker was not recorded"; }
+  reap "$pid"
+  pass "legacy stale hashes rebaseline without another stale wake"
+}
+
 test_classifier_primitives() {
   local dir state open activity
   dir=$(make_case classify-primitives); state="$dir/state"
@@ -4011,6 +4059,8 @@ test_status_span_respects_decision_closure
 test_malformed_seen_signature_reads_the_whole_log
 test_stale_is_terminal_classifier
 test_pane_hash_ignores_rewraps
+test_pane_capture_joins_soft_wrapped_tokens
+test_legacy_stale_hash_rebaselines_without_waking
 test_classifier_primitives
 test_crew_is_provably_working_classifier
 test_status_is_paused_classifier

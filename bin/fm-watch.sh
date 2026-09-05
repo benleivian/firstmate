@@ -1830,14 +1830,27 @@ EOF
     if [ "$kind" = secondmate ] && ! status_is_paused_or_captain_held "$last"; then
       continue
     fi
-    tail40=$(fm_backend_capture "$(window_backend "$w")" "$w" 40 "$(window_label "$w")" 2>/dev/null) || continue
+    tail40=$(fm_backend_capture_unwrapped "$(window_backend "$w")" "$w" 40 "$(window_label "$w")" 2>/dev/null) || continue
     h=$(printf '%s' "$tail40" | hash_pane)
     hf="$STATE/.hash-$key"
     cf="$STATE/.count-$key"
     sf="$STATE/.stale-$key"
+    hfv="$STATE/.hash-format-v2-$key"
     ssf="$STATE/.stale-since-$key"
     ewf="$STATE/.wedge-escalations-$key"
     pf="$STATE/.paused-$key"   # flag: this key's stale is using the bounded pause cadence
+    if [ ! -e "$hfv" ]; then
+      prev=$(cat "$hf" 2>/dev/null || true)
+      stale=$(cat "$sf" 2>/dev/null || true)
+      if [[ $stale =~ ^[0-9a-f]{32}$ ]]; then
+        printf '%s' "$h" > "$sf"
+      fi
+      if [ "$prev" != "$h" ]; then
+        printf '%s' "$h" > "$hf"
+        echo 0 > "$cf"
+      fi
+      : > "$hfv"
+    fi
     prev=$(cat "$hf" 2>/dev/null || true)
     # Busy match: a backend's native semantic state when available (herdr), else
     # the last 6 non-blank lines only (the TUI footer area, where every verified

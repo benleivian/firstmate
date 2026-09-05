@@ -44,6 +44,10 @@ fm_backend_tmux_capture() {  # <target> <lines>
   tmux capture-pane -p -t "$1" -S -"$2"
 }
 
+fm_backend_tmux_capture_unwrapped() {  # <target> <lines>
+  tmux capture-pane -J -p -t "$1" -S -"$2"
+}
+
 # fm_backend_tmux_send_key: one named key. Mirrors fm-send.sh's --key path:
 # `tmux display-message -p -t "$T" '#{pane_id}' >/dev/null`, then
 # `tmux send-keys -t "$T" "$2"`.
