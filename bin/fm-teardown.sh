@@ -172,8 +172,8 @@
 #     root still exists, so the account's healthy LaunchAgent worker and every
 #     live remote secondmate worker are out of scope. Best effort: a sweep
 #     failure never blocks this teardown.
-#   Fix 4 - remove the task's DDEV environment. When its worktree has
-#     .ddev/config.yaml, bin/fm-ddev-clean.sh deletes only DDEV projects rooted
+#   Fix 4 - remove the task's DDEV environment. When its worktree exists,
+#     bin/fm-ddev-clean.sh deletes only DDEV projects rooted
 #     inside that worktree. A missing DDEV tool or cleanup failure is best effort
 #     and never blocks the already-authorized teardown.
 set -eu
@@ -2810,7 +2810,7 @@ fi
 
 # Fix 4 (see script header): delete only this task's DDEV project before its
 # worktree returns to the pool. The cleanup script is intentionally best effort.
-if [ "$KIND" != secondmate ] && [ -f "$WT/.ddev/config.yaml" ]; then
+if [ "$KIND" != secondmate ] && [ -d "$WT" ]; then
   "$SCRIPT_DIR/fm-ddev-clean.sh" --worktree "$WT" --apply >&2 \
     || echo "warning: DDEV cleanup failed for task $ID; continuing teardown" >&2
 fi

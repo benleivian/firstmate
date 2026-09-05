@@ -3199,6 +3199,51 @@ EOF
   pass "the run abort and the leaked-process reap both complete before the destructive worktree return"
 }
 
+
+test_teardown_deletes_nested_ddev_before_worktree_return() {
+  local case_dir rc
+  case_dir=$(make_case nested-ddev)
+  write_meta "$case_dir" local-only ship
+  mkdir -p "$case_dir/wt/nested/.ddev"
+  printf 'name: nested-project\n' > "$case_dir/wt/nested/.ddev/config.yaml"
+  git -C "$case_dir/wt" add nested
+  git -C "$case_dir/wt" commit -qm 'Add nested DDEV project'
+  git -C "$case_dir/wt" push -q origin fm/task-x1
+  cat > "$case_dir/fakebin/ddev" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = list ]; then
+  printf '{"raw":[{"name":"nested-project","approot":"%s/wt/nested"},{"name":"outside-project","approot":"%s/project"}]}\n' "$DDEV_CASE" "$DDEV_CASE"
+else
+  printf 'ddev %s\n' "$*" >> "$DDEV_CASE/actions"
+fi
+SH
+  cat > "$case_dir/fakebin/docker" <<'SH'
+#!/usr/bin/env bash
+printf 'docker %s\n' "$*" >> "$DDEV_CASE/actions"
+SH
+  cat > "$case_dir/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+printf 'treehouse %s\n' "$*" >> "$DDEV_CASE/actions"
+SH
+  chmod +x "$case_dir/fakebin/ddev" "$case_dir/fakebin/docker" "$case_dir/fakebin/treehouse"
+  rc=0
+  DDEV_CASE="$case_dir" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  expect_code 0 "$rc" "nested DDEV teardown failed: $(cat "$case_dir/stderr")"
+  [ "$(head -n 1 "$case_dir/actions")" = 'ddev delete -Oy nested-project' ] \
+    || fail "nested DDEV was not deleted before worktree return"
+  assert_grep 'treehouse return ' "$case_dir/actions" "worktree was not returned"
+  assert_not_contains "$(cat "$case_dir/actions")" 'outside-project' "teardown deleted an unrelated project"
+  assert_not_contains "$(cat "$case_dir/actions")" 'docker ' "teardown ran global Docker cleanup"
+  pass "teardown deletes nested DDEV projects before returning the worktree"
+}
+
+if [ "${1:-}" = --ddev-only ]; then
+  test_teardown_deletes_nested_ddev_before_worktree_return
+  exit 0
+fi
+
+test_teardown_deletes_nested_ddev_before_worktree_return
+
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator

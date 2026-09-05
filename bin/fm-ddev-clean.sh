@@ -118,7 +118,7 @@ is_live_worktree() {
     done < "$meta"
     [ -n "$live" ] && [ -d "$live" ] || continue
     live=$(cd -P -- "$live" && pwd -P) || continue
-    [ "$path" = "$live" ] && return 0
+    path_within "$path" "$live" && return 0
   done
   return 1
 }

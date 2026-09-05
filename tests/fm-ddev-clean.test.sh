@@ -83,6 +83,24 @@ EOF
   pass "fm-ddev-clean: worktree cleanup deletes only its own DDEV project"
 }
 
+test_sweep_protects_live_worktree_descendants() {
+  local wt out
+  wt="$HOME_DIR/.treehouse/repo-hash/1/repo"
+  mkdir -p "$wt/nested" "${wt}-other/nested"
+  fm_write_meta "$STATE/live-nested.meta" "worktree=$wt"
+  cat > "$DDEV_JSON" <<EOF
+{"raw":[{"name":"live-root","approot":"$wt"},{"name":"live-nested","approot":"$wt/nested"},{"name":"returned-sibling","approot":"${wt}-other/nested"}]}
+EOF
+  : > "$ACTION_LOG"
+  out=$(run_clean) || fail "nested sweep dry-run failed: $out"
+  assert_not_contains "$out" 'live-root' "dry-run selected a live root"
+  assert_not_contains "$out" 'live-nested' "dry-run selected a live descendant"
+  run_clean --apply >/dev/null || fail "nested sweep apply failed"
+  assert_grep 'ddev delete -Oy returned-sibling' "$ACTION_LOG" "sweep protected an unrelated sibling"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'live-' "sweep deleted a live project"
+  pass "fm-ddev-clean: fleet cleanup protects live roots and descendants"
+}
+
 test_sweep_dry_run_classifies_only_managed_projects() {
   local out
   prepare_sweep_fixture
@@ -142,6 +160,7 @@ test_missing_ddev_is_a_per_task_noop_and_sweep_error() {
   pass "fm-ddev-clean: missing ddev is safe per task and visible for a sweep"
 }
 
+test_sweep_protects_live_worktree_descendants
 test_worktree_only_deletes_projects_inside_the_worktree
 test_sweep_dry_run_classifies_only_managed_projects
 test_sweep_apply_runs_cleanup_in_order
