@@ -9,7 +9,7 @@
 # resolved approot is inside that worktree. Without it, first stop and unlist
 # missing approots under ~/.no-mistakes/worktrees or ~/.treehouse/*/<slot>/*,
 # then delete non-live projects under those roots.
-# Docker volume prune, image prune, and DDEV image deletion are host-wide,
+# In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
 # dangling-only operations. It never uses -a/--all for cleanup.
 # `state/*.meta` worktree= entries identify live treehouse worktrees in this home.
 # Every ddev, docker, and JSON-parser call has FM_DDEV_CLEAN_TIMEOUT_SECS seconds
