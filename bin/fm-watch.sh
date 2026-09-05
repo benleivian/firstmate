@@ -247,7 +247,9 @@ _event_cap_fails=0
 afk_present() { [ -e "$STATE/.afk" ]; }
 
 hash_pane() {
-  if command -v md5 >/dev/null 2>&1; then md5 -q; else md5sum | cut -d' ' -f1; fi
+  local pane
+  pane=$(tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')
+  if command -v md5 >/dev/null 2>&1; then printf '%s' "$pane" | md5 -q; else printf '%s' "$pane" | md5sum | cut -d' ' -f1; fi
 }
 
 # window_is_busy: 0 (busy) iff the task's harness is PROVABLY working, through

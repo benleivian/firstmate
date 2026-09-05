@@ -306,6 +306,20 @@ test_stale_is_terminal_classifier() {
   pass "stale_is_terminal: terminal status surfaces, non-terminal and no-status are benign"
 }
 
+test_pane_hash_ignores_rewraps() {
+  local dir state narrow wide changed narrow_hash wide_hash changed_hash
+  dir=$(make_case pane-hash-rewrap); state="$dir/state"
+  narrow=$'done: PR\nhttps://example.test/pr/3\nchecks green after the final\nreview'
+  wide='done: PR https://example.test/pr/3 checks green after the final review'
+  changed='done: PR https://example.test/pr/3 checks red after the final review'
+  narrow_hash=$(printf '%s' "$narrow" | FM_STATE_OVERRIDE="$state" bash -c '. "$1"; hash_pane' _ "$WATCH")
+  wide_hash=$(printf '%s' "$wide" | FM_STATE_OVERRIDE="$state" bash -c '. "$1"; hash_pane' _ "$WATCH")
+  changed_hash=$(printf '%s' "$changed" | FM_STATE_OVERRIDE="$state" bash -c '. "$1"; hash_pane' _ "$WATCH")
+  [ "$narrow_hash" = "$wide_hash" ] || fail "the same pane text at two widths hashed differently"
+  [ "$wide_hash" != "$changed_hash" ] || fail "different pane text hashed identically"
+  pass "pane hashing ignores rewraps but detects changed content"
+}
+
 test_classifier_primitives() {
   local dir state open activity
   dir=$(make_case classify-primitives); state="$dir/state"
@@ -3996,6 +4010,7 @@ test_status_span_survives_a_later_routine_append
 test_status_span_respects_decision_closure
 test_malformed_seen_signature_reads_the_whole_log
 test_stale_is_terminal_classifier
+test_pane_hash_ignores_rewraps
 test_classifier_primitives
 test_crew_is_provably_working_classifier
 test_status_is_paused_classifier
