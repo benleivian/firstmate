@@ -246,8 +246,12 @@ _event_cap_fails=0
 # digest/injection layer would never see the wake.
 afk_present() { [ -e "$STATE/.afk" ]; }
 
+# Hash normalized logical pane content so terminal-width rewraps do not create
+# a new stale classification or count as turn-end churn.
 hash_pane() {
-  if command -v md5 >/dev/null 2>&1; then md5 -q; else md5sum | cut -d' ' -f1; fi
+  local pane
+  pane=$(tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')
+  if command -v md5 >/dev/null 2>&1; then printf '%s' "$pane" | md5 -q; else printf '%s' "$pane" | md5sum | cut -d' ' -f1; fi
 }
 
 # window_is_busy: 0 (busy) iff the task's harness is PROVABLY working, through
@@ -534,12 +538,14 @@ signal_turnend_panes_churned() {  # <file> ...
     backend=${snapshot_backends[$task_index]}
     label=${snapshot_labels[$task_index]}
     hash_file="$STATE/.hash-$key"
+    # A legacy raw capture cannot prove width-insensitive pane churn.
+    [ -e "$STATE/.hash-format-v2-$key" ] || return 1
     hash_bytes=$(LC_ALL=C wc -c 2>/dev/null < "$hash_file") || return 1
     hash_bytes=${hash_bytes//[[:space:]]/}
     [ "$hash_bytes" = 32 ] || return 1
     prev=$(cat "$hash_file" 2>/dev/null) || return 1
     [[ $prev =~ ^[0-9a-f]{32}$ ]] || return 1
-    now=$(fm_backend_capture "$backend" "$w" 40 "$label" 2>/dev/null) || return 1
+    now=$(fm_backend_capture_unwrapped "$backend" "$w" 40 "$label" 2>/dev/null) || return 1
     [ -n "$now" ] || return 1
     [ "$(printf '%s' "$now" | hash_pane)" != "$prev" ] || return 1
     churned_keys+=("$key")
@@ -1828,14 +1834,29 @@ EOF
     if [ "$kind" = secondmate ] && ! status_is_paused_or_captain_held "$last"; then
       continue
     fi
-    tail40=$(fm_backend_capture "$(window_backend "$w")" "$w" 40 "$(window_label "$w")" 2>/dev/null) || continue
+    tail40=$(fm_backend_capture_unwrapped "$(window_backend "$w")" "$w" 40 "$(window_label "$w")" 2>/dev/null) || continue
     h=$(printf '%s' "$tail40" | hash_pane)
     hf="$STATE/.hash-$key"
     cf="$STATE/.count-$key"
     sf="$STATE/.stale-$key"
+    hfv="$STATE/.hash-format-v2-$key"
     ssf="$STATE/.stale-since-$key"
     ewf="$STATE/.wedge-escalations-$key"
     pf="$STATE/.paused-$key"   # flag: this key's stale is using the bounded pause cadence
+    # v2 records normalized logical hashes. Rebaseline legacy raw digests once,
+    # preserving an existing stale classification without re-surfacing it.
+    if [ ! -e "$hfv" ]; then
+      prev=$(cat "$hf" 2>/dev/null || true)
+      stale=$(cat "$sf" 2>/dev/null || true)
+      if [[ $stale =~ ^[0-9a-f]{32}$ ]]; then
+        printf '%s' "$h" > "$sf"
+      fi
+      if [ "$prev" != "$h" ]; then
+        printf '%s' "$h" > "$hf"
+        echo 0 > "$cf"
+      fi
+      : > "$hfv"
+    fi
     prev=$(cat "$hf" 2>/dev/null || true)
     # Busy match: a backend's native semantic state when available (herdr), else
     # the last 6 non-blank lines only (the TUI footer area, where every verified

@@ -711,6 +711,20 @@ fm_backend_capture() {  # <backend> <target> <lines> [expected-label]
   esac
 }
 
+# fm_backend_capture_unwrapped: bounded logical-line capture for comparisons
+# that must ignore terminal-width rewraps. Backends without that capability use
+# their ordinary capture.
+fm_backend_capture_unwrapped() {  # <backend> <target> <lines> [expected-label]
+  local backend=$1
+  shift
+  fm_backend_source "$backend" || return 1
+  case "$backend" in
+    tmux) fm_backend_tmux_capture_unwrapped "$@" ;;
+    herdr) fm_backend_herdr_capture_unwrapped "$@" ;;
+    *) fm_backend_capture "$backend" "$@" ;;
+  esac
+}
+
 # fm_backend_send_key: one backend-supported named special key.
 fm_backend_send_key() {  # <backend> <target> <key> [expected-label]
   local backend=$1

@@ -2914,6 +2914,20 @@ test_capture_calls_pane_read() {
   pass "fm_backend_herdr_capture: calls 'pane read <pane> --source recent --lines N' with the session set"
 }
 
+test_unwrapped_capture_calls_recent_unwrapped() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/capture-unwrapped"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  printf 'done: https://example.test/artifacts/very-long-token\n' > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_capture_unwrapped default:w1:p2 40' "$ROOT" )
+  [ "$out" = 'done: https://example.test/artifacts/very-long-token' ] \
+    || fail "unwrapped capture did not preserve logical pane text, got '$out'"
+  assert_contains "$(cat "$log")" "HERDR_SESSION=default"$'\x1f''pane'$'\x1f''read'$'\x1f''w1:p2'$'\x1f''--source'$'\x1f''recent-unwrapped' \
+    "unwrapped capture did not request Herdr's logical-line source"
+  pass "fm_backend_herdr_capture_unwrapped: requests logical lines for width-insensitive hashing"
+}
+
 test_capture_works_around_small_lines_bug() {
   local dir log resp fb out
   # Verified herdr v0.7.1 bug (herdr-verification-p2.md): `pane read --lines N`
@@ -4582,6 +4596,7 @@ test_list_live_scoped_to_this_homes_workspace_only
 test_parse_target
 test_normalize_key
 test_capture_calls_pane_read
+test_unwrapped_capture_calls_recent_unwrapped
 test_capture_works_around_small_lines_bug
 test_capture_preserves_pane_read_failure
 test_send_key_normalizes_and_targets_pane
