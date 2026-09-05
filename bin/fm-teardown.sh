@@ -172,6 +172,10 @@
 #     root still exists, so the account's healthy LaunchAgent worker and every
 #     live remote secondmate worker are out of scope. Best effort: a sweep
 #     failure never blocks this teardown.
+#   Fix 4 - remove the task's DDEV environment. When its worktree exists,
+#     bin/fm-ddev-clean.sh deletes only DDEV projects rooted
+#     inside that worktree. A missing DDEV tool or cleanup failure is best effort
+#     and never blocks the already-authorized teardown.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -2803,6 +2807,13 @@ fi
 # Fix 3 (see script header): sweep remote job workers abandoned by an already
 # pruned code root. Best effort - a sweep failure never blocks this teardown.
 "$SCRIPT_DIR/fm-remote-job-reap-orphans.sh" >&2 || true
+
+# Fix 4 (see script header): delete only this task's DDEV project before its
+# worktree returns to the pool. The cleanup script is intentionally best effort.
+if [ "$KIND" != secondmate ] && [ -d "$WT" ]; then
+  "$SCRIPT_DIR/fm-ddev-clean.sh" --worktree "$WT" --apply >&2 \
+    || echo "warning: DDEV cleanup failed for task $ID; continuing teardown" >&2
+fi
 
 # Best-effort: drop the local task branch so the shared repo does not accumulate refs.
 if [ "$BACKEND" = orca ] && [ "$KIND" != secondmate ]; then
