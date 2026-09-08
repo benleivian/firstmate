@@ -39,6 +39,7 @@ MODE=fleet
 
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
+# shellcheck source=bin/fm-ddev-name-lib.sh
 . "$SCRIPT_DIR/fm-ddev-name-lib.sh"
 
 usage() {

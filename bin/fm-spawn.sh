@@ -2658,6 +2658,7 @@ exclude_path() {
 
 # The primary name would share the captain's database; the header owns the
 # worker override and refusal contract enforced before agent launch here.
+# shellcheck source=bin/fm-ddev-name-lib.sh
 . "$SCRIPT_DIR/fm-ddev-name-lib.sh"
 DDEV_NAME=
 configure_task_ddev_name() {

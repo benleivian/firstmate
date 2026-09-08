@@ -239,7 +239,7 @@ test_existing_ddev_local_name_requires_no_primary_conflict() {
 }
 
 test_ddev_identity_normalization_and_collisions() {
-  local id rec out status name first_name= variant expected long_id
+  local id rec out status name first_name='' variant expected long_id
   long_id=$(printf 'long%.0s' {1..16})
   for id in Fix_1 fix-1 "$long_id"; do
     rec=$(make_settle_case "ddev-existing-identity-$id" "$id" 0)
