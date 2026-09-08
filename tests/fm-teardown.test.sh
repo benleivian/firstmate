@@ -3202,17 +3202,22 @@ EOF
 
 test_teardown_deletes_nested_ddev_before_worktree_return() {
   local case_dir rc
-  case_dir=$(make_case nested-ddev)
+  case_dir=$(make_case nested-ddev/.treehouse/project/1)
   write_meta "$case_dir" local-only ship
   mkdir -p "$case_dir/wt/nested/.ddev"
   printf 'name: nested-project\n' > "$case_dir/wt/nested/.ddev/config.yaml"
   git -C "$case_dir/wt" add nested
   git -C "$case_dir/wt" commit -qm 'Add nested DDEV project'
   git -C "$case_dir/wt" push -q origin fm/task-x1
+  # A legacy task has no recorded ddev_name; its local worker name must still
+  # carry the task suffix and live under a managed root to permit cleanup.
+  printf 'nested/.ddev/config.local.yaml\n' >> "$case_dir/project/.git/info/exclude"
+  printf 'name: nested-project-task-x1\n' > "$case_dir/wt/nested/.ddev/config.local.yaml"
+  printf 'protected-task-x1\n' > "$case_dir/config/ddev-protected-names"
   cat > "$case_dir/fakebin/ddev" <<'SH'
 #!/usr/bin/env bash
 if [ "${1:-}" = list ]; then
-  printf '{"raw":[{"name":"nested-project","approot":"%s/wt/nested"},{"name":"outside-project","approot":"%s/project"}]}\n' "$DDEV_CASE" "$DDEV_CASE"
+  printf '{"raw":[{"name":"nested-project-task-x1","approot":"%s/wt/nested"},{"name":"nested-project","approot":"%s/wt/nested"},{"name":"protected-task-x1","approot":"%s/wt/nested"},{"name":"outside-project","approot":"%s/project"}]}\n' "$DDEV_CASE" "$DDEV_CASE" "$DDEV_CASE" "$DDEV_CASE"
 else
   printf 'ddev %s\n' "$*" >> "$DDEV_CASE/actions"
 fi
@@ -3227,10 +3232,14 @@ printf 'treehouse %s\n' "$*" >> "$DDEV_CASE/actions"
 SH
   chmod +x "$case_dir/fakebin/ddev" "$case_dir/fakebin/docker" "$case_dir/fakebin/treehouse"
   rc=0
-  DDEV_CASE="$case_dir" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  HOME="$TMP_ROOT/nested-ddev" DDEV_CASE="$case_dir" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
   expect_code 0 "$rc" "nested DDEV teardown failed: $(cat "$case_dir/stderr")"
-  [ "$(head -n 1 "$case_dir/actions")" = 'ddev delete -Oy nested-project' ] \
+  [ "$(head -n 1 "$case_dir/actions")" = 'ddev delete -Oy nested-project-task-x1' ] \
     || fail "nested DDEV was not deleted before worktree return"
+  [ "$(grep '^ddev ' "$case_dir/actions")" = 'ddev delete -Oy nested-project-task-x1' ] \
+    || fail "teardown mutated an ineligible DDEV name"
+  assert_contains "$(cat "$case_dir/stderr")" 'ambiguous: nested-project (' "legacy primary name was not reported ambiguous"
+  assert_contains "$(cat "$case_dir/stderr")" 'protected: protected-task-x1 (' "protected worker name was not reported protected"
   assert_grep 'treehouse return ' "$case_dir/actions" "worktree was not returned"
   assert_not_contains "$(cat "$case_dir/actions")" 'outside-project' "teardown deleted an unrelated project"
   assert_not_contains "$(cat "$case_dir/actions")" 'docker ' "teardown ran global Docker cleanup"
