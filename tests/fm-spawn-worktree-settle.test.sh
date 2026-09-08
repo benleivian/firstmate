@@ -74,7 +74,18 @@ make_settle_case() {
   fakebin=$(make_settle_fakebin "$case_dir/fake")
   mkdir -p "$home/data" "$home/projects" "$home/state" "$home/config"
   printf 'codex\n' > "$home/config/crew-harness"
-  fm_git_worktree "$proj" "$wt" "wt-$name"
+  case "$name" in
+    ddev-existing-*)
+      mkdir -p "$proj/.ddev"
+      fm_git_init_commit "$proj"
+      printf 'name: captain-project\n' > "$proj/.ddev/config.yaml"
+      git -C "$proj" add .ddev/config.yaml
+      git -C "$proj" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'Add DDEV config'
+      fm_git_add_origin "$proj" "$proj.origin.git"
+      git -C "$proj" worktree add --quiet -b "wt-$name" "$wt"
+      ;;
+    *) fm_git_worktree "$proj" "$wt" "wt-$name" ;;
+  esac
   fm_git_init_commit "$stale"
   mkdir -p "$home/data/$id"
   cat > "$home/data/$id/brief.md" <<EOF
@@ -192,8 +203,42 @@ EOF
   pass "fm-spawn: committed DDEV names are overridden locally per worker copy"
 }
 
+test_existing_ddev_local_name_requires_no_primary_conflict() {
+  local variant id rec existing original out status
+  for variant in primary protected worker; do
+    id="spawn-existing-$variant-z1"
+    rec=$(make_settle_case "ddev-existing-$variant" "$id" 0)
+    read_settle_record "$rec"
+    printf '.ddev/config.local.yaml\n' >> "$PROJ_DIR/.git/info/exclude"
+    case "$variant" in
+      primary) existing=captain-project ;;
+      protected) existing=operator-kept ;;
+      worker) existing="worker-$id" ;;
+    esac
+    printf 'operator-kept\n' > "$HOME_DIR/config/ddev-protected-names"
+    printf 'name: %s\nphp_version: "8.3"\n' "$existing" > "$WT_DIR/.ddev/config.local.yaml"
+    original=$(cat "$WT_DIR/.ddev/config.local.yaml")
+    status=0
+    out=$(run_settle_spawn "$id") || status=$?
+    [ "$(cat "$WT_DIR/.ddev/config.local.yaml")" = "$original" ] || fail "$variant spawn overwrote local settings"
+    if [ "$variant" = worker ]; then
+      expect_code 0 "$status" "safe existing local name should be adopted: $out"
+      assert_grep "ddev_name=$existing" "$HOME_DIR/state/$id.meta" "safe existing name was not recorded"
+    else
+      [ "$status" -ne 0 ] || fail "$variant primary identity was accepted"
+      assert_contains "$out" "$WT_DIR/.ddev/config.local.yaml" "conflict error omitted its file"
+      assert_contains "$out" "$existing" "conflict error omitted its name"
+      if [ -f "$HOME_DIR/state/$id.meta" ]; then
+        assert_no_grep "ddev_name=$existing" "$HOME_DIR/state/$id.meta" "conflicting primary identity was recorded"
+      fi
+    fi
+  done
+  pass "fm-spawn: existing local names preserve settings and refuse primary identities"
+}
+
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_sleep
 test_ddev_local_name_is_isolated_and_ignored
+test_existing_ddev_local_name_requires_no_primary_conflict
 
 echo "# all fm-spawn-worktree-settle tests passed"

@@ -2652,7 +2652,7 @@ exclude_path() {
 # it never changes a project commit or its tracked ignore rules.
 DDEV_NAME=
 configure_task_ddev_name() {
-  local config local_config base id safe_base safe_id max_base common exclude existing
+  local config local_config base id safe_base safe_id max_base common exclude existing primary protected_name
   [ "$KIND" = secondmate ] && return 0
   config="$WT/.ddev/config.yaml"
   [ -f "$config" ] || return 0
@@ -2684,8 +2684,21 @@ configure_task_ddev_name() {
         echo "error: DDEV local configuration has no DDEV-safe name: $local_config" >&2
         return 1
         ;;
-      *) DDEV_NAME=$existing ;;
     esac
+    primary=$(sed -nE 's/^[[:space:]]*name:[[:space:]]*([^[:space:]#]+).*/\1/p' "$config" | head -1)
+    if [ "$existing" = "$primary" ]; then
+      echo "error: DDEV local configuration $local_config conflicts with primary name: $existing" >&2
+      return 1
+    fi
+    if [ -f "$CONFIG/ddev-protected-names" ]; then
+      while IFS= read -r protected_name || [ -n "$protected_name" ]; do
+        if [ "$existing" = "$protected_name" ]; then
+          echo "error: DDEV local configuration $local_config conflicts with protected name: $existing" >&2
+          return 1
+        fi
+      done < "$CONFIG/ddev-protected-names"
+    fi
+    DDEV_NAME=$existing
   else
     printf 'name: %s\n' "$DDEV_NAME" > "$local_config" || return 1
   fi

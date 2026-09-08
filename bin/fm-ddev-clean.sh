@@ -7,13 +7,12 @@
 #
 # Dry-run is the default. --worktree deletes only projects inside that worktree,
 # and, when a task's recorded ddev_name= is available, only that exact name.
-# Fleet mode is allowlist-only: it considers only a name ending in a task id
-# recorded in state/*.meta or data/backlog.md, containing 01[0-9a-hjkmnp-tv-z]{8,25},
-# or matching ^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)(-|$).
+# Both modes are allowlist-only: they consider only a name ending in a task id
+# recorded in state/*.meta or data/backlog.md, ending in (^|-)01[0-9a-hjkmnp-tv-z]{8,25},
+# or matching ^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$.
 # config/ddev-protected-names is an optional local, one-name-per-line deny list.
-# Fleet mode never touches protected names, live worktrees, or uncertain roots:
-# registered project config names and names outside worker roots are protected;
-# eligible names outside those roots or with no approot are reported ambiguous.
+# Both modes protect registered project config names and names outside worker roots.
+# Eligible names with no approot are reported ambiguous; fleet mode also protects live worktrees.
 # A missing-but-resolved worker approot is stop-unlisted with --omit-snapshot.
 # Every selected, protected, or ambiguous project prints <verb>: <name> (<approot|MISSING>).
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
@@ -201,14 +200,36 @@ is_recorded_task_suffix() {
 is_generated_name() {
   local name=$1
   is_recorded_task_suffix "$name" && return 0
-  printf '%s\n' "$name" | grep -Eq '01[0-9a-hjkmnp-tv-z]{8,25}' && return 0
-  printf '%s\n' "$name" | grep -Eq '^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)(-|$)'
+  printf '%s\n' "$name" | grep -Eq '(^|-)01[0-9a-hjkmnp-tv-z]{8,25}$' && return 0
+  printf '%s\n' "$name" | grep -Eq '^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$'
 }
 
 print_project() {
   local verb=$1 name=$2 approot=$3
   [ -n "$approot" ] || approot=MISSING
   printf '%s: %s (%s)\n' "$verb" "$name" "$approot"
+}
+
+select_project() {
+  local name=$1 approot=$2 verdict=
+  if protected_by_config "$name" || registered_project_name "$name"; then
+    verdict=protected
+  elif [ -n "$approot" ] && ! is_managed_root "$approot"; then
+    verdict=protected
+  elif ! is_generated_name "$name"; then
+    verdict=ambiguous
+  elif [ -z "$approot" ]; then
+    verdict=ambiguous
+  elif [ "$MODE" = fleet ] && is_live_worktree "$approot"; then
+    verdict=protected
+  fi
+  case "$verdict" in
+    protected) PROTECTED_COUNT=$((PROTECTED_COUNT + 1)) ;;
+    ambiguous) AMBIGUOUS_COUNT=$((AMBIGUOUS_COUNT + 1)) ;;
+    *) return 0 ;;
+  esac
+  print_project "$verdict" "$name" "$approot"
+  return 1
 }
 
 RUN_STATUS=0
@@ -260,45 +281,11 @@ while IFS=$'\x1f' read -r name approot status; do
   if [ -n "$WORKTREE" ]; then
     path_within "$approot" "$WORKTREE" || continue
     [ -z "$DDEV_NAME" ] || [ "$name" = "$DDEV_NAME" ] || continue
-    DELETE_NAMES+=("$name")
-    DELETE_ROOTS+=("$approot")
-    DELETE_COUNT=$((DELETE_COUNT + 1))
-    continue
   fi
-
-  if [ -z "$approot" ]; then
-    if is_generated_name "$name"; then
-      print_project ambiguous "$name" ""
-      AMBIGUOUS_COUNT=$((AMBIGUOUS_COUNT + 1))
-    else
-      print_project protected "$name" ""
-      PROTECTED_COUNT=$((PROTECTED_COUNT + 1))
-    fi
-    continue
-  fi
-  if ! is_managed_root "$approot"; then
-    if is_generated_name "$name"; then
-      print_project ambiguous "$name" "$approot"
-      AMBIGUOUS_COUNT=$((AMBIGUOUS_COUNT + 1))
-    else
-      print_project protected "$name" "$approot"
-      PROTECTED_COUNT=$((PROTECTED_COUNT + 1))
-    fi
-    continue
-  fi
-  if protected_by_config "$name" || registered_project_name "$name" || is_live_worktree "$approot"; then
-    print_project protected "$name" "$approot"
-    PROTECTED_COUNT=$((PROTECTED_COUNT + 1))
-    continue
-  fi
-  if ! is_generated_name "$name"; then
-    print_project protected "$name" "$approot"
-    PROTECTED_COUNT=$((PROTECTED_COUNT + 1))
-    continue
-  fi
+  select_project "$name" "$approot" || continue
   if [ ! -d "$approot" ]; then
     STOP_NAMES+=("$name")
-    STOP_ROOTS+=("")
+    STOP_ROOTS+=("$approot")
     STOP_COUNT=$((STOP_COUNT + 1))
   else
     DELETE_NAMES+=("$name")

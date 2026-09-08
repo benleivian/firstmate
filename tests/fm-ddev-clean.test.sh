@@ -47,7 +47,7 @@ write_projects() {
 {"name":"smileadvantage-v3-01m1ezrrsqt5fy0m87p067k9mp","approot":"$HOME_DIR/.no-mistakes/worktrees/1289b3aed15b/01M1EZRRSQT5FY0M87P067K9MP","status":"running"},
 {"name":"svvy-v2-pr1208-5ed446","approot":"$HOME_DIR/.treehouse/smileadvantage-v3-5ed446/2/smileadvantage-v3","status":"running"},
 {"name":"hub-test-5ed446","approot":"$HOME_DIR/.treehouse/smileadvantage-v3-5ed446/3/smileadvantage-v3","status":"running"},
-{"name":"svvy-v2-pr1341","approot":"$HOME_DIR/.treehouse/smileadvantage-v3-5ed446/4/smileadvantage-v3","status":"running"},
+{"name":"svvy-v2-pr1341-5ed446","approot":"$HOME_DIR/.treehouse/smileadvantage-v3-5ed446/4/smileadvantage-v3","status":"running"},
 {"name":"acst-assessments","approot":"$HOME_DIR/Sites/acst/acst-assessments","status":"running"}
 ]}
 EOF
@@ -66,16 +66,16 @@ prepare_sweep_fixture() {
 
 test_worktree_only_deletes_the_recorded_ddev_name() {
   local wt outside out
-  wt="$TMP_ROOT/task"
+  wt="$HOME_DIR/.treehouse/project/1/task"
   outside="$TMP_ROOT/outside"
   mkdir -p "$wt/nested" "$outside"
-  fm_write_meta "$STATE/task-z1.meta" "worktree=$wt" "ddev_name=inside"
+  fm_write_meta "$STATE/task-z1.meta" "worktree=$wt" "ddev_name=inside-task-z1"
   cat > "$DDEV_JSON" <<EOF
-{"raw":[{"name":"inside","approot":"$wt/nested","status":"running"},{"name":"other-inside","approot":"$wt","status":"running"},{"name":"outside","approot":"$outside","status":"running"}]}
+{"raw":[{"name":"inside-task-z1","approot":"$wt/nested","status":"running"},{"name":"other-inside","approot":"$wt","status":"running"},{"name":"outside","approot":"$outside","status":"running"}]}
 EOF
   : > "$ACTION_LOG"
   out=$(run_clean --worktree "$wt" --apply) || fail "worktree cleanup failed: $out"
-  [ "$(cat "$ACTION_LOG")" = 'ddev delete -Oy inside' ] \
+  [ "$(cat "$ACTION_LOG")" = 'ddev delete -Oy inside-task-z1' ] \
     || fail "worktree cleanup did not use the recorded DDEV name: $(cat "$ACTION_LOG")"
   assert_contains "$out" "delete: inside" "worktree cleanup did not name its deletion"
   pass "fm-ddev-clean: worktree cleanup uses its recorded DDEV name"
@@ -101,8 +101,8 @@ EOF
   out=$(run_clean) || fail "fleet dry-run failed: $out"
   assert_contains "$out" "protected: svvy-v2" "unsuffixed primary name was not protected"
   assert_contains "$out" "protected: operator-kept" "protected-list name was not protected"
-  assert_contains "$out" 'stop-unlist: svvy-v2-fix-z1 (MISSING)' "missing generated environment was not stop-unlisted"
-  assert_contains "$out" "ambiguous: svvy-v2-pr777" "outside generated environment was not ambiguous"
+  assert_contains "$out" "stop-unlist: svvy-v2-fix-z1 ($HOME_DIR/.treehouse/svvy-v2-1faa74/2/svvy-v2)" "missing generated environment was not stop-unlisted"
+  assert_contains "$out" "protected: svvy-v2-pr777" "outside generated environment was not ambiguous"
   assert_not_contains "$out" 'delete: svvy-v2' "fleet cleanup composed a delete for the captain's name"
   [ ! -s "$ACTION_LOG" ] || fail "dry-run invoked a mutating command: $(cat "$ACTION_LOG")"
 
@@ -123,7 +123,7 @@ test_sweep_apply_runs_generated_cleanup_and_host_prune() {
   assert_grep 'ddev delete -Oy svvy-v2-pr1208-5ed446' "$ACTION_LOG" "generated pool environment was not deleted"
   assert_grep 'ddev delete -Oy hub-test-5ed446' "$ACTION_LOG" "style-suffixed pool environment was not deleted"
   actual=$(cat "$ACTION_LOG")
-  assert_not_contains "$actual" 'svvy-v2-pr1341' "live generated environment was selected"
+  assert_not_contains "$actual" 'svvy-v2-pr1341-5ed446' "live generated environment was selected"
   assert_grep 'docker volume prune -f' "$ACTION_LOG" "host volume prune was omitted"
   pass "fm-ddev-clean: apply keeps live copies and reclaims generated stale resources"
 }
@@ -145,7 +145,60 @@ test_missing_ddev_is_a_per_task_noop_and_sweep_error() {
   pass "fm-ddev-clean: missing ddev is safe per task and visible for a sweep"
 }
 
+test_selection_guards_apply_to_both_modes() {
+  local wt outside mode out name
+  wt="$HOME_DIR/.treehouse/legacy/1/project"
+  outside="$HOME_DIR/Sites/primary"
+  mkdir -p "$wt" "$outside" "$PROJECTS_DIR/generated-primary/.ddev"
+  printf 'name: primary-review-01abcdefgh\n' > "$PROJECTS_DIR/generated-primary/.ddev/config.yaml"
+  printf 'svvy-v2\nprotected-review-01abcdefgh\n' > "$CONFIG/ddev-protected-names"
+  cat > "$DDEV_JSON" <<EOF
+{"raw":[
+{"name":"svvy-v2","approot":"$wt"},
+{"name":"protected-review-01abcdefgh","approot":"$wt"},
+{"name":"primary-review-01abcdefgh","approot":"$wt"},
+{"name":"hub-test","approot":"$wt"},
+{"name":"project-01abcdefgh-primary","approot":"$wt"},
+{"name":"project-x01abcdefgh","approot":"$wt"},
+{"name":"project-01abcdefgh","approot":"$wt"},
+{"name":"smileadvantage-v3-pr1208-5ed446","approot":"$wt"},
+{"name":"outside-01abcdefgh","approot":"$outside"},
+{"name":"missing-01abcdefgh","approot":""}
+]}
+EOF
+  for mode in fleet worktree; do
+    : > "$ACTION_LOG"
+    if [ "$mode" = fleet ]; then
+      out=$(run_clean --apply) || fail "$mode cleanup failed: $out"
+      assert_contains "$out" "protected: outside-01abcdefgh ($outside)" "outside primary root was not protected"
+      assert_contains "$out" "ambiguous: missing-01abcdefgh (MISSING)" "unknown approot was not reported"
+    else
+      out=$(run_clean --worktree "$wt" --apply) || fail "$mode cleanup failed: $out"
+    fi
+    for name in svvy-v2 protected-review-01abcdefgh primary-review-01abcdefgh; do
+      assert_contains "$out" "protected: $name ($wt)" "$mode failed protection for $name"
+      assert_not_contains "$(cat "$ACTION_LOG")" " $name" "$mode mutated protected $name"
+    done
+    for name in hub-test project-01abcdefgh-primary project-x01abcdefgh; do
+      assert_contains "$out" "ambiguous: $name ($wt)" "$mode accepted ambiguous $name"
+      assert_not_contains "$(cat "$ACTION_LOG")" " $name" "$mode mutated ambiguous $name"
+    done
+    assert_grep 'ddev delete -Oy project-01abcdefgh' "$ACTION_LOG" "$mode rejected a generated ULID suffix"
+    assert_grep 'ddev delete -Oy smileadvantage-v3-pr1208-5ed446' "$ACTION_LOG" "$mode rejected a generated PR suffix"
+  done
+  : > "$ACTION_LOG"
+  out=$(run_clean --worktree "$outside" --ddev-name outside-01abcdefgh --apply)
+  assert_contains "$out" "protected: outside-01abcdefgh ($outside)" "explicit worktree bypassed root protection"
+  [ ! -s "$ACTION_LOG" ] || fail "outside worktree was mutated"
+  : > "$ACTION_LOG"
+  out=$(run_clean --worktree "$wt" --ddev-name svvy-v2 --apply)
+  assert_contains "$out" "protected: svvy-v2 ($wt)" "explicit name bypassed protection"
+  [ ! -s "$ACTION_LOG" ] || fail "explicit protected name was mutated"
+  pass "fm-ddev-clean: both modes share protection and generated suffix eligibility"
+}
+
 test_worktree_only_deletes_the_recorded_ddev_name
 test_fleet_cleanup_is_allowlist_only_and_safe
 test_sweep_apply_runs_generated_cleanup_and_host_prune
 test_missing_ddev_is_a_per_task_noop_and_sweep_error
+test_selection_guards_apply_to_both_modes
