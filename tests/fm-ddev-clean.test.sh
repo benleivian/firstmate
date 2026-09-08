@@ -197,8 +197,33 @@ EOF
   pass "fm-ddev-clean: both modes share protection and generated suffix eligibility"
 }
 
+test_recorded_and_legacy_normalized_task_names() {
+  local wt out name
+  wt="$HOME_DIR/.treehouse/identity/1/project"
+  mkdir -p "$wt"
+  fm_write_meta "$STATE/Fix_1.meta" "worktree=$wt"
+  printf '{"raw":[{"name":"project-fix-1","approot":"%s"}]}\n' "$wt" > "$DDEV_JSON"
+  : > "$ACTION_LOG"
+  out=$(run_clean --worktree "$wt" --apply) || fail "legacy cleanup failed: $out"
+  [ "$(cat "$ACTION_LOG")" = 'ddev delete -Oy project-fix-1' ] || fail "legacy normalized task was not cleaned"
+  name="project-fix-1-$(python3 -c 'import hashlib; print(hashlib.sha256(b"Fix_1").hexdigest()[:6])')"
+  printf '{"raw":[{"name":"%s","approot":"%s"}]}\n' "$name" "$wt" > "$DDEV_JSON"
+  : > "$ACTION_LOG"
+  out=$(run_clean --worktree "$wt" --apply) || fail "hashed suffix cleanup failed: $out"
+  [ "$(cat "$ACTION_LOG")" = "ddev delete -Oy $name" ] || fail "shared hashed suffix was not recognized"
+  fm_write_meta "$STATE/Fix_1.meta" "worktree=$wt" "ddev_name=custom-worker-identity"
+  printf '{"raw":[{"name":"custom-worker-identity","approot":"%s"},{"name":"project-fix-1","approot":"%s"}]}\n' "$wt" "$wt" > "$DDEV_JSON"
+  : > "$ACTION_LOG"
+  out=$(run_clean --worktree "$wt" --apply) || fail "recorded cleanup failed: $out"
+  [ "$(cat "$ACTION_LOG")" = 'ddev delete -Oy custom-worker-identity' ] || fail "recorded identity did not take precedence"
+  rm "$STATE/Fix_1.meta"
+  pass "fm-ddev-clean: recorded names take precedence and normalized legacy IDs remain eligible"
+}
+
 test_worktree_only_deletes_the_recorded_ddev_name
 test_fleet_cleanup_is_allowlist_only_and_safe
 test_sweep_apply_runs_generated_cleanup_and_host_prune
 test_missing_ddev_is_a_per_task_noop_and_sweep_error
 test_selection_guards_apply_to_both_modes
+
+test_recorded_and_legacy_normalized_task_names

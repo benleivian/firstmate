@@ -78,7 +78,11 @@ make_settle_case() {
     ddev-existing-*)
       mkdir -p "$proj/.ddev"
       fm_git_init_commit "$proj"
-      printf 'name: captain-project\n' > "$proj/.ddev/config.yaml"
+      if [ "$name" = ddev-existing-derived-primary ]; then
+        printf 'name: wt-derived-primary\n' > "$proj/.ddev/config.yaml"
+      else
+        printf 'name: captain-project\n' > "$proj/.ddev/config.yaml"
+      fi
       git -C "$proj" add .ddev/config.yaml
       git -C "$proj" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'Add DDEV config'
       fm_git_add_origin "$proj" "$proj.origin.git"
@@ -236,9 +240,64 @@ test_existing_ddev_local_name_requires_no_primary_conflict() {
   pass "fm-spawn: existing local names preserve settings and refuse primary identities"
 }
 
+test_ddev_identity_normalization_and_collisions() {
+  local id rec out status name first_name= variant expected long_id
+  long_id=$(printf 'long%.0s' {1..16})
+  for id in Fix_1 fix-1 "$long_id"; do
+    rec=$(make_settle_case "ddev-existing-identity-$id" "$id" 0)
+    read_settle_record "$rec"
+    status=0
+    out=$(run_settle_spawn "$id") || status=$?
+    expect_code 0 "$status" "identity spawn failed: $out"
+    name=$(sed -n 's/^ddev_name=//p' "$HOME_DIR/state/$id.meta")
+    [ -n "$name" ] && [ "${#name}" -le 63 ] || fail "DDEV name exceeds its limit or is absent: $name"
+    case "$id" in
+      Fix_1)
+        expected=$(python3 -c 'import hashlib; print(hashlib.sha256(b"Fix_1").hexdigest()[:6])')
+        [ "$name" = "wt-fix-1-$expected" ] || fail "changed ID did not retain its digest: $name"
+        first_name=$name
+        ;;
+      fix-1)
+        [ "$name" = wt-fix-1 ] && [ "$name" != "$first_name" ] || fail "distinct IDs collided"
+        ;;
+      *)
+        expected=$(python3 -c 'import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:6])' "$id")
+        case "$name" in *-"$expected") ;; *) fail "capped ID lost its digest: $name" ;; esac
+        ;;
+    esac
+  done
+  for variant in collision protected primary adopted; do
+    id="derived-$variant"
+    rec=$(make_settle_case "ddev-existing-derived-$variant" "$id" 0)
+    read_settle_record "$rec"
+    expected="wt-$id"
+    case "$variant" in
+      collision) fm_write_meta "$HOME_DIR/state/other.meta" "ddev_name=$expected" ;;
+      protected) printf '%s\n' "$expected" > "$HOME_DIR/config/ddev-protected-names" ;;
+      adopted)
+        printf 'name: %s\n' "$expected" > "$WT_DIR/.ddev/config.local.yaml"
+        fm_write_meta "$HOME_DIR/state/other.meta" "ddev_name=$expected"
+        printf '.ddev/config.local.yaml\n' >> "$PROJ_DIR/.git/info/exclude"
+        ;;
+    esac
+    status=0
+    out=$(run_settle_spawn "$id") || status=$?
+    [ "$status" -ne 0 ] || fail "$variant duplicate identity was accepted"
+    assert_contains "$out" "$expected" "conflict did not identify its name"
+    [ ! -f "$HOME_DIR/state/$id.meta" ] || fail "failed spawn recorded task metadata"
+    if [ "$variant" != adopted ]; then
+      [ ! -e "$WT_DIR/.ddev/config.local.yaml" ] || fail "refused spawn wrote local configuration"
+    else
+      [ "$(cat "$WT_DIR/.ddev/config.local.yaml")" = "name: $expected" ] || fail "refused spawn overwrote local configuration"
+    fi
+  done
+  pass "fm-spawn: changed and capped IDs retain identity and occupied names are refused"
+}
+
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_sleep
 test_ddev_local_name_is_isolated_and_ignored
 test_existing_ddev_local_name_requires_no_primary_conflict
+test_ddev_identity_normalization_and_collisions
 
 echo "# all fm-spawn-worktree-settle tests passed"

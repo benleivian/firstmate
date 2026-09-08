@@ -7,8 +7,9 @@
 #
 # Dry-run is the default. --worktree deletes only projects inside that worktree,
 # and, when a task's recorded ddev_name= is available, only that exact name.
-# Both modes are allowlist-only: they consider only a name ending in a task id
-# recorded in state/*.meta or data/backlog.md, ending in (^|-)01[0-9a-hjkmnp-tv-z]{8,25},
+# Both modes are allowlist-only: they consider recorded ddev_name values first,
+# then task suffixes from state/*.meta or data/backlog.md via fm-ddev-name-lib.sh,
+# names ending in (^|-)01[0-9a-hjkmnp-tv-z]{8,25},
 # or matching ^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$.
 # config/ddev-protected-names is an optional local, one-name-per-line deny list.
 # Both modes protect registered project config names and names outside worker roots.
@@ -36,6 +37,7 @@ MODE=fleet
 
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
+. "$SCRIPT_DIR/fm-ddev-name-lib.sh"
 
 usage() {
   sed -n '2,${/^#/!q;p;}' "$0" | sed 's/^# \{0,1\}//'
@@ -182,17 +184,26 @@ registered_project_name() {
 }
 
 is_recorded_task_suffix() {
-  local name=$1 meta id backlog_id
+  local name=$1 meta id backlog_id recorded line
   for meta in "$STATE"/*.meta; do
     [ -f "$meta" ] || continue
+    recorded=
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in ddev_name=*) recorded=${line#ddev_name=} ;; esac
+    done < "$meta"
+    if [ -n "$recorded" ]; then
+      [ "$name" != "$recorded" ] || return 0
+      continue
+    fi
     id=$(basename "$meta" .meta)
-    [ "${name%-"$id"}" = "$name" ] || return 0
+    fm_ddev_task_name_matches "$name" "$id" && return 0
   done
   if [ -f "$DATA/backlog.md" ]; then
     while IFS= read -r backlog_id; do
       [ -n "$backlog_id" ] || continue
-      [ "${name%-"$backlog_id"}" = "$name" ] || return 0
-    done < <(sed -nE 's/^- \[[ x]\] ([a-z0-9][a-z0-9-]*).*/\1/p' "$DATA/backlog.md")
+      [ ! -f "$STATE/$backlog_id.meta" ] || continue
+      fm_ddev_task_name_matches "$name" "$backlog_id" && return 0
+    done < <(sed -nE 's/^- \[[ x]\] ([a-zA-Z0-9][a-zA-Z0-9_-]*).*/\1/p' "$DATA/backlog.md")
   fi
   return 1
 }
