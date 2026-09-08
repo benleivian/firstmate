@@ -164,7 +164,7 @@ test_already_settled_pane_costs_one_confirm_sleep() {
 }
 
 test_ddev_local_name_is_isolated_and_ignored() {
-  local case_dir home proj wt fakebin countfile id out common
+  local case_dir home proj wt fakebin countfile id out
   case_dir="$TMP_ROOT/ddev-local"
   home="$case_dir/home"
   proj="$case_dir/project"
@@ -198,10 +198,8 @@ EOF
   expect_code 0 "$?" "spawn with a committed DDEV config should succeed: $out"
   [ "$(cat "$wt/.ddev/config.local.yaml")" = "name: worker-copy-$id" ] \
     || fail "spawn did not write the isolated DDEV name"
-  common=$(git -C "$wt" rev-parse --git-common-dir)
-  case "$common" in /*) ;; *) common=$(cd "$wt/$common" && pwd -P) ;; esac
-  assert_grep '.ddev/config.local.yaml' "$common/info/exclude" \
-    "spawn did not add the DDEV override to the common Git exclude file"
+  git -C "$wt" check-ignore --quiet .ddev/config.local.yaml \
+    || fail "Git does not ignore the worker DDEV override"
   assert_grep "ddev_name=worker-copy-$id" "$home/state/$id.meta" \
     "spawn did not record the DDEV name"
   pass "fm-spawn: committed DDEV names are overridden locally per worker copy"
