@@ -173,10 +173,10 @@
 #     live remote secondmate worker are out of scope. Best effort: a sweep
 #     failure never blocks this teardown.
 #   Fix 4 - remove the task's DDEV environment. When its worktree exists,
-#     bin/fm-ddev-clean.sh deletes only DDEV projects rooted inside that worktree
-#     and, when ddev_name= is recorded, only that exact environment. A missing
-#     DDEV tool or cleanup failure is best effort and never blocks the
-#     already-authorized teardown.
+#     bin/fm-ddev-clean.sh receives --worktree and the recorded ddev_name, if any;
+#     its header owns the shared selection and protection rules. A missing DDEV
+#     tool or cleanup failure is best effort and never blocks the already-authorized
+#     teardown; protected or ambiguous environments may remain after worktree return.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Shared spawn identity and legacy cleanup matching.
+# Normalization lowercases, replaces non-DDEV characters with dashes, collapses
+# repeated dashes, and trims edge dashes. A changed ID or one exceeding 61
+# characters gets a suffix of at most 54 normalized characters plus a dash and
+# the first six SHA-256 hex digits of the raw ID, leaving room for a base prefix.
+# Cleanup also accepts the unhashed normalized suffix for legacy task records.
 
 fm_ddev_normalize() {
   printf '%s' "$1" | LC_ALL=C tr '[:upper:]' '[:lower:]' \

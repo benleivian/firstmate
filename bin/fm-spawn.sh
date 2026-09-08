@@ -218,10 +218,20 @@
 # data/backlog.md. An automatic-backend home with a backlog but no compatible
 # tasks-axi refuses before creating any lifecycle state.
 # On success prints: spawned <id> harness=<name> kind=<ship|scout|secondmate> [mode=<mode> yolo=<on|off>] window=<backend-target> worktree=<path>
-# A ship task records the explicit mode/yolo it was passed; ship and scout tasks with a
-# .ddev/config.yaml also record ddev_name= after fm-spawn writes or reads their local DDEV
-# override; a secondmate spawn records mode=secondmate, yolo=off, home=, and projects=.
+# A ship task records the explicit mode/yolo it was passed; a secondmate spawn
+# records mode=secondmate, yolo=off, home=, and projects=.
 # Scouts record neither mode nor yolo, and both the success line and state/<id>.meta omit them.
+# Ship/scout copies with a root .ddev/config.yaml prepare .ddev/config.local.yaml
+# before agent launch and record its name as ddev_name= in state/<id>.meta.
+# New names combine the normalized worktree basename and the task suffix from
+# fm-ddev-name-lib.sh, shortening the basename to keep the name within 63 characters.
+# An existing override is preserved and its name adopted only if it is a regular,
+# non-symlink file with a nonempty name containing only lowercase letters, digits,
+# and dashes. Both derived and adopted names are refused if they match the primary
+# config name, config/ddev-protected-names, or another task's recorded ddev_name
+# in this home; refusal identifies the conflicting file and name without writing
+# the override. The override is excluded through Git's common info/exclude when
+# needed, without changing tracked ignore rules. Nested DDEV configs are not prepared.
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
 # When the home session's frozen trace-context decision is enabled (see
@@ -2646,10 +2656,8 @@ exclude_path() {
   grep -qxF "$rel" "$EXCL" 2>/dev/null || echo "$rel" >> "$EXCL"
 }
 
-# A project's committed DDEV name identifies its primary environment, so every
-# disposable ship/scout copy overrides it locally before an agent can run DDEV.
-# The override is intentionally local Git metadata plus an ignored worktree file:
-# it never changes a project commit or its tracked ignore rules.
+# The primary name would share the captain's database; the header owns the
+# worker override and refusal contract enforced before agent launch here.
 . "$SCRIPT_DIR/fm-ddev-name-lib.sh"
 DDEV_NAME=
 configure_task_ddev_name() {

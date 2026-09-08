@@ -160,7 +160,8 @@ Test cleanup must use the guarded path in [`docs/cmux-backend.md`](cmux-backend.
 
 Optional local, gitignored `config/ddev-protected-names` lists one DDEV project name per line that `bin/fm-ddev-clean.sh` must never stop, unlist, or delete.
 The file is not inherited into secondmate homes.
-The cleanup script header and `--help` own selection patterns and output details.
+The [cleanup script header and `--help`](../bin/fm-ddev-clean.sh) own selection patterns and output details.
+The [spawn script header and `--help`](../bin/fm-spawn.sh) own worker DDEV overrides and name-conflict refusals, including this list's use during spawn.
 
 ## Away-mode supervisor backend (FM_SUPERVISOR_BACKEND / FM_SUPERVISOR_TARGET)
 

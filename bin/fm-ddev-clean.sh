@@ -9,11 +9,13 @@
 # and, when a task's recorded ddev_name= is available, only that exact name.
 # Both modes are allowlist-only: they consider recorded ddev_name values first,
 # then task suffixes from state/*.meta or data/backlog.md via fm-ddev-name-lib.sh,
-# names ending in (^|-)01[0-9a-hjkmnp-tv-z]{8,25},
+# names matching (^|-)01[0-9a-hjkmnp-tv-z]{8,25}$,
 # or matching ^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$.
-# config/ddev-protected-names is an optional local, one-name-per-line deny list.
+# docs/configuration.md "DDEV protected names" owns the local deny-list setup.
 # Both modes protect registered project config names and names outside worker roots.
+# Worker roots are ~/.no-mistakes/worktrees and ~/.treehouse/*/<numeric-slot>/*.
 # Eligible names with no approot are reported ambiguous; fleet mode also protects live worktrees.
+# state/*.meta worktree= entries protect those live roots and their descendants.
 # A missing-but-resolved worker approot is stop-unlisted with --omit-snapshot.
 # Every selected, protected, or ambiguous project prints <verb>: <name> (<approot|MISSING>).
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
