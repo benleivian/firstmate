@@ -148,7 +148,52 @@ test_already_settled_pane_costs_one_confirm_sleep() {
   pass "an already-settled pane confirms via the existing inter-poll sleep, not an extra full cycle"
 }
 
+test_ddev_local_name_is_isolated_and_ignored() {
+  local case_dir home proj wt fakebin countfile id out common
+  case_dir="$TMP_ROOT/ddev-local"
+  home="$case_dir/home"
+  proj="$case_dir/project"
+  wt="$case_dir/worker-copy"
+  id=spawn-ddev-z1
+  fakebin=$(make_settle_fakebin "$case_dir/fake")
+  countfile="$case_dir/pane-call-count"
+  mkdir -p "$home/data/$id" "$home/projects" "$home/state" "$home/config" "$proj/.ddev"
+  printf 'codex\n' > "$home/config/crew-harness"
+  fm_git_init_commit "$proj"
+  printf 'name: captain-project\n' > "$proj/.ddev/config.yaml"
+  git -C "$proj" add .ddev/config.yaml
+  git -C "$proj" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'Add DDEV config'
+  fm_git_add_origin "$proj" "$proj.origin.git"
+  git -C "$proj" worktree add --quiet -b wt-ddev "$wt"
+  cat > "$home/data/$id/brief.md" <<EOF
+# Task
+## Captain's intent
+Exercise local DDEV naming.
+
+## Firstmate spec
+Keep the DDEV override local.
+EOF
+  touch "$home/state/.last-watcher-beat"
+  out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    FM_DATA_OVERRIDE="$home/data" FM_PROJECTS_OVERRIDE="$home/projects" \
+    FM_CONFIG_OVERRIDE="$home/config" FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" \
+    FM_FAKE_PANE_PATH="$wt" FM_FAKE_PANE_STALE_READS=0 \
+    FM_FAKE_PANE_COUNTFILE="$countfile" PATH="$fakebin:$PATH" \
+    "$SPAWN" "$id" "$proj" --mode no-mistakes --yolo off 2>&1)
+  expect_code 0 "$?" "spawn with a committed DDEV config should succeed: $out"
+  [ "$(cat "$wt/.ddev/config.local.yaml")" = "name: worker-copy-$id" ] \
+    || fail "spawn did not write the isolated DDEV name"
+  common=$(git -C "$wt" rev-parse --git-common-dir)
+  case "$common" in /*) ;; *) common=$(cd "$wt/$common" && pwd -P) ;; esac
+  assert_grep '.ddev/config.local.yaml' "$common/info/exclude" \
+    "spawn did not add the DDEV override to the common Git exclude file"
+  assert_grep "ddev_name=worker-copy-$id" "$home/state/$id.meta" \
+    "spawn did not record the DDEV name"
+  pass "fm-spawn: committed DDEV names are overridden locally per worker copy"
+}
+
 test_single_stale_first_read_is_not_accepted
 test_already_settled_pane_costs_one_confirm_sleep
+test_ddev_local_name_is_isolated_and_ignored
 
 echo "# all fm-spawn-worktree-settle tests passed"
