@@ -218,9 +218,20 @@
 # data/backlog.md. An automatic-backend home with a backlog but no compatible
 # tasks-axi refuses before creating any lifecycle state.
 # On success prints: spawned <id> harness=<name> kind=<ship|scout|secondmate> [mode=<mode> yolo=<on|off>] window=<backend-target> worktree=<path>
-# A ship task records the explicit mode/yolo it was passed; a secondmate spawn records
-# mode=secondmate, yolo=off, home=, and projects=; a scout records neither, and both the
-# success line and state/<id>.meta omit them.
+# A ship task records the explicit mode/yolo it was passed; a secondmate spawn
+# records mode=secondmate, yolo=off, home=, and projects=.
+# Scouts record neither mode nor yolo, and both the success line and state/<id>.meta omit them.
+# Ship/scout copies with a root .ddev/config.yaml prepare .ddev/config.local.yaml
+# before agent launch and record its name as ddev_name= in state/<id>.meta.
+# New names combine the normalized worktree basename and the task suffix from
+# fm-ddev-name-lib.sh, shortening the basename to keep the name within 63 characters.
+# An existing override is preserved and its name adopted only if it is a regular,
+# non-symlink file with a nonempty name containing only lowercase letters, digits,
+# and dashes. Both derived and adopted names are refused if they match the primary
+# config name, config/ddev-protected-names, or another task's recorded ddev_name
+# in this home; refusal identifies the conflicting file and name without writing
+# the override. The override is excluded through Git's common info/exclude when
+# needed, without changing tracked ignore rules. Nested DDEV configs are not prepared.
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
 # When the home session's frozen trace-context decision is enabled (see
@@ -861,6 +872,7 @@ spawn_abort_cleanup() {
             [ -z "${MODE:-}" ] || echo "mode=$MODE"
             [ -z "${YOLO:-}" ] || echo "yolo=$YOLO"
             echo "tasktmp=${TASK_TMP:-}"
+            [ -z "${DDEV_NAME:-}" ] || echo "ddev_name=$DDEV_NAME"
             echo "model=${MODEL:-default}"
             echo "effort=${EFFORT:-default}"
             echo "backend=orca"
@@ -2643,6 +2655,85 @@ exclude_path() {
   mkdir -p "$(dirname "$EXCL")"
   grep -qxF "$rel" "$EXCL" 2>/dev/null || echo "$rel" >> "$EXCL"
 }
+
+# The primary name would share the captain's database; the header owns the
+# worker override and refusal contract enforced before agent launch here.
+# shellcheck source=bin/fm-ddev-name-lib.sh
+. "$SCRIPT_DIR/fm-ddev-name-lib.sh"
+DDEV_NAME=
+configure_task_ddev_name() {
+  local config local_config base safe_base safe_id max_base common exclude existing primary protected_name meta line candidate
+  [ "$KIND" = secondmate ] && return 0
+  config="$WT/.ddev/config.yaml"
+  [ -f "$config" ] || return 0
+  local_config="$WT/.ddev/config.local.yaml"
+  base=$(basename "$WT")
+  safe_base=$(fm_ddev_normalize "$base")
+  safe_id=$(fm_ddev_task_suffix "$ID") || {
+    echo "error: task $ID cannot derive a DDEV-safe local name" >&2
+    return 1
+  }
+  [ -n "$safe_base" ] || safe_base=project
+  max_base=$((63 - ${#safe_id} - 1))
+  candidate="${safe_base:0:max_base}-$safe_id"
+  if [ -e "$local_config" ] || [ -L "$local_config" ]; then
+    [ -f "$local_config" ] && [ ! -L "$local_config" ] || {
+      echo "error: DDEV local configuration is not a regular file: $local_config" >&2
+      return 1
+    }
+    existing=$(sed -nE 's/^[[:space:]]*name:[[:space:]]*([^[:space:]#]+).*/\1/p' "$local_config" | head -1)
+    case "$existing" in
+      ''|*[!a-z0-9-]*)
+        echo "error: DDEV local configuration has no DDEV-safe name: $local_config" >&2
+        return 1
+        ;;
+    esac
+    candidate=$existing
+  fi
+  primary=$(sed -nE 's/^[[:space:]]*name:[[:space:]]*([^[:space:]#]+).*/\1/p' "$config" | head -1)
+  if [ "$candidate" = "$primary" ]; then
+    echo "error: DDEV local configuration $local_config conflicts with primary name: $candidate" >&2
+    return 1
+  fi
+  if [ -f "$CONFIG/ddev-protected-names" ]; then
+    while IFS= read -r protected_name || [ -n "$protected_name" ]; do
+      if [ "$candidate" = "$protected_name" ]; then
+        echo "error: DDEV local configuration $local_config conflicts with protected name: $candidate" >&2
+        return 1
+      fi
+    done < "$CONFIG/ddev-protected-names"
+  fi
+  for meta in "$STATE"/*.meta; do
+    [ -f "$meta" ] && [ "$meta" != "$STATE/$ID.meta" ] || continue
+    while IFS= read -r line || [ -n "$line" ]; do
+      if [ "$line" = "ddev_name=$candidate" ]; then
+        echo "error: DDEV local configuration $local_config name $candidate is already recorded by $meta" >&2
+        return 1
+      fi
+    done < "$meta"
+  done
+  if [ ! -e "$local_config" ]; then
+    printf 'name: %s\n' "$candidate" > "$local_config" || return 1
+  fi
+  DDEV_NAME=$candidate
+  common=$(git -C "$WT" rev-parse --git-common-dir 2>/dev/null || true)
+  [ -n "$common" ] || return 0
+  case "$common" in
+    /*) ;;
+    *) common=$(cd "$WT/$common" 2>/dev/null && pwd -P) || return 1 ;;
+  esac
+  exclude="$common/info/exclude"
+  mkdir -p "$(dirname "$exclude")" || return 1
+  if ! git -C "$WT" check-ignore -q --no-index .ddev/config.local.yaml; then
+    grep -qxF '.ddev/config.local.yaml' "$exclude" 2>/dev/null \
+      || printf '%s\n' '.ddev/config.local.yaml' >> "$exclude" || return 1
+  fi
+}
+
+if [ "$KIND" != secondmate ]; then
+  configure_task_ddev_name || exit 1
+fi
+
 if [ "$RELAUNCH" -eq 1 ]; then
   # Retire the previous incarnation's per-task harness wiring before arming the
   # new one. Without this, a harness switch would leave the old adapter's hook
@@ -3038,7 +3129,7 @@ SPAWN_META_PATH=$SPAWN_META_TMP
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp model effort busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind mode yolo tasktmp ddev_name model effort busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -3054,6 +3145,7 @@ preserve_relaunch_meta() {
   [ -z "$MODE" ] || echo "mode=$MODE"
   [ -z "$YOLO" ] || echo "yolo=$YOLO"
   echo "tasktmp=$TASK_TMP"
+  [ -z "$DDEV_NAME" ] || echo "ddev_name=$DDEV_NAME"
   echo "model=${MODEL:-default}"
   echo "effort=${EFFORT:-default}"
   [ -z "${BUSY_GEN:-}" ] || echo "busy_gen=$BUSY_GEN"

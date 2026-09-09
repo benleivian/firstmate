@@ -173,9 +173,10 @@
 #     live remote secondmate worker are out of scope. Best effort: a sweep
 #     failure never blocks this teardown.
 #   Fix 4 - remove the task's DDEV environment. When its worktree exists,
-#     bin/fm-ddev-clean.sh deletes only DDEV projects rooted
-#     inside that worktree. A missing DDEV tool or cleanup failure is best effort
-#     and never blocks the already-authorized teardown.
+#     bin/fm-ddev-clean.sh receives --worktree and the recorded ddev_name, if any;
+#     its header owns the shared selection and protection rules. A missing DDEV
+#     tool or cleanup failure is best effort and never blocks the already-authorized
+#     teardown; protected or ambiguous environments may remain after worktree return.
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -777,6 +778,7 @@ PR_URL=$(grep '^pr=' "$META" | tail -1 | cut -d= -f2- || true)
 # tasktmp is recorded by fm-spawn for tasks that set up a per-task temp root
 # (/tmp/fm-<id>/); absent for tasks spawned before that change, so tolerate empty.
 TASK_TMP=$(grep '^tasktmp=' "$META" | cut -d= -f2- || true)
+DDEV_NAME=$(fm_meta_get "$META" ddev_name)
 BUSY_GEN=$(fm_meta_get "$META" busy_gen)
 if [ -z "$BUSY_GEN" ]; then
   BUSY_GEN=$(cat "$STATE/$ID.busy-gen" 2>/dev/null || true)
@@ -2811,7 +2813,9 @@ fi
 # Fix 4 (see script header): delete only this task's DDEV project before its
 # worktree returns to the pool. The cleanup script is intentionally best effort.
 if [ "$KIND" != secondmate ] && [ -d "$WT" ]; then
-  "$SCRIPT_DIR/fm-ddev-clean.sh" --worktree "$WT" --apply >&2 \
+  ddev_cleanup_args=(--worktree "$WT" --apply)
+  [ -z "$DDEV_NAME" ] || ddev_cleanup_args+=(--ddev-name "$DDEV_NAME")
+  "$SCRIPT_DIR/fm-ddev-clean.sh" "${ddev_cleanup_args[@]}" >&2 \
     || echo "warning: DDEV cleanup failed for task $ID; continuing teardown" >&2
 fi
 
