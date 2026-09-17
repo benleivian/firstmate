@@ -25,27 +25,6 @@ TEARDOWN="$ROOT/bin/fm-teardown.sh"
 HARNESS="$ROOT/bin/fm-harness.sh"
 TMP_ROOT=$(fm_test_tmproot fm-muse-harness)
 
-# Keep a real, named parent alive while Bash runs the probe. Copying macOS's
-# system Bash produces an executable rejected by the platform code-signing policy.
-cat > "$TMP_ROOT/muse-parent.c" <<'C'
-#include <sys/wait.h>
-#include <unistd.h>
-int main(int argc, char **argv) {
-  (void)argc;
-  pid_t child = fork();
-  if (child < 0) return 1;
-  if (child == 0) {
-    argv[0] = "bash";
-    execvp(argv[0], argv);
-    _exit(127);
-  }
-  int status;
-  if (waitpid(child, &status, 0) < 0) return 1;
-  return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
-}
-C
-cc "$TMP_ROOT/muse-parent.c" -o "$TMP_ROOT/muse-parent" || fail "cannot build Muse process fixture"
-
 # --- session-log fixtures ---------------------------------------------------
 
 # muse_log_metadata <workspace-root>: the first record of every session log,
@@ -125,7 +104,7 @@ esac
 exit 0
 SH
   chmod +x "$fakebin/tmux"
-  cp "$TMP_ROOT/muse-parent" "$fakebin/muse-bin-test-version"
+  cp "$(command -v bash)" "$fakebin/muse-bin-test-version"
   cat > "$fakebin/muse" <<'SH'
 #!/usr/bin/env bash
 set -u
@@ -193,14 +172,16 @@ run_muse_spawn() {  # <home> <proj> <wt> <fakebin> <id> [extra args...]
 # markerless and the marker layer deliberately outranks ancestry: with one
 # retained, these cases would assert the marker's verdict instead of the
 # ancestry match they exist to pin.
-# The compiled parent waits for the shell probe, reproducing Muse's persistent
-# TUI process with tool subprocesses beneath it.
+# The command substitution around the probe is load-bearing: a bare `-c <cmd>`
+# lets the shell exec the probe in place, which REPLACES the muse-bin-* process
+# name the walk is supposed to find. Real muse keeps its TUI process alive and
+# runs tools as children, so forcing a fork is what reproduces that shape.
 test_detects_versioned_process_ancestor() {
   local dir bin out
   dir="$TMP_ROOT/detect"
   mkdir -p "$dir"
   for bin in muse-bin-0.1.0-R708.1 muse-bin-9.9.9-RZZZ.9 muse; do
-    cp "$TMP_ROOT/muse-parent" "$dir/$bin"
+    cp "$(command -v bash)" "$dir/$bin"
     out=$(env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
       -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI \
       "$dir/$bin" -c "r=\$(\"$HARNESS\"); printf '%s' \"\$r\"")
@@ -216,7 +197,7 @@ test_detection_is_anchored() {
   dir="$TMP_ROOT/detect-neg"
   mkdir -p "$dir"
   for bin in musescore amuse notmuse-bin muse-binary muse-bind; do
-    cp "$TMP_ROOT/muse-parent" "$dir/$bin"
+    cp "$(command -v bash)" "$dir/$bin"
     out=$(env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
       -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI \
       "$dir/$bin" -c "r=\$(\"$HARNESS\"); printf '%s' \"\$r\"")
