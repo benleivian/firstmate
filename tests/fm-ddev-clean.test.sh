@@ -439,6 +439,72 @@ test_refresh_preserves_exclusions_and_approval_scope() {
   pass "fm-ddev-clean: refresh preserves exclusions, resource approval, preview and task scope"
 }
 
+test_legacy_teardown_cleans_only_selected_listed_resources() {
+  local wt other out
+  prepare_transition_fixture true
+  wt="$HOME_DIR/.treehouse/reinventory/1/project"
+  other="$HOME_DIR/.treehouse/unrelated/2/project"
+  mkdir -p "$other"
+  fm_write_meta "$STATE/Fix_1.meta" "worktree=$wt"
+  python3 - "$DDEV_JSON" "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT" "$DOCKER_PS" "$wt" "$other" <<'PYFIXTURE'
+import copy
+import json
+import sys
+from pathlib import Path
+
+projects, containers, networks, inventory = map(Path, sys.argv[1:5])
+worktree, other = sys.argv[5:]
+container = json.loads(containers.read_text())[0]
+network = json.loads(networks.read_text())[0]
+rows, container_rows, network_rows = [], [], []
+for ident, site, root in [
+    ("approved", "project-fix-1", worktree),
+    ("unrelated", "other-fix-1", other),
+    ("unlisted", "unlisted-fix-1", None),
+    ("regular", "regular", worktree),
+]:
+    if root is not None:
+        rows.append({"name": site, "approot": root})
+    current = copy.deepcopy(container)
+    current["Id"] = "c-" + ident
+    current["Name"] = "/ddev-" + site + "-redis"
+    current["Config"]["Labels"]["com.ddev.site-name"] = site
+    current["Config"]["Labels"]["com.docker.compose.project"] = "ddev-" + site
+    current["State"]["Running"] = ident == "approved"
+    current["NetworkSettings"]["Networks"] = {"ddev-" + site + "_default": {}}
+    container_rows.append(current)
+    current_network = copy.deepcopy(network)
+    current_network["Id"] = "n-" + ident
+    current_network["Name"] = "ddev-" + site + "_default"
+    current_network["Labels"]["com.docker.compose.project"] = "ddev-" + site
+    current_network["Containers"] = {current["Id"]: {}}
+    network_rows.append(current_network)
+projects.write_text(json.dumps({"raw": rows}))
+containers.write_text(json.dumps(container_rows))
+networks.write_text(json.dumps(network_rows))
+inventory.write_text("".join(item["Id"] + "\n" for item in container_rows))
+PYFIXTURE
+  out=$(run_clean --worktree "$wt") || fail "$out"
+  [ ! -s "$ACTION_LOG" ] || fail "legacy preview mutated resources"
+  assert_contains "$out" 'orphan-container: ddev-project-fix-1-redis' "legacy selected service was not approved"
+  out=$(DDEV_TRANSITION=stopped run_clean --worktree "$wt" --apply) || fail "$out"
+  [ "$(cat "$ACTION_LOG")" = "$(printf '%s\n' 'ddev delete -Oy project-fix-1' 'docker rm c-approved' 'docker network rm n-approved')" ] \
+    || fail "legacy teardown acted outside its selected project: $(cat "$ACTION_LOG")"
+  assert_contains "$out" 'removed-container: ddev-project-fix-1-redis' "legacy service removal was not verified"
+  assert_contains "$out" 'removed-network: ddev-project-fix-1_default' "legacy network removal was not verified"
+  python3 - "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT" <<'PYVERIFY'
+import json
+import sys
+from pathlib import Path
+
+containers, networks = [json.loads(Path(path).read_text()) for path in sys.argv[1:]]
+assert {item["Id"] for item in containers} == {"c-unrelated", "c-unlisted", "c-regular"}
+assert {item["Id"] for item in networks} == {"n-unrelated", "n-unlisted", "n-regular"}
+PYVERIFY
+  [ "$?" -eq 0 ] || fail "legacy teardown did not preserve unrelated Docker resources"
+  pass "fm-ddev-clean: legacy teardown cleans selected listed services and preserves unrelated resources"
+}
+
 test_final_inventory_does_not_trust_command_success() {
   local out
   prepare_transition_fixture
@@ -487,3 +553,5 @@ test_post_ddev_inventory_tracks_actual_resources
 test_refresh_preserves_exclusions_and_approval_scope
 test_final_inventory_does_not_trust_command_success
 test_refresh_inventory_failures_are_visible
+
+test_legacy_teardown_cleans_only_selected_listed_resources

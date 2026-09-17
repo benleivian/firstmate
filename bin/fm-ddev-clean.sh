@@ -327,14 +327,18 @@ EOF
 
 orphan_owner_verdict() {
   local name=$1 meta line recorded root i
-  if [ -n "$WORKTREE" ]; then
-    [ -n "$DDEV_NAME" ] && [ "$name" = "$DDEV_NAME" ] || { printf '%s\n' ambiguous; return; }
-  fi
   for i in "${!LIST_NAMES[@]}"; do
     [ "${LIST_NAMES[$i]}" = "$name" ] || continue
+    if [ -n "$WORKTREE" ] && ! selected_ddev_site "$name"; then
+      printf '%s\n' ambiguous
+      return
+    fi
     project_verdict "$name" "${LIST_ROOTS[$i]}"
     return
   done
+  if [ -n "$WORKTREE" ]; then
+    [ -n "$DDEV_NAME" ] && [ "$name" = "$DDEV_NAME" ] || { printf '%s\n' ambiguous; return; }
+  fi
   if protected_by_config "$name" || registered_project_name "$name"; then
     printf '%s\n' protected
     return
