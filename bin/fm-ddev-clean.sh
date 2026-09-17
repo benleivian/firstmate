@@ -12,20 +12,34 @@
 # names matching (^|-)01[0-9a-hjkmnp-tv-z]{8,25}$,
 # or matching ^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$.
 # docs/configuration.md "DDEV protected names" owns the local deny-list setup.
-# Both modes protect registered project config names and names outside worker roots.
+# Both modes protect registered project config names; listed projects outside worker roots are protected.
 # Worker roots are ~/.no-mistakes/worktrees and ~/.treehouse/*/<numeric-slot>/*.
-# Eligible names with no approot are reported ambiguous; fleet mode also protects live worktrees.
+# Listed eligible names with no approot are reported ambiguous; fleet mode also protects live worktrees.
 # state/*.meta worktree= entries protect those live roots and their descendants.
 # A missing-but-resolved worker approot is stop-unlisted with --omit-snapshot.
 # Every selected, protected, or ambiguous project prints <verb>: <name> (<approot|MISSING>).
-# After DDEV cleanup, Docker inventory finds stopped custom-compose containers only when
-# com.ddev.site-name, com.docker.compose.project=ddev-<site>, and a compose service agree.
-# It removes only their now-empty, same-project referenced networks. A running, protected,
-# ambiguous, mismatched, failed, or still-referenced resource is reported as residual.
+# Docker candidates are inventoried before DDEV cleanup, including sites absent from its listing.
+# Containers need matching com.ddev.site-name and com.docker.compose.project=ddev-<site>
+# labels plus a nonempty com.docker.compose.service; running candidates require a selected DDEV site.
+# Unlisted sites use recorded ownership or the name allowlist, with the same name protections.
+# In worktree mode, listed resources use the selected project names even without ddev_name;
+# unlisted resources require an exact --ddev-name or metadata-derived name match.
+# After DDEV cleanup, only previously selected container IDs still stopped, consistently labeled,
+# and eligible under refreshed ownership checks are removed.
+# Network discovery is limited to those candidates' same-project referenced networks;
+# removal requires a still-matching project, eligible ownership, and no remaining members.
+# Final inventory verifies absence before reporting removed containers or candidate networks.
+# Summary stop-unlist/delete and orphan-container/orphan-network count initial selections;
+# ddev-removed counts successful DDEV commands, while removed counts verified absent Docker resources.
+# Applied residual counts all remaining site-labeled or selected containers and candidate networks,
+# including exclusions outside the requested scope; failed final inventories add residual markers.
+# Applied failed counts DDEV command, targeted Docker removal, and inventory failures.
+# Inventory warnings mean verification is incomplete, even when the dry-run summary has residual=0.
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
 # dangling-only operations. It never uses -a/--all for cleanup.
 # Every ddev, docker, and JSON-parser call has FM_DDEV_CLEAN_TIMEOUT_SECS seconds
 # (default 30); failed cleanup commands warn and do not stop later cleanup.
+# A zero exit status alone does not certify complete cleanup; inspect warnings and the summary.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
