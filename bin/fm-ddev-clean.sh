@@ -453,7 +453,7 @@ current_owner_verdict() {
   local site=$1 meta line recorded root
   for meta in "$STATE"/*.meta; do
     [ -f "$meta" ] || continue
-    recorded= root=
+    recorded='' root=''
     while IFS= read -r line || [ -n "$line" ]; do
       case "$line" in
         ddev_name=*) recorded=${line#ddev_name=} ;;

@@ -492,7 +492,7 @@ PYFIXTURE
     || fail "legacy teardown acted outside its selected project: $(cat "$ACTION_LOG")"
   assert_contains "$out" 'removed-container: ddev-project-fix-1-redis' "legacy service removal was not verified"
   assert_contains "$out" 'removed-network: ddev-project-fix-1_default' "legacy network removal was not verified"
-  python3 - "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT" <<'PYVERIFY'
+  python3 - "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT" <<'PYVERIFY' || fail "legacy teardown did not preserve unrelated Docker resources"
 import json
 import sys
 from pathlib import Path
@@ -501,7 +501,6 @@ containers, networks = [json.loads(Path(path).read_text()) for path in sys.argv[
 assert {item["Id"] for item in containers} == {"c-unrelated", "c-unlisted", "c-regular"}
 assert {item["Id"] for item in networks} == {"n-unrelated", "n-unlisted", "n-regular"}
 PYVERIFY
-  [ "$?" -eq 0 ] || fail "legacy teardown did not preserve unrelated Docker resources"
   pass "fm-ddev-clean: legacy teardown cleans selected listed services and preserves unrelated resources"
 }
 
