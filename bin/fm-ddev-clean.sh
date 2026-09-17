@@ -368,14 +368,18 @@ docker_inspect_inventory() {
     printf 'warning: docker inspect %s failed (exit %s): %s\n' "$kind" "$RUN_STATUS" "$RUN_OUTPUT" >&2
     return 1
   fi
-  FM_DDEV_DOCKER_JSON="$RUN_OUTPUT" FM_DDEV_DOCKER_KIND="$kind" fm_run_timed "$TIMEOUT_SECS" python3 -c '
+  FM_DDEV_DOCKER_JSON="$RUN_OUTPUT" FM_DDEV_DOCKER_KIND="$kind" FM_DDEV_DOCKER_EXPECTED="$#" fm_run_timed "$TIMEOUT_SECS" python3 -c '
 import json, os
 items = json.loads(os.environ["FM_DDEV_DOCKER_JSON"])
 kind = os.environ["FM_DDEV_DOCKER_KIND"]
+if not isinstance(items, list) or len(items) != int(os.environ["FM_DDEV_DOCKER_EXPECTED"]):
+    raise ValueError("incomplete Docker inspection")
 for item in items:
-    labels = item.get("Config", {}).get("Labels", {}) if kind == "container" else item.get("Labels", {})
+    labels = (item.get("Config", {}).get("Labels", {}) if kind == "container" else item.get("Labels", {})) or {}
     ident = str(item.get("Id") or item.get("ID") or "")
     name = str(item.get("Name") or "").lstrip("/")
+    if not ident or not name:
+        raise ValueError("Docker inspection lacks identity")
     if kind == "container":
         networks = ",".join(sorted((item.get("NetworkSettings", {}).get("Networks", {}) or {}).keys()))
         running = "running" if item.get("State", {}).get("Running") else "stopped"
@@ -398,18 +402,63 @@ ORPHAN_REMOVED_COUNT=0
 ORPHAN_FAILED_COUNT=0
 DDEV_REMOVED_COUNT=0
 DDEV_FAILED_COUNT=0
-CONTAINER_IDS=()
-if run_capture docker ps -aq --filter label=com.ddev.site-name; then
-  while IFS= read -r name || [ -n "$name" ]; do [ -n "$name" ] && CONTAINER_IDS+=("$name"); done <<EOF
-$RUN_OUTPUT
-EOF
-else
-  printf 'warning: docker container inventory failed (exit %s): %s\n' "$RUN_STATUS" "$RUN_OUTPUT" >&2
-  ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+
+container_inventory() {
+  local ids=() id
+  if ! run_capture docker ps -aq --no-trunc; then
+    printf 'warning: docker container inventory failed (exit %s): %s\n' "$RUN_STATUS" "$RUN_OUTPUT" >&2
+    return 1
+  fi
+  while IFS= read -r id; do
+    [ -z "$id" ] || ids+=("$id")
+  done <<< "$RUN_OUTPUT"
+  [ "${#ids[@]}" -eq 0 ] || docker_inspect_inventory container "${ids[@]}"
+}
+
+inventory_failed() {
+  printf 'warning: %s inventory incomplete; remaining resources unverified\n' "$1" >&2
+  ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
+}
+
+selected_ddev_site() {
+  local index
+  for index in "${!DELETE_NAMES[@]}"; do
+    [ "${DELETE_NAMES[$index]}" != "$1" ] || return 0
+  done
+  for index in "${!STOP_NAMES[@]}"; do
+    [ "${STOP_NAMES[$index]}" != "$1" ] || return 0
+  done
+  return 1
+}
+
+current_owner_verdict() {
+  local site=$1 meta line recorded root
+  for meta in "$STATE"/*.meta; do
+    [ -f "$meta" ] || continue
+    recorded= root=
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in
+        ddev_name=*) recorded=${line#ddev_name=} ;;
+        worktree=*) root=${line#worktree=} ;;
+      esac
+    done < "$meta"
+    [ "$recorded" = "$site" ] || continue
+    if [ "$MODE" = fleet ] || [ "$root" != "$WORKTREE" ]; then
+      printf '%s\n' protected
+      return
+    fi
+  done
+  orphan_owner_verdict "$site"
+}
+
+INITIAL_CONTAINERS=
+if ! INITIAL_CONTAINERS=$(container_inventory); then
+  inventory_failed container
+  INITIAL_CONTAINERS=
 fi
-if [ "${#CONTAINER_IDS[@]}" -gt 0 ]; then
+if [ -n "$INITIAL_CONTAINERS" ]; then
   while IFS=$'\x1f' read -r kind ident resource_name site project service running networks; do
-    [ "$kind" = container ] || continue
+    [ "$kind" = container ] && [ -n "$site" ] || continue
     verdict=$(orphan_owner_verdict "$site")
     if [ -z "$site" ] || [ "$project" != "ddev-$site" ] || [ -z "$service" ]; then
       printf 'residual-container: %s (label mismatch)\n' "$resource_name"
@@ -417,7 +466,7 @@ if [ "${#CONTAINER_IDS[@]}" -gt 0 ]; then
     elif [ "$verdict" != eligible ]; then
       printf 'residual-container: %s (%s %s)\n' "$resource_name" "$site" "$verdict"
       ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
-    elif [ "$running" = running ]; then
+    elif [ "$running" = running ] && ! selected_ddev_site "$site"; then
       printf 'residual-container: %s (%s running)\n' "$resource_name" "$site"
       ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
     else
@@ -429,24 +478,32 @@ if [ "${#CONTAINER_IDS[@]}" -gt 0 ]; then
       ORPHAN_CONTAINER_NETWORKS+=("$networks")
       ORPHAN_CONTAINER_COUNT=$((ORPHAN_CONTAINER_COUNT + 1))
     fi
-  done < <(docker_inspect_inventory container "${CONTAINER_IDS[@]}")
+  done <<< "$INITIAL_CONTAINERS"
 fi
 
 network_candidates() {
-  local i network project
+  local i network rows kind ident name project members networks=()
   for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
     IFS=, read -r -a networks <<< "${ORPHAN_CONTAINER_NETWORKS[$i]}"
     for network in "${networks[@]}"; do
       [ -n "$network" ] || continue
-      if docker_inspect_inventory network "$network" | while IFS=$'\x1f' read -r kind ident name project members; do
-        [ "$kind" = network ] && [ "$project" = "${ORPHAN_CONTAINER_PROJECTS[$i]}" ] \
-          && printf '%s\x1f%s\x1f%s\x1f%s\n' "$ident" "$name" "$project" "$members"
-      done; then :; fi
+      rows=$(docker_inspect_inventory network "$network") || return 1
+      while IFS=$'\x1f' read -r kind ident name project members; do
+        if [ "$kind" = network ] && [ "$project" = "${ORPHAN_CONTAINER_PROJECTS[$i]}" ]; then
+          printf '%s\x1f%s\x1f%s\x1f%s\n' "$ident" "$name" "$project" "$members"
+        fi
+      done <<< "$rows"
     done
   done
 }
 
-NETWORK_INVENTORY=$(network_candidates | sort -u || true)
+NETWORK_INVENTORY=
+if NETWORK_INVENTORY=$(network_candidates); then
+  NETWORK_INVENTORY=$(printf '%s\n' "$NETWORK_INVENTORY" | sort -u)
+else
+  inventory_failed network
+  NETWORK_INVENTORY=
+fi
 while IFS=$'\x1f' read -r ident resource_name project members; do
   [ -n "$ident" ] || continue
   printf 'orphan-network: %s (%s)\n' "$resource_name" "$project"
@@ -488,35 +545,94 @@ for i in "${!DELETE_NAMES[@]}"; do
     DDEV_FAILED_COUNT=$((DDEV_FAILED_COUNT + 1))
   fi
 done
-for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
-  if run_capture docker rm "${ORPHAN_CONTAINER_IDS[$i]}"; then
+if AFTER_CONTAINERS=$(container_inventory); then
+  for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
+    while IFS=$'\x1f' read -r kind ident resource_name site project service running networks; do
+      [ "$ident" = "${ORPHAN_CONTAINER_IDS[$i]}" ] || continue
+      [ "$site" = "${ORPHAN_CONTAINER_SITES[$i]}" ] && [ "$project" = "${ORPHAN_CONTAINER_PROJECTS[$i]}" ] \
+        && [ -n "$service" ] && [ "$running" = stopped ] || continue
+      [ "$(current_owner_verdict "$site")" = eligible ] || continue
+      if ! run_cleanup "docker rm $ident" docker rm "$ident"; then
+        printf 'residual-container: %s (%s removal failed)\n' "$resource_name" "$site"
+        ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
+      fi
+    done <<< "$AFTER_CONTAINERS"
+  done
+else
+  inventory_failed post-ddev-container
+fi
+
+approved_network_inventory() {
+  local existing ident name project members rows
+  [ -n "$NETWORK_INVENTORY" ] || return 0
+  run_capture docker network ls -q --no-trunc || return 1
+  existing=$RUN_OUTPUT
+  while IFS=$'\x1f' read -r ident name project members; do
+    [ -n "$ident" ] || continue
+    printf '%s\n' "$existing" | grep -Fxq "$ident" || continue
+    rows=$(docker_inspect_inventory network "$ident") || return 1
+    printf '%s\n' "$rows"
+  done <<< "$NETWORK_INVENTORY"
+}
+
+if NETWORK_AFTER=$(approved_network_inventory); then
+  while IFS=$'\x1f' read -r kind ident resource_name project members; do
+    [ "$kind" = network ] || continue
+    while IFS=$'\x1f' read -r approved_id approved_name approved_project _; do
+      [ "$ident" = "$approved_id" ] && [ "$project" = "$approved_project" ] || continue
+      [ "$members" = 0 ] && [ "$(current_owner_verdict "${project#ddev-}")" = eligible ] || continue
+      if ! run_cleanup "docker network rm $ident" docker network rm "$ident"; then
+        ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
+      fi
+    done <<< "$NETWORK_INVENTORY"
+  done <<< "$NETWORK_AFTER"
+else
+  inventory_failed post-ddev-network
+fi
+
+ORPHAN_RESIDUAL_COUNT=0
+if FINAL_CONTAINERS=$(container_inventory); then
+  while IFS=$'\x1f' read -r kind ident resource_name site project service running networks; do
+    [ "$kind" = container ] || continue
+    tracked=0
+    for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
+      [ "$ident" != "${ORPHAN_CONTAINER_IDS[$i]}" ] || tracked=1
+    done
+    [ -n "$site" ] || [ "$tracked" = 1 ] || continue
+    printf 'residual-container: %s (%s %s, owner=%s)\n' "$resource_name" "$site" "$running" "$(current_owner_verdict "$site")"
+    ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+  done <<< "$FINAL_CONTAINERS"
+  for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
+    found=0
+    while IFS=$'\x1f' read -r kind ident _; do
+      [ "$ident" != "${ORPHAN_CONTAINER_IDS[$i]}" ] || found=1
+    done <<< "$FINAL_CONTAINERS"
+    [ "$found" = 0 ] || continue
     printf 'removed-container: %s (%s)\n' "${ORPHAN_CONTAINER_NAMES[$i]}" "${ORPHAN_CONTAINER_SITES[$i]}"
     ORPHAN_REMOVED_COUNT=$((ORPHAN_REMOVED_COUNT + 1))
-  else
-    printf 'residual-container: %s (%s removal failed)\n' "${ORPHAN_CONTAINER_NAMES[$i]}" "${ORPHAN_CONTAINER_SITES[$i]}"
-    printf 'warning: docker rm %s failed (exit %s): %s\n' "${ORPHAN_CONTAINER_IDS[$i]}" "$RUN_STATUS" "$RUN_OUTPUT" >&2
-    ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
-  fi
-  RUN_STATUS=0
-done
-NETWORK_AFTER=$(network_candidates | sort -u || true)
-while IFS=$'\x1f' read -r ident resource_name project members; do
-  [ -n "$ident" ] || continue
-  if [ "$members" != 0 ]; then
-    printf 'residual-network: %s (%s still referenced)\n' "$resource_name" "$project"
-    ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
-  elif run_capture docker network rm "$ident"; then
-    printf 'removed-network: %s (%s)\n' "$resource_name" "$project"
+  done
+else
+  inventory_failed final-container
+  ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+fi
+if FINAL_NETWORKS=$(approved_network_inventory); then
+  while IFS=$'\x1f' read -r approved_id approved_name approved_project _; do
+    [ -n "$approved_id" ] || continue
+    found=0
+    while IFS=$'\x1f' read -r kind ident resource_name project members; do
+      [ "$ident" = "$approved_id" ] || continue
+      found=1
+      printf 'residual-network: %s (%s still present, members=%s)\n' "$resource_name" "$project" "$members"
+      ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+    done <<< "$FINAL_NETWORKS"
+    [ "$found" = 0 ] || continue
+    printf 'removed-network: %s (%s)\n' "$approved_name" "$approved_project"
     ORPHAN_REMOVED_COUNT=$((ORPHAN_REMOVED_COUNT + 1))
-  else
-    printf 'residual-network: %s (%s removal failed)\n' "$resource_name" "$project"
-    printf 'warning: docker network rm %s failed (exit %s): %s\n' "$ident" "$RUN_STATUS" "$RUN_OUTPUT" >&2
-    ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
-  fi
-  RUN_STATUS=0
-done <<EOF
-$NETWORK_AFTER
-EOF
+  done <<< "$NETWORK_INVENTORY"
+else
+  inventory_failed final-network
+  ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+fi
 if [ -z "$WORKTREE" ]; then
   run_cleanup 'docker volume prune -f' docker volume prune -f
   run_cleanup 'docker image prune -f' docker image prune -f
