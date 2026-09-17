@@ -15,7 +15,13 @@ PROJECTS_DIR="$TMP_ROOT/projects"
 FAKEBIN=$(fm_fakebin "$TMP_ROOT")
 DDEV_JSON="$TMP_ROOT/projects.json"
 ACTION_LOG="$TMP_ROOT/actions.log"
+DOCKER_PS="$TMP_ROOT/docker-ps"
+DOCKER_CONTAINER_INSPECT="$TMP_ROOT/docker-container-inspect.json"
+DOCKER_NETWORK_INSPECT="$TMP_ROOT/docker-network-inspect.json"
+DOCKER_NETWORK_AFTER_INSPECT="$TMP_ROOT/docker-network-after-inspect.json"
+DOCKER_REMOVED="$TMP_ROOT/docker-removed"
 mkdir -p "$HOME_DIR" "$STATE" "$DATA" "$CONFIG" "$PROJECTS_DIR"
+: > "$DOCKER_PS"
 
 cat > "$FAKEBIN/ddev" <<'SH'
 #!/usr/bin/env bash
@@ -28,14 +34,38 @@ printf 'ddev %s\n' "$*" >> "$ACTION_LOG"
 SH
 cat > "$FAKEBIN/docker" <<'SH'
 #!/usr/bin/env bash
-printf 'docker %s\n' "$*" >> "$ACTION_LOG"
+case "${1:-}" in
+  ps) cat "${DOCKER_PS:-/dev/null}" ;;
+  inspect)
+    case "${2:-}" in
+      c-*) cat "${DOCKER_CONTAINER_INSPECT:-/dev/null}" ;;
+      *)
+        if [ -f "${DOCKER_REMOVED:-}" ]; then
+          cat "${DOCKER_NETWORK_AFTER_INSPECT:-/dev/null}"
+        else
+          cat "${DOCKER_NETWORK_INSPECT:-/dev/null}"
+        fi
+        ;;
+    esac
+    ;;
+  rm)
+    printf 'docker %s\n' "$*" >> "$ACTION_LOG"
+    [ "${DOCKER_RM_FAIL:-}" = "${2:-}" ] && exit 1
+    touch "$DOCKER_REMOVED"
+    ;;
+  network) printf 'docker %s\n' "$*" >> "$ACTION_LOG" ;;
+  *) printf 'docker %s\n' "$*" >> "$ACTION_LOG" ;;
+esac
 SH
 chmod +x "$FAKEBIN/ddev" "$FAKEBIN/docker"
 
 run_clean() {
   HOME="$HOME_DIR" FM_STATE_OVERRIDE="$STATE" FM_DATA_OVERRIDE="$DATA" \
     FM_CONFIG_OVERRIDE="$CONFIG" FM_PROJECTS_OVERRIDE="$PROJECTS_DIR" \
-    DDEV_JSON="$DDEV_JSON" ACTION_LOG="$ACTION_LOG" \
+    DDEV_JSON="$DDEV_JSON" ACTION_LOG="$ACTION_LOG" DOCKER_PS="$DOCKER_PS" \
+    DOCKER_CONTAINER_INSPECT="$DOCKER_CONTAINER_INSPECT" DOCKER_NETWORK_INSPECT="$DOCKER_NETWORK_INSPECT" \
+    DOCKER_NETWORK_AFTER_INSPECT="$DOCKER_NETWORK_AFTER_INSPECT" DOCKER_REMOVED="$DOCKER_REMOVED" \
+    DOCKER_RM_FAIL="${DOCKER_RM_FAIL:-}" \
     DDEV_JSON_PREFIX='{"level":"info","msg":"table follows"}' PATH="$FAKEBIN:$PATH" \
     FM_DDEV_CLEAN_TIMEOUT_SECS=5 "$CLEAN" "$@"
 }
@@ -220,10 +250,68 @@ test_recorded_and_legacy_normalized_task_names() {
   pass "fm-ddev-clean: recorded names take precedence and normalized legacy IDs remain eligible"
 }
 
+test_orphan_compose_inventory_is_safe_and_reports_residuals() {
+  local out
+  rm -f "$DOCKER_REMOVED"
+  printf 'c-orphan\nc-active\nc-protected\nc-foreign\nc-ambiguous\nc-mismatch\n' > "$DOCKER_PS"
+  cat > "$DOCKER_CONTAINER_INSPECT" <<'EOF'
+[
+  {"Id":"c-orphan","Name":"/ddev-svvy-v2-pr1208-5ed446-redis","Config":{"Labels":{"com.ddev.site-name":"svvy-v2-pr1208-5ed446","com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{"ddev-svvy-v2-pr1208-5ed446_default":{}}}},
+  {"Id":"c-active","Name":"/ddev-svvy-v2-pr1208-5ed446-active","Config":{"Labels":{"com.ddev.site-name":"svvy-v2-pr1208-5ed446","com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446","com.docker.compose.service":"redis"}},"State":{"Running":true},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-protected","Name":"/ddev-protected","Config":{"Labels":{"com.ddev.site-name":"protected-review-01abcdefgh","com.docker.compose.project":"ddev-protected-review-01abcdefgh","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-foreign","Name":"/ddev-foreign","Config":{"Labels":{"com.ddev.site-name":"foreign-review-01abcdefgh","com.docker.compose.project":"ddev-another-project","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-ambiguous","Name":"/ddev-ambiguous","Config":{"Labels":{"com.ddev.site-name":"unowned","com.docker.compose.project":"ddev-unowned","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-mismatch","Name":"/ddev-mismatch","Config":{"Labels":{"com.ddev.site-name":"svvy-v2-pr1208-5ed446","com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}}
+]
+EOF
+  cat > "$DOCKER_NETWORK_INSPECT" <<'EOF'
+[{"Id":"n-orphan","Name":"ddev-svvy-v2-pr1208-5ed446_default","Labels":{"com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446"},"Containers":{"c-orphan":{}}}]
+EOF
+  cat > "$DOCKER_NETWORK_AFTER_INSPECT" <<'EOF'
+[{"Id":"n-orphan","Name":"ddev-svvy-v2-pr1208-5ed446_default","Labels":{"com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446"},"Containers":{}}]
+EOF
+  printf 'protected-review-01abcdefgh\n' > "$CONFIG/ddev-protected-names"
+  printf '{"raw":[]}\n' > "$DDEV_JSON"
+  : > "$ACTION_LOG"
+  out=$(run_clean) || fail "orphan dry-run failed: $out"
+  assert_contains "$out" 'orphan-container: ddev-svvy-v2-pr1208-5ed446-redis (svvy-v2-pr1208-5ed446)' "orphan Redis was not inventoried"
+  assert_contains "$out" 'orphan-network: ddev-svvy-v2-pr1208-5ed446_default (ddev-svvy-v2-pr1208-5ed446)' "orphan network was not inventoried"
+  assert_contains "$out" 'residual-container: ddev-svvy-v2-pr1208-5ed446-active (svvy-v2-pr1208-5ed446 running)' "running container was not preserved"
+  assert_contains "$out" 'residual-container: ddev-protected (protected-review-01abcdefgh protected)' "protected container was not preserved"
+  assert_contains "$out" 'residual-container: ddev-foreign (label mismatch)' "foreign compose labels were not rejected"
+  assert_contains "$out" 'residual-container: ddev-ambiguous (unowned ambiguous)' "ambiguous ownership was not preserved"
+  [ ! -s "$ACTION_LOG" ] || fail "orphan dry-run mutated Docker: $(cat "$ACTION_LOG")"
+
+  out=$(run_clean --apply) || fail "orphan apply failed: $out"
+  assert_grep 'docker rm c-orphan' "$ACTION_LOG" "orphan container was not removed"
+  assert_grep 'docker network rm n-orphan' "$ACTION_LOG" "now-empty orphan network was not removed"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'c-active' "running container was removed"
+  assert_contains "$out" 'removed-container: ddev-svvy-v2-pr1208-5ed446-redis (svvy-v2-pr1208-5ed446)' "container success was not reported"
+  assert_contains "$out" 'removed-network: ddev-svvy-v2-pr1208-5ed446_default (ddev-svvy-v2-pr1208-5ed446)' "network success was not reported"
+  pass "fm-ddev-clean: stopped labeled compose leftovers are removed while exclusions remain"
+}
+
+test_orphan_removal_failure_is_residual() {
+  local out
+  rm -f "$DOCKER_REMOVED"
+  printf '{"raw":[]}\n' > "$DDEV_JSON"
+  : > "$ACTION_LOG"
+  DOCKER_RM_FAIL=c-orphan out=$(run_clean --apply) || fail "failed orphan apply should continue: $out"
+  assert_contains "$out" 'residual-container: ddev-svvy-v2-pr1208-5ed446-redis (svvy-v2-pr1208-5ed446 removal failed)' "failed removal was not residual"
+  assert_contains "$out" 'failed=1' "failed removal was not counted"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker network rm n-orphan' "referenced network was removed after container failure"
+  : > "$DOCKER_PS"
+  rm -f "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT" "$DOCKER_NETWORK_AFTER_INSPECT" "$DOCKER_REMOVED"
+  : > "$CONFIG/ddev-protected-names"
+  pass "fm-ddev-clean: failed orphan removal remains visible and preserves its network"
+}
+
 test_worktree_only_deletes_the_recorded_ddev_name
 test_fleet_cleanup_is_allowlist_only_and_safe
 test_sweep_apply_runs_generated_cleanup_and_host_prune
 test_missing_ddev_is_a_per_task_noop_and_sweep_error
 test_selection_guards_apply_to_both_modes
+test_orphan_compose_inventory_is_safe_and_reports_residuals
+test_orphan_removal_failure_is_residual
 
 test_recorded_and_legacy_normalized_task_names

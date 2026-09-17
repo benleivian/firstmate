@@ -18,6 +18,10 @@
 # state/*.meta worktree= entries protect those live roots and their descendants.
 # A missing-but-resolved worker approot is stop-unlisted with --omit-snapshot.
 # Every selected, protected, or ambiguous project prints <verb>: <name> (<approot|MISSING>).
+# After DDEV cleanup, Docker inventory finds stopped custom-compose containers only when
+# com.ddev.site-name, com.docker.compose.project=ddev-<site>, and a compose service agree.
+# It removes only their now-empty, same-project referenced networks. A running, protected,
+# ambiguous, mismatched, failed, or still-referenced resource is reported as residual.
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
 # dangling-only operations. It never uses -a/--all for cleanup.
 # Every ddev, docker, and JSON-parser call has FM_DDEV_CLEAN_TIMEOUT_SECS seconds
@@ -84,8 +88,8 @@ if ! command -v ddev >/dev/null 2>&1; then
   [ -n "$WORKTREE" ] && exit 0
   exit 1
 fi
-if [ -z "$WORKTREE" ] && ! command -v docker >/dev/null 2>&1; then
-  echo "fm-ddev-clean: docker is not installed; fleet cleanup needs Docker" >&2
+if ! command -v docker >/dev/null 2>&1; then
+  echo "fm-ddev-clean: docker is not installed; DDEV residual cleanup cannot be verified" >&2
   exit 1
 fi
 
@@ -108,6 +112,8 @@ run_cleanup() {
   RUN_STATUS=0
   if ! run_capture "$@"; then
     printf 'warning: %s failed (exit %s): %s\n' "$label" "$RUN_STATUS" "$RUN_OUTPUT" >&2
+    RUN_STATUS=0
+    return 1
   fi
   RUN_STATUS=0
 }
@@ -224,23 +230,28 @@ print_project() {
   printf '%s: %s (%s)\n' "$verb" "$name" "$approot"
 }
 
-select_project() {
-  local name=$1 approot=$2 verdict=
+project_verdict() {
+  local name=$1 approot=$2
   if protected_by_config "$name" || registered_project_name "$name"; then
-    verdict=protected
+    printf '%s\n' protected
   elif [ -n "$approot" ] && ! is_managed_root "$approot"; then
-    verdict=protected
-  elif ! is_generated_name "$name"; then
-    verdict=ambiguous
-  elif [ -z "$approot" ]; then
-    verdict=ambiguous
+    printf '%s\n' protected
+  elif ! is_generated_name "$name" || [ -z "$approot" ]; then
+    printf '%s\n' ambiguous
   elif [ "$MODE" = fleet ] && is_live_worktree "$approot"; then
-    verdict=protected
+    printf '%s\n' protected
+  else
+    printf '%s\n' eligible
   fi
+}
+
+select_project() {
+  local name=$1 approot=$2 verdict
+  verdict=$(project_verdict "$name" "$approot")
   case "$verdict" in
     protected) PROTECTED_COUNT=$((PROTECTED_COUNT + 1)) ;;
     ambiguous) AMBIGUOUS_COUNT=$((AMBIGUOUS_COUNT + 1)) ;;
-    *) return 0 ;;
+    eligible) return 0 ;;
   esac
   print_project "$verdict" "$name" "$approot"
   return 1
@@ -285,6 +296,8 @@ DELETE_NAMES=()
 DELETE_ROOTS=()
 STOP_NAMES=()
 STOP_ROOTS=()
+LIST_NAMES=()
+LIST_ROOTS=()
 DELETE_COUNT=0
 STOP_COUNT=0
 PROTECTED_COUNT=0
@@ -292,6 +305,8 @@ AMBIGUOUS_COUNT=0
 # shellcheck disable=SC2034 # status is retained from DDEV's documented raw shape.
 while IFS=$'\x1f' read -r name approot status; do
   [ -n "$name" ] || continue
+  LIST_NAMES+=("$name")
+  LIST_ROOTS+=("$approot")
   if [ -n "$WORKTREE" ]; then
     path_within "$approot" "$WORKTREE" || continue
     [ -z "$DDEV_NAME" ] || [ "$name" = "$DDEV_NAME" ] || continue
@@ -310,6 +325,136 @@ done <<EOF
 $PROJECTS_JSON
 EOF
 
+orphan_owner_verdict() {
+  local name=$1 meta line recorded root i
+  if [ -n "$WORKTREE" ]; then
+    [ -n "$DDEV_NAME" ] && [ "$name" = "$DDEV_NAME" ] || { printf '%s\n' ambiguous; return; }
+  fi
+  for i in "${!LIST_NAMES[@]}"; do
+    [ "${LIST_NAMES[$i]}" = "$name" ] || continue
+    project_verdict "$name" "${LIST_ROOTS[$i]}"
+    return
+  done
+  if protected_by_config "$name" || registered_project_name "$name"; then
+    printf '%s\n' protected
+    return
+  fi
+  for meta in "$STATE"/*.meta; do
+    [ -f "$meta" ] || continue
+    recorded=
+    root=
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in
+        ddev_name=*) recorded=${line#ddev_name=} ;;
+        worktree=*) root=${line#worktree=} ;;
+      esac
+    done < "$meta"
+    [ "$recorded" = "$name" ] || continue
+    if [ -n "$WORKTREE" ] && [ "$root" = "$WORKTREE" ]; then
+      printf '%s\n' eligible
+    else
+      printf '%s\n' protected
+    fi
+    return
+  done
+  is_generated_name "$name" && printf '%s\n' eligible || printf '%s\n' ambiguous
+}
+
+docker_inspect_inventory() {
+  local kind=$1
+  shift
+  [ "$#" -gt 0 ] || return 0
+  if ! run_capture docker inspect "$@"; then
+    printf 'warning: docker inspect %s failed (exit %s): %s\n' "$kind" "$RUN_STATUS" "$RUN_OUTPUT" >&2
+    return 1
+  fi
+  FM_DDEV_DOCKER_JSON="$RUN_OUTPUT" FM_DDEV_DOCKER_KIND="$kind" fm_run_timed "$TIMEOUT_SECS" python3 -c '
+import json, os
+items = json.loads(os.environ["FM_DDEV_DOCKER_JSON"])
+kind = os.environ["FM_DDEV_DOCKER_KIND"]
+for item in items:
+    labels = item.get("Config", {}).get("Labels", {}) if kind == "container" else item.get("Labels", {})
+    ident = str(item.get("Id") or item.get("ID") or "")
+    name = str(item.get("Name") or "").lstrip("/")
+    if kind == "container":
+        networks = ",".join(sorted((item.get("NetworkSettings", {}).get("Networks", {}) or {}).keys()))
+        running = "running" if item.get("State", {}).get("Running") else "stopped"
+        print("\x1f".join(("container", ident, name, str(labels.get("com.ddev.site-name") or ""), str(labels.get("com.docker.compose.project") or ""), str(labels.get("com.docker.compose.service") or ""), running, networks)))
+    else:
+        members = str(len(item.get("Containers", {}) or {}))
+        print("\x1f".join(("network", ident, name, str(labels.get("com.docker.compose.project") or ""), members)))
+' || return 1
+}
+
+ORPHAN_CONTAINER_IDS=()
+ORPHAN_CONTAINER_NAMES=()
+ORPHAN_CONTAINER_SITES=()
+ORPHAN_CONTAINER_PROJECTS=()
+ORPHAN_CONTAINER_NETWORKS=()
+ORPHAN_CONTAINER_COUNT=0
+ORPHAN_NETWORK_COUNT=0
+ORPHAN_RESIDUAL_COUNT=0
+ORPHAN_REMOVED_COUNT=0
+ORPHAN_FAILED_COUNT=0
+DDEV_REMOVED_COUNT=0
+DDEV_FAILED_COUNT=0
+CONTAINER_IDS=()
+if run_capture docker ps -aq --filter label=com.ddev.site-name; then
+  while IFS= read -r name || [ -n "$name" ]; do [ -n "$name" ] && CONTAINER_IDS+=("$name"); done <<EOF
+$RUN_OUTPUT
+EOF
+else
+  printf 'warning: docker container inventory failed (exit %s): %s\n' "$RUN_STATUS" "$RUN_OUTPUT" >&2
+  ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+fi
+if [ "${#CONTAINER_IDS[@]}" -gt 0 ]; then
+  while IFS=$'\x1f' read -r kind ident resource_name site project service running networks; do
+    [ "$kind" = container ] || continue
+    verdict=$(orphan_owner_verdict "$site")
+    if [ -z "$site" ] || [ "$project" != "ddev-$site" ] || [ -z "$service" ]; then
+      printf 'residual-container: %s (label mismatch)\n' "$resource_name"
+      ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+    elif [ "$verdict" != eligible ]; then
+      printf 'residual-container: %s (%s %s)\n' "$resource_name" "$site" "$verdict"
+      ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+    elif [ "$running" = running ]; then
+      printf 'residual-container: %s (%s running)\n' "$resource_name" "$site"
+      ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+    else
+      printf 'orphan-container: %s (%s)\n' "$resource_name" "$site"
+      ORPHAN_CONTAINER_IDS+=("$ident")
+      ORPHAN_CONTAINER_NAMES+=("$resource_name")
+      ORPHAN_CONTAINER_SITES+=("$site")
+      ORPHAN_CONTAINER_PROJECTS+=("$project")
+      ORPHAN_CONTAINER_NETWORKS+=("$networks")
+      ORPHAN_CONTAINER_COUNT=$((ORPHAN_CONTAINER_COUNT + 1))
+    fi
+  done < <(docker_inspect_inventory container "${CONTAINER_IDS[@]}")
+fi
+
+network_candidates() {
+  local i network project
+  for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
+    IFS=, read -r -a networks <<< "${ORPHAN_CONTAINER_NETWORKS[$i]}"
+    for network in "${networks[@]}"; do
+      [ -n "$network" ] || continue
+      if docker_inspect_inventory network "$network" | while IFS=$'\x1f' read -r kind ident name project members; do
+        [ "$kind" = network ] && [ "$project" = "${ORPHAN_CONTAINER_PROJECTS[$i]}" ] \
+          && printf '%s\x1f%s\x1f%s\x1f%s\n' "$ident" "$name" "$project" "$members"
+      done; then :; fi
+    done
+  done
+}
+
+NETWORK_INVENTORY=$(network_candidates | sort -u || true)
+while IFS=$'\x1f' read -r ident resource_name project members; do
+  [ -n "$ident" ] || continue
+  printf 'orphan-network: %s (%s)\n' "$resource_name" "$project"
+  ORPHAN_NETWORK_COUNT=$((ORPHAN_NETWORK_COUNT + 1))
+done <<EOF
+$NETWORK_INVENTORY
+EOF
+
 if [ "$APPLY" -ne 1 ]; then
   for i in "${!STOP_NAMES[@]}"; do print_project stop-unlist "${STOP_NAMES[$i]}" "${STOP_ROOTS[$i]}"; done
   for i in "${!DELETE_NAMES[@]}"; do print_project delete "${DELETE_NAMES[$i]}" "${DELETE_ROOTS[$i]}"; done
@@ -318,25 +463,67 @@ if [ "$APPLY" -ne 1 ]; then
     echo 'would: docker image prune -f (host-wide, dangling-only)'
     echo 'would: ddev delete images -y (host-wide, dangling-only)'
   fi
-  printf 'summary: stop-unlist=%s delete=%s protected=%s ambiguous=%s mode=%s\n' \
-    "$STOP_COUNT" "$DELETE_COUNT" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
+  printf 'summary: stop-unlist=%s delete=%s orphan-container=%s orphan-network=%s residual=%s protected=%s ambiguous=%s mode=%s\n' \
+    "$STOP_COUNT" "$DELETE_COUNT" "$ORPHAN_CONTAINER_COUNT" "$ORPHAN_NETWORK_COUNT" "$ORPHAN_RESIDUAL_COUNT" \
+    "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
   exit 0
 fi
 
 for i in "${!STOP_NAMES[@]}"; do
   print_project stop-unlist "${STOP_NAMES[$i]}" "${STOP_ROOTS[$i]}"
-  run_cleanup "ddev stop --remove-data --omit-snapshot --unlist ${STOP_NAMES[$i]}" \
-    ddev stop --remove-data --omit-snapshot --unlist "${STOP_NAMES[$i]}"
+  if run_cleanup "ddev stop --remove-data --omit-snapshot --unlist ${STOP_NAMES[$i]}" \
+    ddev stop --remove-data --omit-snapshot --unlist "${STOP_NAMES[$i]}"; then
+    DDEV_REMOVED_COUNT=$((DDEV_REMOVED_COUNT + 1))
+  else
+    printf 'residual-project: %s (stop-unlist failed)\n' "${STOP_NAMES[$i]}"
+    DDEV_FAILED_COUNT=$((DDEV_FAILED_COUNT + 1))
+  fi
 done
 for i in "${!DELETE_NAMES[@]}"; do
   print_project delete "${DELETE_NAMES[$i]}" "${DELETE_ROOTS[$i]}"
-  run_cleanup "ddev delete -Oy ${DELETE_NAMES[$i]}" ddev delete -Oy "${DELETE_NAMES[$i]}"
+  if run_cleanup "ddev delete -Oy ${DELETE_NAMES[$i]}" ddev delete -Oy "${DELETE_NAMES[$i]}"; then
+    DDEV_REMOVED_COUNT=$((DDEV_REMOVED_COUNT + 1))
+  else
+    printf 'residual-project: %s (delete failed)\n' "${DELETE_NAMES[$i]}"
+    DDEV_FAILED_COUNT=$((DDEV_FAILED_COUNT + 1))
+  fi
 done
+for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
+  if run_capture docker rm "${ORPHAN_CONTAINER_IDS[$i]}"; then
+    printf 'removed-container: %s (%s)\n' "${ORPHAN_CONTAINER_NAMES[$i]}" "${ORPHAN_CONTAINER_SITES[$i]}"
+    ORPHAN_REMOVED_COUNT=$((ORPHAN_REMOVED_COUNT + 1))
+  else
+    printf 'residual-container: %s (%s removal failed)\n' "${ORPHAN_CONTAINER_NAMES[$i]}" "${ORPHAN_CONTAINER_SITES[$i]}"
+    printf 'warning: docker rm %s failed (exit %s): %s\n' "${ORPHAN_CONTAINER_IDS[$i]}" "$RUN_STATUS" "$RUN_OUTPUT" >&2
+    ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
+  fi
+  RUN_STATUS=0
+done
+NETWORK_AFTER=$(network_candidates | sort -u || true)
+while IFS=$'\x1f' read -r ident resource_name project members; do
+  [ -n "$ident" ] || continue
+  if [ "$members" != 0 ]; then
+    printf 'residual-network: %s (%s still referenced)\n' "$resource_name" "$project"
+    ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
+  elif run_capture docker network rm "$ident"; then
+    printf 'removed-network: %s (%s)\n' "$resource_name" "$project"
+    ORPHAN_REMOVED_COUNT=$((ORPHAN_REMOVED_COUNT + 1))
+  else
+    printf 'residual-network: %s (%s removal failed)\n' "$resource_name" "$project"
+    printf 'warning: docker network rm %s failed (exit %s): %s\n' "$ident" "$RUN_STATUS" "$RUN_OUTPUT" >&2
+    ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
+  fi
+  RUN_STATUS=0
+done <<EOF
+$NETWORK_AFTER
+EOF
 if [ -z "$WORKTREE" ]; then
   run_cleanup 'docker volume prune -f' docker volume prune -f
   run_cleanup 'docker image prune -f' docker image prune -f
   run_cleanup 'ddev delete images -y' ddev delete images -y
   run_cleanup 'docker system df' docker system df
 fi
-printf 'summary: stop-unlist=%s delete=%s protected=%s ambiguous=%s mode=%s\n' \
-  "$STOP_COUNT" "$DELETE_COUNT" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
+printf 'summary: stop-unlist=%s delete=%s ddev-removed=%s ddev-failed=%s orphan-container=%s orphan-network=%s removed=%s residual=%s failed=%s protected=%s ambiguous=%s mode=%s\n' \
+  "$STOP_COUNT" "$DELETE_COUNT" "$DDEV_REMOVED_COUNT" "$DDEV_FAILED_COUNT" "$ORPHAN_CONTAINER_COUNT" \
+  "$ORPHAN_NETWORK_COUNT" "$ORPHAN_REMOVED_COUNT" "$ORPHAN_RESIDUAL_COUNT" \
+  "$((DDEV_FAILED_COUNT + ORPHAN_FAILED_COUNT))" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"

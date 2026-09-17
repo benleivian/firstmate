@@ -3224,7 +3224,10 @@ fi
 SH
   cat > "$case_dir/fakebin/docker" <<'SH'
 #!/usr/bin/env bash
-printf 'docker %s\n' "$*" >> "$DDEV_CASE/actions"
+case "${1:-}" in
+  ps|inspect) ;;
+  *) printf 'docker %s\n' "$*" >> "$DDEV_CASE/actions" ;;
+esac
 SH
   cat > "$case_dir/fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
