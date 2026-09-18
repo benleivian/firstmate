@@ -15,7 +15,11 @@ PROJECTS_DIR="$TMP_ROOT/projects"
 FAKEBIN=$(fm_fakebin "$TMP_ROOT")
 DDEV_JSON="$TMP_ROOT/projects.json"
 ACTION_LOG="$TMP_ROOT/actions.log"
+DOCKER_PS="$TMP_ROOT/docker-ps"
+DOCKER_CONTAINER_INSPECT="$TMP_ROOT/docker-container-inspect.json"
+DOCKER_NETWORK_INSPECT="$TMP_ROOT/docker-network-inspect.json"
 mkdir -p "$HOME_DIR" "$STATE" "$DATA" "$CONFIG" "$PROJECTS_DIR"
+: > "$DOCKER_PS"
 
 cat > "$FAKEBIN/ddev" <<'SH'
 #!/usr/bin/env bash
@@ -25,17 +29,114 @@ if [ "${1:-}" = list ] && [ "${2:-}" = --json-output ]; then
   exit 0
 fi
 printf 'ddev %s\n' "$*" >> "$ACTION_LOG"
+if [ -n "${DDEV_TRANSITION:-}" ] && [ "${2:-}" != images ]; then
+  python3 "$(dirname "$0")/ddev-transition"
+fi
 SH
-cat > "$FAKEBIN/docker" <<'SH'
-#!/usr/bin/env bash
-printf 'docker %s\n' "$*" >> "$ACTION_LOG"
-SH
+cat > "$FAKEBIN/docker" <<'PYFAKE'
+#!/usr/bin/env python3
+import json
+import os
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+containers = Path(os.environ["DOCKER_CONTAINER_INSPECT"])
+networks = Path(os.environ["DOCKER_NETWORK_INSPECT"])
+phase_file = Path(os.environ["DOCKER_PS"] + ".phase")
+phase = int(phase_file.read_text()) if phase_file.exists() else 0
+failure = os.environ.get("INVENTORY_FAILURE", "")
+
+def read(path):
+    return json.loads(path.read_text()) if path.exists() else []
+
+def log():
+    with open(os.environ["ACTION_LOG"], "a") as output:
+        output.write("docker " + " ".join(args) + "\n")
+
+if args[0] == "ps":
+    phase += 1
+    phase_file.write_text(str(phase))
+    if failure == "ps-" + str(phase):
+        sys.exit(1)
+    print(Path(os.environ["DOCKER_PS"]).read_text(), end="")
+elif args[0] == "inspect":
+    if failure == "inspect-" + str(phase) and args[1].startswith("c-"):
+        sys.exit(1)
+    items = read(containers) + read(networks)
+    result = [item for item in items if item["Id"] in args[1:] or item["Name"].lstrip("/") in args[1:]]
+    if len(result) != len(args[1:]):
+        sys.exit(1)
+    print(json.dumps(result))
+elif args[:2] == ["network", "ls"]:
+    if failure == "network-" + str(phase):
+        sys.exit(1)
+    print("\n".join(item["Id"] for item in read(networks)))
+elif args[0] == "rm":
+    log()
+    if os.environ.get("DOCKER_RM_FAIL") == args[1]:
+        sys.exit(1)
+    if os.environ.get("DOCKER_RM_RETAIN") != "1":
+        remaining = [item for item in read(containers) if item["Id"] != args[1]]
+        containers.write_text(json.dumps(remaining))
+        Path(os.environ["DOCKER_PS"]).write_text("".join(item["Id"] + "\n" for item in remaining))
+        current_networks = read(networks)
+        for item in current_networks:
+            item.get("Containers", {}).pop(args[1], None)
+        networks.write_text(json.dumps(current_networks))
+elif args[:2] == ["network", "rm"]:
+    log()
+    if os.environ.get("DOCKER_NETWORK_RETAIN") != "1":
+        networks.write_text(json.dumps([item for item in read(networks) if item["Id"] != args[2]]))
+else:
+    log()
+PYFAKE
+cat > "$FAKEBIN/ddev-transition" <<'PYFAKE'
+import json
+import os
+from pathlib import Path
+
+path = Path(os.environ["DOCKER_CONTAINER_INSPECT"])
+netpath = Path(os.environ["DOCKER_NETWORK_INSPECT"])
+items = json.loads(path.read_text())
+transition = os.environ["DDEV_TRANSITION"]
+if transition == "deleted":
+    items = []
+    netpath.write_text("[]")
+elif transition == "stopped":
+    items[0]["State"]["Running"] = False
+elif transition == "running":
+    items[0]["State"]["Running"] = True
+elif transition == "claimed":
+    state = Path(os.environ["FM_STATE_OVERRIDE"])
+    (state / "new-owner.meta").write_text("ddev_name=hub-test-5ed446\nworktree=" + os.environ["HOME"] + "/new-owner\n")
+elif transition == "protected":
+    (Path(os.environ["FM_CONFIG_OVERRIDE"]) / "ddev-protected-names").write_text("hub-test-5ed446\n")
+elif transition == "relabeled":
+    items[0]["Config"]["Labels"]["com.ddev.site-name"] = "another-site"
+    items[0]["Config"]["Labels"]["com.docker.compose.project"] = "ddev-another-site"
+elif transition == "new-container":
+    extra = json.loads(json.dumps(items[0]))
+    extra["Id"] = "c-new"
+    extra["Name"] = "/ddev-new-redis"
+    items.append(extra)
+    nets = json.loads(netpath.read_text())
+    nets[0]["Containers"]["c-new"] = {}
+    netpath.write_text(json.dumps(nets))
+path.write_text(json.dumps(items))
+Path(os.environ["DOCKER_PS"]).write_text("".join(item["Id"] + "\n" for item in items))
+PYFAKE
 chmod +x "$FAKEBIN/ddev" "$FAKEBIN/docker"
 
 run_clean() {
+  rm -f "$DOCKER_PS.phase"
   HOME="$HOME_DIR" FM_STATE_OVERRIDE="$STATE" FM_DATA_OVERRIDE="$DATA" \
     FM_CONFIG_OVERRIDE="$CONFIG" FM_PROJECTS_OVERRIDE="$PROJECTS_DIR" \
-    DDEV_JSON="$DDEV_JSON" ACTION_LOG="$ACTION_LOG" \
+    DDEV_JSON="$DDEV_JSON" ACTION_LOG="$ACTION_LOG" DOCKER_PS="$DOCKER_PS" \
+    DOCKER_CONTAINER_INSPECT="$DOCKER_CONTAINER_INSPECT" DOCKER_NETWORK_INSPECT="$DOCKER_NETWORK_INSPECT" \
+    DOCKER_RM_FAIL="${DOCKER_RM_FAIL:-}" DOCKER_RM_RETAIN="${DOCKER_RM_RETAIN:-}" \
+    DOCKER_NETWORK_RETAIN="${DOCKER_NETWORK_RETAIN:-}" INVENTORY_FAILURE="${INVENTORY_FAILURE:-}" \
+    DDEV_TRANSITION="${DDEV_TRANSITION:-}" \
     DDEV_JSON_PREFIX='{"level":"info","msg":"table follows"}' PATH="$FAKEBIN:$PATH" \
     FM_DDEV_CLEAN_TIMEOUT_SECS=5 "$CLEAN" "$@"
 }
@@ -220,10 +321,236 @@ test_recorded_and_legacy_normalized_task_names() {
   pass "fm-ddev-clean: recorded names take precedence and normalized legacy IDs remain eligible"
 }
 
+prepare_orphan_fixture() {
+  printf 'c-orphan\nc-active\nc-protected\nc-foreign\nc-ambiguous\nc-mismatch\n' > "$DOCKER_PS"
+  cat > "$DOCKER_CONTAINER_INSPECT" <<'EOF'
+[
+  {"Id":"c-orphan","Name":"/ddev-svvy-v2-pr1208-5ed446-redis","Config":{"Labels":{"com.ddev.site-name":"svvy-v2-pr1208-5ed446","com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{"ddev-svvy-v2-pr1208-5ed446_default":{}}}},
+  {"Id":"c-active","Name":"/ddev-svvy-v2-pr1208-5ed446-active","Config":{"Labels":{"com.ddev.site-name":"svvy-v2-pr1208-5ed446","com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446","com.docker.compose.service":"redis"}},"State":{"Running":true},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-protected","Name":"/ddev-protected","Config":{"Labels":{"com.ddev.site-name":"protected-review-01abcdefgh","com.docker.compose.project":"ddev-protected-review-01abcdefgh","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-foreign","Name":"/ddev-foreign","Config":{"Labels":{"com.ddev.site-name":"foreign-review-01abcdefgh","com.docker.compose.project":"ddev-another-project","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-ambiguous","Name":"/ddev-ambiguous","Config":{"Labels":{"com.ddev.site-name":"unowned","com.docker.compose.project":"ddev-unowned","com.docker.compose.service":"redis"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}},
+  {"Id":"c-mismatch","Name":"/ddev-mismatch","Config":{"Labels":{"com.ddev.site-name":"svvy-v2-pr1208-5ed446","com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446"}},"State":{"Running":false},"NetworkSettings":{"Networks":{}}}
+]
+EOF
+  cat > "$DOCKER_NETWORK_INSPECT" <<'EOF'
+[{"Id":"n-orphan","Name":"ddev-svvy-v2-pr1208-5ed446_default","Labels":{"com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446"},"Containers":{"c-orphan":{}}}]
+EOF
+
+  printf 'protected-review-01abcdefgh\n' > "$CONFIG/ddev-protected-names"
+  printf '{"raw":[]}\n' > "$DDEV_JSON"
+  : > "$ACTION_LOG"
+}
+
+test_orphan_compose_inventory_is_safe_and_reports_residuals() {
+  local out
+  prepare_orphan_fixture
+  out=$(run_clean) || fail "orphan dry-run failed: $out"
+  assert_contains "$out" 'orphan-container: ddev-svvy-v2-pr1208-5ed446-redis (svvy-v2-pr1208-5ed446)' "orphan Redis was not inventoried"
+  assert_contains "$out" 'orphan-network: ddev-svvy-v2-pr1208-5ed446_default (ddev-svvy-v2-pr1208-5ed446)' "orphan network was not inventoried"
+  assert_contains "$out" 'residual-container: ddev-svvy-v2-pr1208-5ed446-active (svvy-v2-pr1208-5ed446 running)' "running container was not preserved"
+  assert_contains "$out" 'residual-container: ddev-protected (protected-review-01abcdefgh protected)' "protected container was not preserved"
+  assert_contains "$out" 'residual-container: ddev-foreign (label mismatch)' "foreign compose labels were not rejected"
+  assert_contains "$out" 'residual-container: ddev-ambiguous (unowned ambiguous)' "ambiguous ownership was not preserved"
+  [ ! -s "$ACTION_LOG" ] || fail "orphan dry-run mutated Docker: $(cat "$ACTION_LOG")"
+
+  out=$(run_clean --apply) || fail "orphan apply failed: $out"
+  assert_grep 'docker rm c-orphan' "$ACTION_LOG" "orphan container was not removed"
+  assert_grep 'docker network rm n-orphan' "$ACTION_LOG" "now-empty orphan network was not removed"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'c-active' "running container was removed"
+  assert_contains "$out" 'removed-container: ddev-svvy-v2-pr1208-5ed446-redis (svvy-v2-pr1208-5ed446)' "container success was not reported"
+  assert_contains "$out" 'removed-network: ddev-svvy-v2-pr1208-5ed446_default (ddev-svvy-v2-pr1208-5ed446)' "network success was not reported"
+  pass "fm-ddev-clean: stopped labeled compose leftovers are removed while exclusions remain"
+}
+
+test_orphan_removal_failure_is_residual() {
+  local out
+  prepare_orphan_fixture
+  printf '{"raw":[]}\n' > "$DDEV_JSON"
+  : > "$ACTION_LOG"
+  out=$(DOCKER_RM_FAIL=c-orphan run_clean --apply) || fail "failed orphan apply should continue: $out"
+  assert_contains "$out" 'residual-container: ddev-svvy-v2-pr1208-5ed446-redis (svvy-v2-pr1208-5ed446 removal failed)' "failed removal was not residual"
+  assert_contains "$out" 'failed=1' "failed removal was not counted"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker network rm n-orphan' "referenced network was removed after container failure"
+  : > "$DOCKER_PS"
+  rm -f "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT"
+  : > "$CONFIG/ddev-protected-names"
+  pass "fm-ddev-clean: failed orphan removal remains visible and preserves its network"
+}
+
+prepare_transition_fixture() {
+  local running=${1:-false}
+  rm -rf "$STATE"
+  mkdir -p "$STATE" "$HOME_DIR/.treehouse/reinventory/1/project"
+  : > "$CONFIG/ddev-protected-names"
+  : > "$ACTION_LOG"
+  printf '{"raw":[{"name":"hub-test-5ed446","approot":"%s"}]}\n' \
+    "$HOME_DIR/.treehouse/reinventory/1/project" > "$DDEV_JSON"
+  printf 'c-approved\n' > "$DOCKER_PS"
+  cat > "$DOCKER_CONTAINER_INSPECT" <<EOF
+[{"Id":"c-approved","Name":"/ddev-approved-redis","Config":{"Labels":{"com.ddev.site-name":"hub-test-5ed446","com.docker.compose.project":"ddev-hub-test-5ed446","com.docker.compose.service":"redis"}},"State":{"Running":$running},"NetworkSettings":{"Networks":{"ddev-approved_default":{}}}}]
+EOF
+  cat > "$DOCKER_NETWORK_INSPECT" <<'EOF'
+[{"Id":"n-approved","Name":"ddev-approved_default","Labels":{"com.docker.compose.project":"ddev-hub-test-5ed446"},"Containers":{"c-approved":{}}}]
+EOF
+}
+
+test_post_ddev_inventory_tracks_actual_resources() {
+  local out
+  prepare_transition_fixture
+  out=$(DDEV_TRANSITION=deleted run_clean --apply) || fail "$out"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker rm' "already-deleted container was removed again"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker network rm' "already-deleted network was removed again"
+  assert_contains "$out" 'removed=2 residual=0 failed=0' "DDEV removal was not verified"
+
+  prepare_transition_fixture true
+  out=$(DDEV_TRANSITION=stopped run_clean --apply) || fail "$out"
+  assert_grep 'docker rm c-approved' "$ACTION_LOG" "approved running service retained by DDEV was missed"
+  assert_grep 'docker network rm n-approved' "$ACTION_LOG" "retained service network was missed"
+  assert_contains "$out" 'removed=2 residual=0 failed=0' "stopped retained service was not verified"
+  pass "fm-ddev-clean: refresh handles DDEV-deleted and stopped retained services"
+}
+
+test_refresh_preserves_exclusions_and_approval_scope() {
+  local transition out
+  for transition in running claimed protected relabeled; do
+    prepare_transition_fixture
+    out=$(DDEV_TRANSITION="$transition" run_clean --apply) || fail "$out"
+    assert_not_contains "$(cat "$ACTION_LOG")" 'docker rm' "$transition container was removed"
+    assert_not_contains "$(cat "$ACTION_LOG")" 'docker network rm' "$transition network was removed"
+    assert_contains "$out" 'removed=0 residual=2 failed=0' "$transition remaining state was misreported"
+  done
+  prepare_transition_fixture
+  out=$(DDEV_TRANSITION=new-container run_clean --apply) || fail "$out"
+  assert_grep 'docker rm c-approved' "$ACTION_LOG" "approved container was not removed"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker rm c-new' "refresh expanded approved resources"
+  assert_contains "$out" 'removed=1 residual=2 failed=0' "new resource was not reported"
+
+  prepare_transition_fixture true
+  out=$(DDEV_TRANSITION=stopped run_clean) || fail "$out"
+  [ ! -s "$ACTION_LOG" ] || fail "refresh mutated resources during preview"
+  assert_contains "$(cat "$DOCKER_CONTAINER_INSPECT")" '"Running":true' "preview stopped service"
+
+  prepare_transition_fixture true
+  fm_write_meta "$STATE/task.meta" "worktree=$HOME_DIR/.treehouse/reinventory/1/project" "ddev_name=hub-test-5ed446"
+  out=$(DDEV_TRANSITION=stopped run_clean --worktree "$HOME_DIR/.treehouse/reinventory/1/project" --apply) || fail "$out"
+  assert_contains "$out" 'removed=2 residual=0 failed=0' "task-scoped retained service was missed"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'prune' "task cleanup expanded to host prune"
+  pass "fm-ddev-clean: refresh preserves exclusions, resource approval, preview and task scope"
+}
+
+test_legacy_teardown_cleans_only_selected_listed_resources() {
+  local wt other out
+  prepare_transition_fixture true
+  wt="$HOME_DIR/.treehouse/reinventory/1/project"
+  other="$HOME_DIR/.treehouse/unrelated/2/project"
+  mkdir -p "$other"
+  fm_write_meta "$STATE/Fix_1.meta" "worktree=$wt"
+  python3 - "$DDEV_JSON" "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT" "$DOCKER_PS" "$wt" "$other" <<'PYFIXTURE'
+import copy
+import json
+import sys
+from pathlib import Path
+
+projects, containers, networks, inventory = map(Path, sys.argv[1:5])
+worktree, other = sys.argv[5:]
+container = json.loads(containers.read_text())[0]
+network = json.loads(networks.read_text())[0]
+rows, container_rows, network_rows = [], [], []
+for ident, site, root in [
+    ("approved", "project-fix-1", worktree),
+    ("unrelated", "other-fix-1", other),
+    ("unlisted", "unlisted-fix-1", None),
+    ("regular", "regular", worktree),
+]:
+    if root is not None:
+        rows.append({"name": site, "approot": root})
+    current = copy.deepcopy(container)
+    current["Id"] = "c-" + ident
+    current["Name"] = "/ddev-" + site + "-redis"
+    current["Config"]["Labels"]["com.ddev.site-name"] = site
+    current["Config"]["Labels"]["com.docker.compose.project"] = "ddev-" + site
+    current["State"]["Running"] = ident == "approved"
+    current["NetworkSettings"]["Networks"] = {"ddev-" + site + "_default": {}}
+    container_rows.append(current)
+    current_network = copy.deepcopy(network)
+    current_network["Id"] = "n-" + ident
+    current_network["Name"] = "ddev-" + site + "_default"
+    current_network["Labels"]["com.docker.compose.project"] = "ddev-" + site
+    current_network["Containers"] = {current["Id"]: {}}
+    network_rows.append(current_network)
+projects.write_text(json.dumps({"raw": rows}))
+containers.write_text(json.dumps(container_rows))
+networks.write_text(json.dumps(network_rows))
+inventory.write_text("".join(item["Id"] + "\n" for item in container_rows))
+PYFIXTURE
+  out=$(run_clean --worktree "$wt") || fail "$out"
+  [ ! -s "$ACTION_LOG" ] || fail "legacy preview mutated resources"
+  assert_contains "$out" 'orphan-container: ddev-project-fix-1-redis' "legacy selected service was not approved"
+  out=$(DDEV_TRANSITION=stopped run_clean --worktree "$wt" --apply) || fail "$out"
+  [ "$(cat "$ACTION_LOG")" = "$(printf '%s\n' 'ddev delete -Oy project-fix-1' 'docker rm c-approved' 'docker network rm n-approved')" ] \
+    || fail "legacy teardown acted outside its selected project: $(cat "$ACTION_LOG")"
+  assert_contains "$out" 'removed-container: ddev-project-fix-1-redis' "legacy service removal was not verified"
+  assert_contains "$out" 'removed-network: ddev-project-fix-1_default' "legacy network removal was not verified"
+  python3 - "$DOCKER_CONTAINER_INSPECT" "$DOCKER_NETWORK_INSPECT" <<'PYVERIFY' || fail "legacy teardown did not preserve unrelated Docker resources"
+import json
+import sys
+from pathlib import Path
+
+containers, networks = [json.loads(Path(path).read_text()) for path in sys.argv[1:]]
+assert {item["Id"] for item in containers} == {"c-unrelated", "c-unlisted", "c-regular"}
+assert {item["Id"] for item in networks} == {"n-unrelated", "n-unlisted", "n-regular"}
+PYVERIFY
+  pass "fm-ddev-clean: legacy teardown cleans selected listed services and preserves unrelated resources"
+}
+
+test_final_inventory_does_not_trust_command_success() {
+  local out
+  prepare_transition_fixture
+  out=$(DOCKER_RM_RETAIN=1 run_clean --apply) || fail "$out"
+  assert_contains "$out" 'removed=0 residual=2 failed=0' "successful no-op removal hid resources"
+  assert_not_contains "$out" 'removed-container:' "unverified container removal was reported"
+  prepare_transition_fixture
+  out=$(DOCKER_NETWORK_RETAIN=1 run_clean --apply) || fail "$out"
+  assert_contains "$out" 'removed=1 residual=1 failed=0' "successful no-op network removal hid resource"
+  assert_not_contains "$out" 'removed-network:' "unverified network removal was reported"
+  pass "fm-ddev-clean: final summary measures remaining state"
+}
+
+test_refresh_inventory_failures_are_visible() {
+  local failure out
+  for failure in ps-1 inspect-1 ps-2 inspect-2 ps-3 inspect-3 network-2 network-3; do
+    prepare_transition_fixture
+    if [ "$failure" = inspect-3 ]; then
+      out=$(DOCKER_RM_RETAIN=1 INVENTORY_FAILURE="$failure" run_clean --apply 2>&1) || fail "$out"
+    else
+      out=$(INVENTORY_FAILURE="$failure" run_clean --apply 2>&1) || fail "$out"
+    fi
+    assert_contains "$out" 'inventory incomplete' "$failure was not reported"
+    assert_contains "$out" 'failed=1' "$failure was not counted"
+    case "$failure" in
+      ps-2|inspect-2)
+        assert_not_contains "$(cat "$ACTION_LOG")" 'docker rm' "$failure used stale approval state" ;;
+      ps-3|inspect-3)
+        assert_not_contains "$out" 'removed-container:' "$failure claimed unverified removal" ;;
+    esac
+  done
+  pass "fm-ddev-clean: inventory failures prevent unverified success"
+}
+
 test_worktree_only_deletes_the_recorded_ddev_name
 test_fleet_cleanup_is_allowlist_only_and_safe
 test_sweep_apply_runs_generated_cleanup_and_host_prune
 test_missing_ddev_is_a_per_task_noop_and_sweep_error
 test_selection_guards_apply_to_both_modes
+test_orphan_compose_inventory_is_safe_and_reports_residuals
+test_orphan_removal_failure_is_residual
 
 test_recorded_and_legacy_normalized_task_names
+
+test_post_ddev_inventory_tracks_actual_resources
+test_refresh_preserves_exclusions_and_approval_scope
+test_final_inventory_does_not_trust_command_success
+test_refresh_inventory_failures_are_visible
+
+test_legacy_teardown_cleans_only_selected_listed_resources
