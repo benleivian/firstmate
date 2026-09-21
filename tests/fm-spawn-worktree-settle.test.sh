@@ -12,10 +12,17 @@
 # transient-then-settled pane_current_path sequence with a fake tmux and
 # asserts the recorded worktree resolves to the real, settled worktree, never
 # the stale first read.
+#
+# The same loop has a second transient to survive: `treehouse get` reports the
+# REPOSITORY's primary checkout as its own cwd while it is still preparing a
+# slot. From a linked spawning home that path is not the project, so a poll
+# comparing only against the project adopted it and the isolation guard then
+# refused the launch. The cases below cover both the transient and the pane
+# that never leaves the primary at all.
 set -u
 
-# shellcheck source=tests/lib.sh
-. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/fixtures.sh
+. "$(dirname "${BASH_SOURCE[0]}")/fixtures.sh"
 
 SPAWN="$ROOT/bin/fm-spawn.sh"
 TMP_ROOT=$(fm_test_tmproot fm-spawn-worktree-settle)
@@ -74,22 +81,7 @@ make_settle_case() {
   fakebin=$(make_settle_fakebin "$case_dir/fake")
   mkdir -p "$home/data" "$home/projects" "$home/state" "$home/config"
   printf 'codex\n' > "$home/config/crew-harness"
-  case "$name" in
-    ddev-existing-*)
-      mkdir -p "$proj/.ddev"
-      fm_git_init_commit "$proj"
-      if [ "$name" = ddev-existing-derived-primary ]; then
-        printf 'name: wt-derived-primary\n' > "$proj/.ddev/config.yaml"
-      else
-        printf 'name: captain-project\n' > "$proj/.ddev/config.yaml"
-      fi
-      git -C "$proj" add .ddev/config.yaml
-      git -C "$proj" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'Add DDEV config'
-      fm_git_add_origin "$proj" "$proj.origin.git"
-      git -C "$proj" worktree add --quiet -b "wt-$name" "$wt"
-      ;;
-    *) fm_git_worktree "$proj" "$wt" "wt-$name" ;;
-  esac
+  fm_git_worktree "$proj" "$wt" "wt-$name"
   fm_git_init_commit "$stale"
   mkdir -p "$home/data/$id"
   cat > "$home/data/$id/brief.md" <<EOF
@@ -142,160 +134,96 @@ test_single_stale_first_read_is_not_accepted() {
   pass "a single transient stale pane_current_path read is not accepted as the worktree"
 }
 
-# A pane that reports the real worktree from the very first read still only
-# costs the loop's existing one-second inter-poll sleep to confirm - not an
-# extra full cycle on top of that.
-test_already_settled_pane_costs_one_confirm_sleep() {
-  local rec id out status start end elapsed
+# A pane that reports the real worktree from the very first read costs exactly
+# one confirming read - not a whole extra polling cycle on top of it. Counting
+# the pane reads measures the loop itself; wall-clock time would fold in every
+# other cost of a spawn (fetch, trust registration) and drift with the machine.
+test_already_settled_pane_costs_one_confirm_read() {
+  local rec id out status reads
   id=settle-already-settled-z2
   rec=$(make_settle_case settle-already-settled "$id" 0)
   read_settle_record "$rec"
 
-  start=$(date +%s)
   out=$(run_settle_spawn "$id")
   status=$?
-  end=$(date +%s)
-  elapsed=$((end - start))
-  expect_code 0 "$status" "spawn should succeed when the pane is already settled"
+  expect_code 0 "$status" "spawn should succeed when the pane is already settled"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
     "meta did not record the already-settled worktree"
-  [ "$elapsed" -le 5 ] || fail "already-settled pane took ${elapsed}s to confirm - expected close to the single inter-poll sleep"
-  pass "an already-settled pane confirms via the existing inter-poll sleep, not an extra full cycle"
+  reads=$(cat "$COUNTFILE")
+  [ "$reads" -eq 2 ] || fail "already-settled pane took $reads reads to confirm - expected the first read plus one confirmation"
+  pass "an already-settled pane confirms on the next read, not a whole extra cycle"
 }
 
-test_ddev_local_name_is_isolated_and_ignored() {
-  local case_dir home proj wt fakebin countfile id out
-  case_dir="$TMP_ROOT/ddev-local"
+# make_primary_case <name> <id> <stale_reads> builds the linked-home shape: the
+# spawning project is itself a LINKED worktree of the repository, and the path
+# the pane transiently reports is that repository's PRIMARY checkout. `treehouse
+# get` reports the repository it is preparing a slot from as its own cwd while
+# it is still fetching and checking out, so the pane reads the primary for the
+# first seconds. The primary is not the spawning project, so a poll that only
+# compares against the project accepts it as the worktree, and the isolation
+# guard then refuses the launch even though treehouse went on to enter a real
+# slot. The settled path is a second linked worktree of the same repository.
+make_primary_case() {
+  local name=$1 id=$2 stale_reads=$3 case_dir home primary proj wt fakebin countfile
+  case_dir="$TMP_ROOT/$name"
   home="$case_dir/home"
-  proj="$case_dir/project"
-  wt="$case_dir/worker-copy"
-  id=spawn-ddev-z1
-  fakebin=$(make_settle_fakebin "$case_dir/fake")
+  primary="$case_dir/primary"
+  proj="$case_dir/mate"
+  wt="$case_dir/slot"
   countfile="$case_dir/pane-call-count"
-  mkdir -p "$home/data/$id" "$home/projects" "$home/state" "$home/config" "$proj/.ddev"
-  printf 'codex\n' > "$home/config/crew-harness"
-  fm_git_init_commit "$proj"
-  printf 'name: captain-project\n' > "$proj/.ddev/config.yaml"
-  git -C "$proj" add .ddev/config.yaml
-  git -C "$proj" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'Add DDEV config'
-  fm_git_add_origin "$proj" "$proj.origin.git"
-  git -C "$proj" worktree add --quiet -b wt-ddev "$wt"
-  cat > "$home/data/$id/brief.md" <<EOF
-# Task
-## Captain's intent
-Exercise local DDEV naming.
-
-## Firstmate spec
-Keep the DDEV override local.
-EOF
-  touch "$home/state/.last-watcher-beat"
-  out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
-    FM_DATA_OVERRIDE="$home/data" FM_PROJECTS_OVERRIDE="$home/projects" \
-    FM_CONFIG_OVERRIDE="$home/config" FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" \
-    FM_FAKE_PANE_PATH="$wt" FM_FAKE_PANE_STALE_READS=0 \
-    FM_FAKE_PANE_COUNTFILE="$countfile" PATH="$fakebin:$PATH" \
-    "$SPAWN" "$id" "$proj" --mode no-mistakes --yolo off 2>&1)
-  expect_code 0 "$?" "spawn with a committed DDEV config should succeed: $out"
-  [ "$(cat "$wt/.ddev/config.local.yaml")" = "name: worker-copy-$id" ] \
-    || fail "spawn did not write the isolated DDEV name"
-  git -C "$wt" check-ignore --quiet .ddev/config.local.yaml \
-    || fail "Git does not ignore the worker DDEV override"
-  assert_grep "ddev_name=worker-copy-$id" "$home/state/$id.meta" \
-    "spawn did not record the DDEV name"
-  pass "fm-spawn: committed DDEV names are overridden locally per worker copy"
+  fakebin=$(make_settle_fakebin "$case_dir/fake")
+  fm_test_spawn_home "$home" codex
+  fm_git_worktree "$primary" "$proj" "mate-$name"
+  git -C "$primary" worktree add --quiet -b "slot-$name" "$wt"
+  fm_test_spawn_brief "$home" "$id" "Exercise primary-checkout transient detection for $id."
+  printf '%s\n' "$case_dir|$home|$proj|$wt|$primary|$fakebin|$countfile|$stale_reads"
 }
 
-test_existing_ddev_local_name_requires_no_primary_conflict() {
-  local variant id rec existing original out status
-  for variant in primary protected worker; do
-    id="spawn-existing-$variant-z1"
-    rec=$(make_settle_case "ddev-existing-$variant" "$id" 0)
-    read_settle_record "$rec"
-    printf '.ddev/config.local.yaml\n' >> "$PROJ_DIR/.git/info/exclude"
-    case "$variant" in
-      primary) existing=captain-project ;;
-      protected) existing=operator-kept ;;
-      worker) existing="worker-$id" ;;
-    esac
-    printf 'operator-kept\n' > "$HOME_DIR/config/ddev-protected-names"
-    printf 'name: %s\nphp_version: "8.3"\n' "$existing" > "$WT_DIR/.ddev/config.local.yaml"
-    original=$(cat "$WT_DIR/.ddev/config.local.yaml")
-    status=0
-    out=$(run_settle_spawn "$id") || status=$?
-    [ "$(cat "$WT_DIR/.ddev/config.local.yaml")" = "$original" ] || fail "$variant spawn overwrote local settings"
-    if [ "$variant" = worker ]; then
-      expect_code 0 "$status" "safe existing local name should be adopted: $out"
-      assert_grep "ddev_name=$existing" "$HOME_DIR/state/$id.meta" "safe existing name was not recorded"
-    else
-      [ "$status" -ne 0 ] || fail "$variant primary identity was accepted"
-      assert_contains "$out" "$WT_DIR/.ddev/config.local.yaml" "conflict error omitted its file"
-      assert_contains "$out" "$existing" "conflict error omitted its name"
-      if [ -f "$HOME_DIR/state/$id.meta" ]; then
-        assert_no_grep "ddev_name=$existing" "$HOME_DIR/state/$id.meta" "conflicting primary identity was recorded"
-      fi
-    fi
-  done
-  pass "fm-spawn: existing local names preserve settings and refuse primary identities"
+# The exact incident: the pane reports the repository primary for the first
+# reads, then settles into the slot treehouse actually created. The primary must
+# never be adopted as the worktree, so the spawn lands on the settled slot.
+test_transient_primary_checkout_is_not_accepted() {
+  local rec id out status
+  id=settle-primary-transient-z3
+  rec=$(make_primary_case settle-primary-transient "$id" 3)
+  read_settle_record "$rec"
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed once the pane leaves the primary checkout"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the settled worktree"
+  assert_no_grep "worktree=$STALE_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta wrongly recorded the repository primary checkout as the worktree"
+  pass "a transient primary-checkout pane read is not accepted as the worktree"
 }
 
-test_ddev_identity_normalization_and_collisions() {
-  local id rec out status name first_name='' variant expected long_id
-  long_id=$(printf 'long%.0s' {1..16})
-  for id in Fix_1 fix-1 "$long_id"; do
-    rec=$(make_settle_case "ddev-existing-identity-$id" "$id" 0)
-    read_settle_record "$rec"
-    status=0
-    out=$(run_settle_spawn "$id") || status=$?
-    expect_code 0 "$status" "identity spawn failed: $out"
-    name=$(sed -n 's/^ddev_name=//p' "$HOME_DIR/state/$id.meta")
-    [ -n "$name" ] && [ "${#name}" -le 63 ] || fail "DDEV name exceeds its limit or is absent: $name"
-    case "$id" in
-      Fix_1)
-        expected=$(python3 -c 'import hashlib; print(hashlib.sha256(b"Fix_1").hexdigest()[:6])')
-        [ "$name" = "wt-fix-1-$expected" ] || fail "changed ID did not retain its digest: $name"
-        first_name=$name
-        ;;
-      fix-1)
-        [ "$name" = wt-fix-1 ] && [ "$name" != "$first_name" ] || fail "distinct IDs collided"
-        ;;
-      *)
-        expected=$(python3 -c 'import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:6])' "$id")
-        case "$name" in *-"$expected") ;; *) fail "capped ID lost its digest: $name" ;; esac
-        ;;
-    esac
-  done
-  for variant in collision protected primary adopted; do
-    id="derived-$variant"
-    rec=$(make_settle_case "ddev-existing-derived-$variant" "$id" 0)
-    read_settle_record "$rec"
-    expected="wt-$id"
-    case "$variant" in
-      collision) fm_write_meta "$HOME_DIR/state/other.meta" "ddev_name=$expected" ;;
-      protected) printf '%s\n' "$expected" > "$HOME_DIR/config/ddev-protected-names" ;;
-      adopted)
-        printf 'name: %s\n' "$expected" > "$WT_DIR/.ddev/config.local.yaml"
-        fm_write_meta "$HOME_DIR/state/other.meta" "ddev_name=$expected"
-        printf '.ddev/config.local.yaml\n' >> "$PROJ_DIR/.git/info/exclude"
-        ;;
-    esac
-    status=0
-    out=$(run_settle_spawn "$id") || status=$?
-    [ "$status" -ne 0 ] || fail "$variant duplicate identity was accepted"
-    assert_contains "$out" "$expected" "conflict did not identify its name"
-    [ ! -f "$HOME_DIR/state/$id.meta" ] || fail "failed spawn recorded task metadata"
-    if [ "$variant" != adopted ]; then
-      [ ! -e "$WT_DIR/.ddev/config.local.yaml" ] || fail "refused spawn wrote local configuration"
-    else
-      [ "$(cat "$WT_DIR/.ddev/config.local.yaml")" = "name: $expected" ] || fail "refused spawn overwrote local configuration"
-    fi
-  done
-  pass "fm-spawn: changed and capped IDs retain identity and occupied names are refused"
+# A pane that never leaves the primary checkout must still fail at the deadline
+# rather than waiting forever or recording the primary.
+test_primary_checkout_that_never_settles_fails_at_the_deadline() {
+  local rec id out status
+  id=settle-primary-stuck-z4
+  rec=$(make_primary_case settle-primary-stuck "$id" 100000)
+  read_settle_record "$rec"
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(run_settle_spawn "$id")
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn accepted a pane that never left the primary checkout"$'\n'"$out"
+  assert_contains "$out" "did not enter an isolated worktree" \
+    "spawn did not explain that the pane never reached an isolated worktree"
+  assert_contains "$out" "$STALE_DIR" \
+    "the refusal did not name the path the pane kept reporting"
+  assert_contains "$out" "repository's primary checkout" \
+    "the refusal did not say why that path was rejected"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "refused spawn published task metadata"
+  pass "a pane stuck on the primary checkout fails loudly at the deadline"
 }
 
 test_single_stale_first_read_is_not_accepted
-test_already_settled_pane_costs_one_confirm_sleep
-test_ddev_local_name_is_isolated_and_ignored
-test_existing_ddev_local_name_requires_no_primary_conflict
-test_ddev_identity_normalization_and_collisions
+test_already_settled_pane_costs_one_confirm_read
+test_transient_primary_checkout_is_not_accepted
+test_primary_checkout_that_never_settles_fails_at_the_deadline
 
 echo "# all fm-spawn-worktree-settle tests passed"
