@@ -21,6 +21,11 @@
 # Docker candidates are inventoried before DDEV cleanup, including sites absent from its listing.
 # Named <site>-mariadb and <site>-postgres volumes are considered only when their site is unlisted,
 # allowlisted, unprotected, and unmounted by every running or stopped container.
+# Only unlisted database volumes additionally accept sites matching
+# ^smileadvantage-(check-[0-9a-f]{6,}|v3-nm-bootstrap-[0-9a-f]{6}-[0-9]+|v3-slice5-enrollment)$;
+# these names do not expand project or container eligibility, and worktree scope still applies.
+# A com.ddev.site-name label is optional but must match the site derived from the database suffix.
+# Labels alone do not qualify a volume, and the -mysql suffix is not selected.
 # Containers need matching com.ddev.site-name and com.docker.compose.project=ddev-<site>
 # labels plus a nonempty com.docker.compose.service; running candidates require a selected DDEV site.
 # Unlisted sites use recorded ownership or the name allowlist, with the same name protections.
@@ -30,15 +35,21 @@
 # and eligible under refreshed ownership checks are removed.
 # Network discovery is limited to those candidates' same-project referenced networks;
 # removal requires a still-matching project, eligible ownership, and no remaining members.
-# Final inventory verifies absence before reporting removed containers or candidate networks.
+# Selected volumes use targeted docker volume rm after refreshing running and stopped container mounts.
+# Final inventories verify absence before reporting removed containers, candidate networks, or volumes.
 # Summary stop-unlist/delete and orphan-container/orphan-network/orphan-volume count initial selections;
-# ddev-removed counts successful DDEV commands, while removed counts verified absent Docker resources.
-# Applied residual counts all remaining site-labeled or selected containers, candidate networks,
-# and excluded or remaining candidate volumes; failed final inventories add residual markers.
+# ddev-removed counts successful DDEV commands, while removed counts verified absent containers and networks.
+# Applied residual counts remaining site-labeled or selected containers and candidate networks;
+# failed final container/network inventories add residual markers.
+# volume-removed counts selected volumes verified absent; volume-residual counts initially excluded
+# database volumes plus selected volumes still present or unverified by the final volume inventory.
+# Dry-run volume-residual counts only initial exclusions; residual does not include volumes in either mode.
+# volume-failed counts targeted volume removal command failures.
 # Applied failed counts DDEV command, targeted Docker removal, and inventory failures.
 # Inventory warnings mean verification is incomplete, even when the dry-run summary has residual=0.
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
-# dangling-only operations. It never uses -a/--all for cleanup.
+# dangling-only operations; volume prune does not reclaim named database volumes.
+# It never uses -a/--all for cleanup.
 # Every ddev, docker, and JSON-parser call has FM_DDEV_CLEAN_TIMEOUT_SECS seconds
 # (default 30); failed cleanup commands warn and do not stop later cleanup.
 # A zero exit status alone does not certify complete cleanup; inspect warnings and the summary.
