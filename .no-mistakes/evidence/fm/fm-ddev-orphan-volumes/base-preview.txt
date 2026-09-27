@@ -1,0 +1,5 @@
+protected: listed-review-01abcdefgh (/private/var/folders/ms/spb6f2jd7cj_418r6zfz_7sr0000gn/T/fm-ddev-clean.IyQleP/home/Sites/listed)
+would: docker volume prune -f (host-wide, dangling-only)
+would: docker image prune -f (host-wide, dangling-only)
+would: ddev delete images -y (host-wide, dangling-only)
+summary: stop-unlist=0 delete=0 orphan-container=0 orphan-network=0 residual=0 protected=1 ambiguous=0 mode=fleet
