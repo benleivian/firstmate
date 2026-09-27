@@ -19,8 +19,7 @@
 # A missing-but-resolved worker approot is stop-unlisted with --omit-snapshot.
 # Every selected, protected, or ambiguous project prints <verb>: <name> (<approot|MISSING>).
 # Docker candidates are inventoried before DDEV cleanup, including sites absent from its listing.
-# Named <site>-mariadb, <site>-postgres, and <site>-mysql volumes, or volumes carrying
-# DDEV's com.ddev.site-name label, are considered only when their site is unlisted,
+# Named <site>-mariadb and <site>-postgres volumes are considered only when their site is unlisted,
 # allowlisted, unprotected, and unmounted by every running or stopped container.
 # Containers need matching com.ddev.site-name and com.docker.compose.project=ddev-<site>
 # labels plus a nonempty com.docker.compose.service; running candidates require a selected DDEV site.
@@ -237,6 +236,7 @@ is_recorded_task_suffix() {
 is_generated_name() {
   local name=$1
   is_recorded_task_suffix "$name" && return 0
+  printf '%s\n' "$name" | grep -Eq '^smileadvantage-(check-[0-9a-f]{6,}|v3-nm-bootstrap-[0-9a-f]{6}-[0-9]+|v3-slice5-enrollment)$' && return 0
   printf '%s\n' "$name" | grep -Eq '(^|-)01[0-9a-hjkmnp-tv-z]{8,25}$' && return 0
   printf '%s\n' "$name" | grep -Eq '^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$'
 }
@@ -411,7 +411,7 @@ for item in items:
         print("\x1f".join(("network", ident, name, str(labels.get("com.docker.compose.project") or ""), members)))
     else:
         suffix = ""
-        for database in ("mariadb", "postgres", "mysql"):
+        for database in ("mariadb", "postgres"):
             marker = "-" + database
             if name.endswith(marker) and len(name) > len(marker):
                 suffix = name[:-len(marker)]
@@ -559,16 +559,10 @@ fi
 if [ -n "$INITIAL_VOLUMES" ]; then
   while IFS=$'\x1f' read -r kind ident resource_name label_site suffix_site; do
     [ "$kind" = volume ] || continue
-    site=
-    if [ -n "$label_site" ] && [ -n "$suffix_site" ] && [ "$label_site" != "$suffix_site" ]; then
+    [ -n "$suffix_site" ] || continue
+    site=$suffix_site
+    if [ -n "$label_site" ] && [ "$label_site" != "$site" ]; then
       printf 'residual-volume: %s (label mismatch)\n' "$resource_name"
-    elif [ -n "$label_site" ]; then
-      site=$label_site
-    else
-      site=$suffix_site
-    fi
-    [ -n "${site:-}" ] || continue
-    if [ -n "$label_site" ] && [ -n "$suffix_site" ] && [ "$label_site" != "$suffix_site" ]; then
       VOLUME_EXCLUDED_COUNT=$((VOLUME_EXCLUDED_COUNT + 1))
     elif listed_ddev_site "$site"; then
       printf 'residual-volume: %s (%s listed)\n' "$resource_name" "$site"

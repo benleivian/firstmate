@@ -385,8 +385,7 @@ prepare_volume_fixture() {
   mkdir -p "$listed_root"
   rm -rf "$STATE"
   mkdir -p "$STATE"
-  fm_write_meta "$STATE/check-abc123.meta" "worktree=$HOME_DIR/.treehouse/check/1/project"
-  fm_write_meta "$STATE/slice5-enrollment.meta" "worktree=$HOME_DIR/.treehouse/worker/1/project"
+  : > "$DATA/backlog.md"
   printf 'sa-562-gnhf-657abd\nsa626-gnhf-5a4238\nprotected-review-01abcdefgh\n' > "$CONFIG/ddev-protected-names"
   printf '{"raw":[{"name":"listed-review-01abcdefgh","approot":"%s"}]}\n' "$listed_root" > "$DDEV_JSON"
   cat > "$DOCKER_CONTAINER_INSPECT" <<'EOF'
@@ -397,7 +396,18 @@ EOF
   cat > "$DOCKER_VOLUME_INSPECT" <<'EOF'
 [
   {"Name":"smileadvantage-check-abc123-mariadb","Labels":{}},
+  {"Name":"smileadvantage-check-abc123-postgres","Labels":{}},
+  {"Name":"sa-review-01abcdefgh-mariadb","Labels":{}},
   {"Name":"sa-review-01abcdefgh-postgres","Labels":{}},
+  {"Name":"smileadvantage-v3-slice5-enrollment-mariadb","Labels":{}},
+  {"Name":"smileadvantage-v3-slice5-enrollment-postgres","Labels":{}},
+  {"Name":"smileadvantage-v3-nm-bootstrap-5ed446-5-mariadb","Labels":{}},
+  {"Name":"smileadvantage-v3-nm-bootstrap-5ed446-5-postgres","Labels":{"com.ddev.site-name":"smileadvantage-v3-nm-bootstrap-5ed446-5"}},
+  {"Name":"sa-review-01abcdefgh-mysql","Labels":{"com.ddev.site-name":"sa-review-01abcdefgh"}},
+  {"Name":"smileadvantage-check-abc124-mariadb","Labels":{"com.ddev.site-name":"sa-review-01abcdefgh"}},
+  {"Name":"smileadvantage-check-permanent-mariadb","Labels":{}},
+  {"Name":"smileadvantage-v3-nm-bootstrap-permanent-postgres","Labels":{}},
+  {"Name":"smileadvantage-v3-slice6-enrollment-mariadb","Labels":{}},
   {"Name":"smileadvantage-v3-slice5-enrollment-mysql","Labels":{}},
   {"Name":"ddev-labeled-volume","Labels":{"com.ddev.site-name":"smileadvantage-check-abc123"}},
   {"Name":"listed-review-01abcdefgh-mariadb","Labels":{}},
@@ -412,12 +422,17 @@ EOF
 }
 
 test_orphan_database_volumes_are_safe_and_reclaimed() {
-  local out
+  local out site database volume
   prepare_volume_fixture
   out=$(run_clean) || fail "volume dry-run failed: $out"
-  for volume in smileadvantage-check-abc123-mariadb sa-review-01abcdefgh-postgres smileadvantage-v3-slice5-enrollment-mysql ddev-labeled-volume; do
-    assert_contains "$out" "orphan-volume: $volume" "eligible volume was not inventoried: $volume"
+  for site in smileadvantage-check-abc123 sa-review-01abcdefgh smileadvantage-v3-slice5-enrollment smileadvantage-v3-nm-bootstrap-5ed446-5; do
+    for database in mariadb postgres; do
+      volume=$site-$database
+      assert_contains "$out" "orphan-volume: $volume" "eligible volume was not inventoried: $volume"
+    done
   done
+  assert_contains "$out" 'orphan-volume=8' "unexpected volume selection"
+  assert_contains "$out" 'residual-volume: smileadvantage-check-abc124-mariadb (label mismatch)' "conflicting label was accepted"
   assert_contains "$out" 'residual-volume: listed-review-01abcdefgh-mariadb (listed-review-01abcdefgh listed)' "listed volume was not preserved"
   assert_contains "$out" 'residual-volume: protected-review-01abcdefgh-postgres (protected-review-01abcdefgh protected)' "protected volume was not preserved"
   assert_contains "$out" 'residual-volume: sa-562-gnhf-657abd-mariadb (sa-562-gnhf-657abd protected)' "gnhf volume was not preserved"
@@ -426,10 +441,27 @@ test_orphan_database_volumes_are_safe_and_reclaimed() {
   [ ! -s "$ACTION_LOG" ] || fail "volume dry-run mutated Docker: $(cat "$ACTION_LOG")"
 
   out=$(run_clean --apply) || fail "volume apply failed: $out"
-  for volume in smileadvantage-check-abc123-mariadb sa-review-01abcdefgh-postgres smileadvantage-v3-slice5-enrollment-mysql ddev-labeled-volume; do
-    assert_grep "docker volume rm $volume" "$ACTION_LOG" "eligible volume was not removed: $volume"
-    assert_contains "$out" "removed-volume: $volume" "eligible volume removal was not reported: $volume"
+  for site in smileadvantage-check-abc123 sa-review-01abcdefgh smileadvantage-v3-slice5-enrollment smileadvantage-v3-nm-bootstrap-5ed446-5; do
+    for database in mariadb postgres; do
+      volume=$site-$database
+      assert_grep "docker volume rm $volume" "$ACTION_LOG" "eligible volume was not removed: $volume"
+      assert_contains "$out" "removed-volume: $volume" "eligible volume removal was not reported: $volume"
+    done
   done
+  python3 - "$DOCKER_VOLUME_INSPECT" <<'PYVOLUMES'
+import json, sys
+remaining = {item["Name"] for item in json.load(open(sys.argv[1]))}
+expected = {
+    "listed-review-01abcdefgh-mariadb", "protected-review-01abcdefgh-postgres",
+    "sa-562-gnhf-657abd-mariadb", "sa626-gnhf-5a4238-postgres", "regular-mariadb",
+    "smileadvantage-check-mounted-mariadb", "ddev-labeled-volume",
+    "smileadvantage-v3-slice5-enrollment-mysql", "sa-review-01abcdefgh-mysql",
+    "smileadvantage-check-abc124-mariadb", "smileadvantage-check-permanent-mariadb",
+    "smileadvantage-v3-nm-bootstrap-permanent-postgres", "smileadvantage-v3-slice6-enrollment-mariadb",
+}
+assert remaining == expected, (remaining, expected)
+PYVOLUMES
+  [ "$?" -eq 0 ] || fail "volume cleanup did not preserve exactly the excluded volumes"
   assert_not_contains "$(cat "$ACTION_LOG")" 'docker volume rm listed-review-01abcdefgh-mariadb' "listed volume was removed"
   assert_not_contains "$(cat "$ACTION_LOG")" 'docker volume rm smileadvantage-check-mounted-mariadb' "mounted volume was removed"
   pass "fm-ddev-clean: orphan database volumes respect ownership and stopped mounts"
