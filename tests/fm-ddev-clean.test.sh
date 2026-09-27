@@ -467,6 +467,34 @@ PYVOLUMES
   pass "fm-ddev-clean: orphan database volumes respect ownership and stopped mounts"
 }
 
+test_volume_names_do_not_expand_project_cleanup() {
+  local out site listed_root
+  prepare_volume_fixture
+  listed_root="$HOME_DIR/.treehouse/listed/1/project"
+  mkdir -p "$listed_root"
+  python3 - "$DDEV_JSON" "$listed_root" <<'PYLISTED'
+import json, sys
+names = ["smileadvantage-check-abc123", "smileadvantage-v3-slice5-enrollment",
+         "smileadvantage-v3-nm-bootstrap-5ed446-5"]
+with open(sys.argv[1], "w") as stream:
+    json.dump({"raw": [{"name": name, "approot": sys.argv[2]} for name in names]}, stream)
+PYLISTED
+  out=$(run_clean) || fail "listed volume dry-run failed: $out"
+  for site in smileadvantage-check-abc123 smileadvantage-v3-slice5-enrollment smileadvantage-v3-nm-bootstrap-5ed446-5; do
+    assert_contains "$out" "ambiguous: $site ($listed_root)" "volume name expanded project eligibility: $site"
+    assert_contains "$out" "residual-volume: $site-mariadb ($site listed)" "listed database was selected: $site"
+  done
+  [ ! -s "$ACTION_LOG" ] || fail "listed volume dry-run mutated resources"
+  out=$(run_clean --apply) || fail "listed volume apply failed: $out"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'ddev delete -Oy' "volume name authorized project deletion"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'ddev stop' "volume name authorized project stopping"
+  for site in smileadvantage-check-abc123 smileadvantage-v3-slice5-enrollment smileadvantage-v3-nm-bootstrap-5ed446-5; do
+    assert_not_contains "$(cat "$ACTION_LOG")" "docker volume rm $site-" "listed database was removed: $site"
+  done
+  assert_grep 'docker volume rm sa-review-01abcdefgh-postgres' "$ACTION_LOG" "unlisted volume was not reclaimed"
+  pass "fm-ddev-clean: volume name recognition preserves listed managed projects"
+}
+
 test_orphan_database_volume_failure_is_visible() {
   local out
   prepare_volume_fixture
@@ -659,6 +687,7 @@ test_missing_ddev_is_a_per_task_noop_and_sweep_error
 test_selection_guards_apply_to_both_modes
 test_orphan_compose_inventory_is_safe_and_reports_residuals
 test_orphan_database_volumes_are_safe_and_reclaimed
+test_volume_names_do_not_expand_project_cleanup
 test_orphan_database_volume_failure_is_visible
 test_orphan_removal_failure_is_residual
 

@@ -236,7 +236,6 @@ is_recorded_task_suffix() {
 is_generated_name() {
   local name=$1
   is_recorded_task_suffix "$name" && return 0
-  printf '%s\n' "$name" | grep -Eq '^smileadvantage-(check-[0-9a-f]{6,}|v3-nm-bootstrap-[0-9a-f]{6}-[0-9]+|v3-slice5-enrollment)$' && return 0
   printf '%s\n' "$name" | grep -Eq '(^|-)01[0-9a-hjkmnp-tv-z]{8,25}$' && return 0
   printf '%s\n' "$name" | grep -Eq '^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$'
 }
@@ -343,7 +342,7 @@ $PROJECTS_JSON
 EOF
 
 orphan_owner_verdict() {
-  local name=$1 meta line recorded root i
+  local name=$1 resource=${2:-} meta line recorded root i
   for i in "${!LIST_NAMES[@]}"; do
     [ "${LIST_NAMES[$i]}" = "$name" ] || continue
     if [ -n "$WORKTREE" ] && ! selected_ddev_site "$name"; then
@@ -378,7 +377,11 @@ orphan_owner_verdict() {
     fi
     return
   done
-  is_generated_name "$name" && printf '%s\n' eligible || printf '%s\n' ambiguous
+  if [ "$resource" = volume ] && printf '%s\n' "$name" | grep -Eq '^smileadvantage-(check-[0-9a-f]{6,}|v3-nm-bootstrap-[0-9a-f]{6}-[0-9]+|v3-slice5-enrollment)$'; then
+    printf '%s\n' eligible
+  else
+    is_generated_name "$name" && printf '%s\n' eligible || printf '%s\n' ambiguous
+  fi
 }
 
 docker_inspect_inventory() {
@@ -571,7 +574,7 @@ if [ -n "$INITIAL_VOLUMES" ]; then
       printf 'residual-volume: %s (%s in use)\n' "$resource_name" "$site"
       VOLUME_EXCLUDED_COUNT=$((VOLUME_EXCLUDED_COUNT + 1))
     else
-      verdict=$(orphan_owner_verdict "$site")
+      verdict=$(orphan_owner_verdict "$site" volume)
       case "$verdict" in
         eligible)
           printf 'orphan-volume: %s (%s)\n' "$resource_name" "$site"
