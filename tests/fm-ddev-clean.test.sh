@@ -448,7 +448,7 @@ test_orphan_database_volumes_are_safe_and_reclaimed() {
       assert_contains "$out" "removed-volume: $volume" "eligible volume removal was not reported: $volume"
     done
   done
-  python3 - "$DOCKER_VOLUME_INSPECT" <<'PYVOLUMES'
+  python3 - "$DOCKER_VOLUME_INSPECT" <<'PYVOLUMES' || fail "volume cleanup did not preserve exactly the excluded volumes"
 import json, sys
 remaining = {item["Name"] for item in json.load(open(sys.argv[1]))}
 expected = {
@@ -461,7 +461,6 @@ expected = {
 }
 assert remaining == expected, (remaining, expected)
 PYVOLUMES
-  [ "$?" -eq 0 ] || fail "volume cleanup did not preserve exactly the excluded volumes"
   assert_not_contains "$(cat "$ACTION_LOG")" 'docker volume rm listed-review-01abcdefgh-mariadb' "listed volume was removed"
   assert_not_contains "$(cat "$ACTION_LOG")" 'docker volume rm smileadvantage-check-mounted-mariadb' "mounted volume was removed"
   pass "fm-ddev-clean: orphan database volumes respect ownership and stopped mounts"
