@@ -19,6 +19,9 @@
 # A missing-but-resolved worker approot is stop-unlisted with --omit-snapshot.
 # Every selected, protected, or ambiguous project prints <verb>: <name> (<approot|MISSING>).
 # Docker candidates are inventoried before DDEV cleanup, including sites absent from its listing.
+# Named <site>-mariadb, <site>-postgres, and <site>-mysql volumes, or volumes carrying
+# DDEV's com.ddev.site-name label, are considered only when their site is unlisted,
+# allowlisted, unprotected, and unmounted by every running or stopped container.
 # Containers need matching com.ddev.site-name and com.docker.compose.project=ddev-<site>
 # labels plus a nonempty com.docker.compose.service; running candidates require a selected DDEV site.
 # Unlisted sites use recorded ownership or the name allowlist, with the same name protections.
@@ -29,10 +32,10 @@
 # Network discovery is limited to those candidates' same-project referenced networks;
 # removal requires a still-matching project, eligible ownership, and no remaining members.
 # Final inventory verifies absence before reporting removed containers or candidate networks.
-# Summary stop-unlist/delete and orphan-container/orphan-network count initial selections;
+# Summary stop-unlist/delete and orphan-container/orphan-network/orphan-volume count initial selections;
 # ddev-removed counts successful DDEV commands, while removed counts verified absent Docker resources.
-# Applied residual counts all remaining site-labeled or selected containers and candidate networks,
-# including exclusions outside the requested scope; failed final inventories add residual markers.
+# Applied residual counts all remaining site-labeled or selected containers, candidate networks,
+# and excluded or remaining candidate volumes; failed final inventories add residual markers.
 # Applied failed counts DDEV command, targeted Docker removal, and inventory failures.
 # Inventory warnings mean verification is incomplete, even when the dry-run summary has residual=0.
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
@@ -394,17 +397,26 @@ if not isinstance(items, list) or len(items) != int(os.environ["FM_DDEV_DOCKER_E
     raise ValueError("incomplete Docker inspection")
 for item in items:
     labels = (item.get("Config", {}).get("Labels", {}) if kind == "container" else item.get("Labels", {})) or {}
-    ident = str(item.get("Id") or item.get("ID") or "")
+    ident = str(item.get("Id") or item.get("ID") or item.get("Name") or "")
     name = str(item.get("Name") or "").lstrip("/")
     if not ident or not name:
         raise ValueError("Docker inspection lacks identity")
     if kind == "container":
         networks = ",".join(sorted((item.get("NetworkSettings", {}).get("Networks", {}) or {}).keys()))
+        mounts = ",".join(sorted(str(mount.get("Name")) for mount in item.get("Mounts", []) if mount.get("Type") == "volume" and mount.get("Name")))
         running = "running" if item.get("State", {}).get("Running") else "stopped"
-        print("\x1f".join(("container", ident, name, str(labels.get("com.ddev.site-name") or ""), str(labels.get("com.docker.compose.project") or ""), str(labels.get("com.docker.compose.service") or ""), running, networks)))
-    else:
+        print("\x1f".join(("container", ident, name, str(labels.get("com.ddev.site-name") or ""), str(labels.get("com.docker.compose.project") or ""), str(labels.get("com.docker.compose.service") or ""), running, networks, mounts)))
+    elif kind == "network":
         members = str(len(item.get("Containers", {}) or {}))
         print("\x1f".join(("network", ident, name, str(labels.get("com.docker.compose.project") or ""), members)))
+    else:
+        suffix = ""
+        for database in ("mariadb", "postgres", "mysql"):
+            marker = "-" + database
+            if name.endswith(marker) and len(name) > len(marker):
+                suffix = name[:-len(marker)]
+                break
+        print("\x1f".join(("volume", ident, name, str(labels.get("com.ddev.site-name") or ""), suffix)))
 ' || return 1
 }
 
@@ -415,6 +427,14 @@ ORPHAN_CONTAINER_PROJECTS=()
 ORPHAN_CONTAINER_NETWORKS=()
 ORPHAN_CONTAINER_COUNT=0
 ORPHAN_NETWORK_COUNT=0
+ORPHAN_VOLUME_IDS=()
+ORPHAN_VOLUME_NAMES=()
+ORPHAN_VOLUME_SITES=()
+ORPHAN_VOLUME_COUNT=0
+VOLUME_EXCLUDED_COUNT=0
+VOLUME_REMOVED_COUNT=0
+VOLUME_FAILED_COUNT=0
+VOLUME_REMAINING_COUNT=0
 ORPHAN_RESIDUAL_COUNT=0
 ORPHAN_REMOVED_COUNT=0
 ORPHAN_FAILED_COUNT=0
@@ -431,6 +451,38 @@ container_inventory() {
     [ -z "$id" ] || ids+=("$id")
   done <<< "$RUN_OUTPUT"
   [ "${#ids[@]}" -eq 0 ] || docker_inspect_inventory container "${ids[@]}"
+}
+
+volume_inventory() {
+  local names=() name
+  if ! run_capture docker volume ls -q; then
+    printf 'warning: docker volume inventory failed (exit %s): %s\n' "$RUN_STATUS" "$RUN_OUTPUT" >&2
+    return 1
+  fi
+  while IFS= read -r name; do
+    [ -z "$name" ] || names+=("$name")
+  done <<< "$RUN_OUTPUT"
+  [ "${#names[@]}" -eq 0 ] || docker_inspect_inventory volume "${names[@]}"
+}
+
+container_mounts_volume() {
+  local volume=$1 rows=$2 kind ident resource_name site project service running networks mounts mounted
+  while IFS=$'\x1f' read -r kind ident resource_name site project service running networks mounts; do
+    [ "$kind" = container ] || continue
+    IFS=, read -r -a mounted <<< "$mounts"
+    for mounted in "${mounted[@]}"; do
+      [ "$mounted" != "$volume" ] || return 0
+    done
+  done <<< "$rows"
+  return 1
+}
+
+listed_ddev_site() {
+  local site=$1 name
+  for name in "${LIST_NAMES[@]}"; do
+    [ "$name" != "$site" ] || return 0
+  done
+  return 1
 }
 
 inventory_failed() {
@@ -475,7 +527,7 @@ if ! INITIAL_CONTAINERS=$(container_inventory); then
   INITIAL_CONTAINERS=
 fi
 if [ -n "$INITIAL_CONTAINERS" ]; then
-  while IFS=$'\x1f' read -r kind ident resource_name site project service running networks; do
+  while IFS=$'\x1f' read -r kind ident resource_name site project service running networks mounts; do
     [ "$kind" = container ] && [ -n "$site" ] || continue
     verdict=$(orphan_owner_verdict "$site")
     if [ -z "$site" ] || [ "$project" != "ddev-$site" ] || [ -z "$service" ]; then
@@ -497,6 +549,54 @@ if [ -n "$INITIAL_CONTAINERS" ]; then
       ORPHAN_CONTAINER_COUNT=$((ORPHAN_CONTAINER_COUNT + 1))
     fi
   done <<< "$INITIAL_CONTAINERS"
+fi
+
+INITIAL_VOLUMES=
+if ! INITIAL_VOLUMES=$(volume_inventory); then
+  inventory_failed volume
+  INITIAL_VOLUMES=
+fi
+if [ -n "$INITIAL_VOLUMES" ]; then
+  while IFS=$'\x1f' read -r kind ident resource_name label_site suffix_site; do
+    [ "$kind" = volume ] || continue
+    site=
+    if [ -n "$label_site" ] && [ -n "$suffix_site" ] && [ "$label_site" != "$suffix_site" ]; then
+      printf 'residual-volume: %s (label mismatch)\n' "$resource_name"
+    elif [ -n "$label_site" ]; then
+      site=$label_site
+    else
+      site=$suffix_site
+    fi
+    [ -n "${site:-}" ] || continue
+    if [ -n "$label_site" ] && [ -n "$suffix_site" ] && [ "$label_site" != "$suffix_site" ]; then
+      VOLUME_EXCLUDED_COUNT=$((VOLUME_EXCLUDED_COUNT + 1))
+    elif listed_ddev_site "$site"; then
+      printf 'residual-volume: %s (%s listed)\n' "$resource_name" "$site"
+      VOLUME_EXCLUDED_COUNT=$((VOLUME_EXCLUDED_COUNT + 1))
+    elif container_mounts_volume "$resource_name" "$INITIAL_CONTAINERS"; then
+      printf 'residual-volume: %s (%s in use)\n' "$resource_name" "$site"
+      VOLUME_EXCLUDED_COUNT=$((VOLUME_EXCLUDED_COUNT + 1))
+    else
+      verdict=$(orphan_owner_verdict "$site")
+      case "$verdict" in
+        eligible)
+          printf 'orphan-volume: %s (%s)\n' "$resource_name" "$site"
+          ORPHAN_VOLUME_IDS+=("$ident")
+          ORPHAN_VOLUME_NAMES+=("$resource_name")
+          ORPHAN_VOLUME_SITES+=("$site")
+          ORPHAN_VOLUME_COUNT=$((ORPHAN_VOLUME_COUNT + 1))
+          ;;
+        protected)
+          printf 'residual-volume: %s (%s protected)\n' "$resource_name" "$site"
+          VOLUME_EXCLUDED_COUNT=$((VOLUME_EXCLUDED_COUNT + 1))
+          ;;
+        *)
+          printf 'residual-volume: %s (%s not allowlisted)\n' "$resource_name" "$site"
+          VOLUME_EXCLUDED_COUNT=$((VOLUME_EXCLUDED_COUNT + 1))
+          ;;
+      esac
+    fi
+  done <<< "$INITIAL_VOLUMES"
 fi
 
 network_candidates() {
@@ -538,8 +638,8 @@ if [ "$APPLY" -ne 1 ]; then
     echo 'would: docker image prune -f (host-wide, dangling-only)'
     echo 'would: ddev delete images -y (host-wide, dangling-only)'
   fi
-  printf 'summary: stop-unlist=%s delete=%s orphan-container=%s orphan-network=%s residual=%s protected=%s ambiguous=%s mode=%s\n' \
-    "$STOP_COUNT" "$DELETE_COUNT" "$ORPHAN_CONTAINER_COUNT" "$ORPHAN_NETWORK_COUNT" "$ORPHAN_RESIDUAL_COUNT" \
+  printf 'summary: stop-unlist=%s delete=%s orphan-container=%s orphan-network=%s orphan-volume=%s residual=%s volume-residual=%s protected=%s ambiguous=%s mode=%s\n' \
+    "$STOP_COUNT" "$DELETE_COUNT" "$ORPHAN_CONTAINER_COUNT" "$ORPHAN_NETWORK_COUNT" "$ORPHAN_VOLUME_COUNT" "$ORPHAN_RESIDUAL_COUNT" "$VOLUME_EXCLUDED_COUNT" \
     "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
   exit 0
 fi
@@ -565,7 +665,7 @@ for i in "${!DELETE_NAMES[@]}"; do
 done
 if AFTER_CONTAINERS=$(container_inventory); then
   for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
-    while IFS=$'\x1f' read -r kind ident resource_name site project service running networks; do
+    while IFS=$'\x1f' read -r kind ident resource_name site project service running networks mounts; do
       [ "$ident" = "${ORPHAN_CONTAINER_IDS[$i]}" ] || continue
       [ "$site" = "${ORPHAN_CONTAINER_SITES[$i]}" ] && [ "$project" = "${ORPHAN_CONTAINER_PROJECTS[$i]}" ] \
         && [ -n "$service" ] && [ "$running" = stopped ] || continue
@@ -608,9 +708,28 @@ else
   inventory_failed post-ddev-network
 fi
 
+for i in "${!ORPHAN_VOLUME_IDS[@]}"; do
+  if VOLUME_CONTAINERS=$(container_inventory); then
+    if container_mounts_volume "${ORPHAN_VOLUME_NAMES[$i]}" "$VOLUME_CONTAINERS"; then
+      printf 'residual-volume: %s (%s in use)\n' "${ORPHAN_VOLUME_NAMES[$i]}" "${ORPHAN_VOLUME_SITES[$i]}"
+      VOLUME_REMAINING_COUNT=$((VOLUME_REMAINING_COUNT + 1))
+      continue
+    fi
+    if run_cleanup "docker volume rm ${ORPHAN_VOLUME_IDS[$i]}" docker volume rm "${ORPHAN_VOLUME_IDS[$i]}"; then
+      :
+    else
+      printf 'residual-volume: %s (%s removal failed)\n' "${ORPHAN_VOLUME_NAMES[$i]}" "${ORPHAN_VOLUME_SITES[$i]}"
+      VOLUME_FAILED_COUNT=$((VOLUME_FAILED_COUNT + 1))
+    fi
+  else
+    inventory_failed pre-volume-removal
+    VOLUME_REMAINING_COUNT=$((VOLUME_REMAINING_COUNT + 1))
+  fi
+done
+
 ORPHAN_RESIDUAL_COUNT=0
 if FINAL_CONTAINERS=$(container_inventory); then
-  while IFS=$'\x1f' read -r kind ident resource_name site project service running networks; do
+  while IFS=$'\x1f' read -r kind ident resource_name site project service running networks mounts; do
     [ "$kind" = container ] || continue
     tracked=0
     for i in "${!ORPHAN_CONTAINER_IDS[@]}"; do
@@ -651,13 +770,32 @@ else
   inventory_failed final-network
   ORPHAN_RESIDUAL_COUNT=$((ORPHAN_RESIDUAL_COUNT + 1))
 fi
+VOLUME_REMAINING_COUNT=0
+if FINAL_VOLUMES=$(volume_inventory); then
+  for i in "${!ORPHAN_VOLUME_IDS[@]}"; do
+    found=0
+    while IFS=$'\x1f' read -r kind ident resource_name _; do
+      [ "$kind" = volume ] && [ "$resource_name" = "${ORPHAN_VOLUME_NAMES[$i]}" ] || continue
+      found=1
+      VOLUME_REMAINING_COUNT=$((VOLUME_REMAINING_COUNT + 1))
+      printf 'residual-volume: %s (%s still present)\n' "$resource_name" "${ORPHAN_VOLUME_SITES[$i]}"
+    done <<< "$FINAL_VOLUMES"
+    if [ "$found" = 0 ]; then
+      printf 'removed-volume: %s (%s)\n' "${ORPHAN_VOLUME_NAMES[$i]}" "${ORPHAN_VOLUME_SITES[$i]}"
+      VOLUME_REMOVED_COUNT=$((VOLUME_REMOVED_COUNT + 1))
+    fi
+  done
+else
+  inventory_failed final-volume
+  VOLUME_REMAINING_COUNT=$((VOLUME_REMAINING_COUNT + ORPHAN_VOLUME_COUNT))
+fi
 if [ -z "$WORKTREE" ]; then
   run_cleanup 'docker volume prune -f' docker volume prune -f
   run_cleanup 'docker image prune -f' docker image prune -f
   run_cleanup 'ddev delete images -y' ddev delete images -y
   run_cleanup 'docker system df' docker system df
 fi
-printf 'summary: stop-unlist=%s delete=%s ddev-removed=%s ddev-failed=%s orphan-container=%s orphan-network=%s removed=%s residual=%s failed=%s protected=%s ambiguous=%s mode=%s\n' \
+printf 'summary: stop-unlist=%s delete=%s ddev-removed=%s ddev-failed=%s orphan-container=%s orphan-network=%s orphan-volume=%s removed=%s residual=%s failed=%s volume-removed=%s volume-residual=%s volume-failed=%s protected=%s ambiguous=%s mode=%s\n' \
   "$STOP_COUNT" "$DELETE_COUNT" "$DDEV_REMOVED_COUNT" "$DDEV_FAILED_COUNT" "$ORPHAN_CONTAINER_COUNT" \
-  "$ORPHAN_NETWORK_COUNT" "$ORPHAN_REMOVED_COUNT" "$ORPHAN_RESIDUAL_COUNT" \
-  "$((DDEV_FAILED_COUNT + ORPHAN_FAILED_COUNT))" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
+  "$ORPHAN_NETWORK_COUNT" "$ORPHAN_VOLUME_COUNT" "$ORPHAN_REMOVED_COUNT" "$ORPHAN_RESIDUAL_COUNT" \
+  "$((DDEV_FAILED_COUNT + ORPHAN_FAILED_COUNT + VOLUME_FAILED_COUNT))" "$VOLUME_REMOVED_COUNT" "$((VOLUME_EXCLUDED_COUNT + VOLUME_REMAINING_COUNT))" "$VOLUME_FAILED_COUNT" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"

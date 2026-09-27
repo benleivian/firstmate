@@ -18,7 +18,9 @@ ACTION_LOG="$TMP_ROOT/actions.log"
 DOCKER_PS="$TMP_ROOT/docker-ps"
 DOCKER_CONTAINER_INSPECT="$TMP_ROOT/docker-container-inspect.json"
 DOCKER_NETWORK_INSPECT="$TMP_ROOT/docker-network-inspect.json"
+DOCKER_VOLUME_INSPECT="$TMP_ROOT/docker-volume-inspect.json"
 mkdir -p "$HOME_DIR" "$STATE" "$DATA" "$CONFIG" "$PROJECTS_DIR"
+printf '[]\n' > "$DOCKER_VOLUME_INSPECT"
 : > "$DOCKER_PS"
 
 cat > "$FAKEBIN/ddev" <<'SH'
@@ -43,6 +45,7 @@ from pathlib import Path
 args = sys.argv[1:]
 containers = Path(os.environ["DOCKER_CONTAINER_INSPECT"])
 networks = Path(os.environ["DOCKER_NETWORK_INSPECT"])
+volumes = Path(os.environ["DOCKER_VOLUME_INSPECT"])
 phase_file = Path(os.environ["DOCKER_PS"] + ".phase")
 phase = int(phase_file.read_text()) if phase_file.exists() else 0
 failure = os.environ.get("INVENTORY_FAILURE", "")
@@ -60,11 +63,15 @@ if args[0] == "ps":
     if failure == "ps-" + str(phase):
         sys.exit(1)
     print(Path(os.environ["DOCKER_PS"]).read_text(), end="")
+elif args[:2] == ["volume", "ls"]:
+    if failure == "volume-" + str(phase):
+        sys.exit(1)
+    print("\n".join(item["Name"] for item in read(volumes)))
 elif args[0] == "inspect":
     if failure == "inspect-" + str(phase) and args[1].startswith("c-"):
         sys.exit(1)
-    items = read(containers) + read(networks)
-    result = [item for item in items if item["Id"] in args[1:] or item["Name"].lstrip("/") in args[1:]]
+    items = read(containers) + read(networks) + read(volumes)
+    result = [item for item in items if item.get("Id") in args[1:] or item["Name"].lstrip("/") in args[1:]]
     if len(result) != len(args[1:]):
         sys.exit(1)
     print(json.dumps(result))
@@ -88,6 +95,12 @@ elif args[:2] == ["network", "rm"]:
     log()
     if os.environ.get("DOCKER_NETWORK_RETAIN") != "1":
         networks.write_text(json.dumps([item for item in read(networks) if item["Id"] != args[2]]))
+elif args[:2] == ["volume", "rm"]:
+    log()
+    if os.environ.get("DOCKER_VOLUME_RM_FAIL") == args[2]:
+        sys.exit(1)
+    if os.environ.get("DOCKER_VOLUME_RETAIN") != "1":
+        volumes.write_text(json.dumps([item for item in read(volumes) if item["Name"] != args[2]]))
 else:
     log()
 PYFAKE
@@ -134,8 +147,10 @@ run_clean() {
     FM_CONFIG_OVERRIDE="$CONFIG" FM_PROJECTS_OVERRIDE="$PROJECTS_DIR" \
     DDEV_JSON="$DDEV_JSON" ACTION_LOG="$ACTION_LOG" DOCKER_PS="$DOCKER_PS" \
     DOCKER_CONTAINER_INSPECT="$DOCKER_CONTAINER_INSPECT" DOCKER_NETWORK_INSPECT="$DOCKER_NETWORK_INSPECT" \
-    DOCKER_RM_FAIL="${DOCKER_RM_FAIL:-}" DOCKER_RM_RETAIN="${DOCKER_RM_RETAIN:-}" \
-    DOCKER_NETWORK_RETAIN="${DOCKER_NETWORK_RETAIN:-}" INVENTORY_FAILURE="${INVENTORY_FAILURE:-}" \
+    DOCKER_VOLUME_INSPECT="$DOCKER_VOLUME_INSPECT" DOCKER_RM_FAIL="${DOCKER_RM_FAIL:-}" \
+    DOCKER_RM_RETAIN="${DOCKER_RM_RETAIN:-}" DOCKER_NETWORK_RETAIN="${DOCKER_NETWORK_RETAIN:-}" \
+    DOCKER_VOLUME_RM_FAIL="${DOCKER_VOLUME_RM_FAIL:-}" DOCKER_VOLUME_RETAIN="${DOCKER_VOLUME_RETAIN:-}" \
+    INVENTORY_FAILURE="${INVENTORY_FAILURE:-}" \
     DDEV_TRANSITION="${DDEV_TRANSITION:-}" \
     DDEV_JSON_PREFIX='{"level":"info","msg":"table follows"}' PATH="$FAKEBIN:$PATH" \
     FM_DDEV_CLEAN_TIMEOUT_SECS=5 "$CLEAN" "$@"
@@ -336,6 +351,7 @@ EOF
   cat > "$DOCKER_NETWORK_INSPECT" <<'EOF'
 [{"Id":"n-orphan","Name":"ddev-svvy-v2-pr1208-5ed446_default","Labels":{"com.docker.compose.project":"ddev-svvy-v2-pr1208-5ed446"},"Containers":{"c-orphan":{}}}]
 EOF
+  printf '[]\n' > "$DOCKER_VOLUME_INSPECT"
 
   printf 'protected-review-01abcdefgh\n' > "$CONFIG/ddev-protected-names"
   printf '{"raw":[]}\n' > "$DDEV_JSON"
@@ -361,6 +377,71 @@ test_orphan_compose_inventory_is_safe_and_reports_residuals() {
   assert_contains "$out" 'removed-container: ddev-svvy-v2-pr1208-5ed446-redis (svvy-v2-pr1208-5ed446)' "container success was not reported"
   assert_contains "$out" 'removed-network: ddev-svvy-v2-pr1208-5ed446_default (ddev-svvy-v2-pr1208-5ed446)' "network success was not reported"
   pass "fm-ddev-clean: stopped labeled compose leftovers are removed while exclusions remain"
+}
+
+prepare_volume_fixture() {
+  local listed_root
+  listed_root="$HOME_DIR/Sites/listed"
+  mkdir -p "$listed_root"
+  rm -rf "$STATE"
+  mkdir -p "$STATE"
+  fm_write_meta "$STATE/check-abc123.meta" "worktree=$HOME_DIR/.treehouse/check/1/project"
+  fm_write_meta "$STATE/slice5-enrollment.meta" "worktree=$HOME_DIR/.treehouse/worker/1/project"
+  printf 'sa-562-gnhf-657abd\nsa626-gnhf-5a4238\nprotected-review-01abcdefgh\n' > "$CONFIG/ddev-protected-names"
+  printf '{"raw":[{"name":"listed-review-01abcdefgh","approot":"%s"}]}\n' "$listed_root" > "$DDEV_JSON"
+  cat > "$DOCKER_CONTAINER_INSPECT" <<'EOF'
+[{"Id":"c-stopped-mount","Name":"/stopped-mount","Config":{"Labels":{}},"State":{"Running":false},"Mounts":[{"Type":"volume","Name":"smileadvantage-check-mounted-mariadb"}],"NetworkSettings":{"Networks":{}}}]
+EOF
+  printf 'c-stopped-mount\n' > "$DOCKER_PS"
+  printf '[]\n' > "$DOCKER_NETWORK_INSPECT"
+  cat > "$DOCKER_VOLUME_INSPECT" <<'EOF'
+[
+  {"Name":"smileadvantage-check-abc123-mariadb","Labels":{}},
+  {"Name":"sa-review-01abcdefgh-postgres","Labels":{}},
+  {"Name":"smileadvantage-v3-slice5-enrollment-mysql","Labels":{}},
+  {"Name":"ddev-labeled-volume","Labels":{"com.ddev.site-name":"smileadvantage-check-abc123"}},
+  {"Name":"listed-review-01abcdefgh-mariadb","Labels":{}},
+  {"Name":"protected-review-01abcdefgh-postgres","Labels":{}},
+  {"Name":"sa-562-gnhf-657abd-mariadb","Labels":{}},
+  {"Name":"sa626-gnhf-5a4238-postgres","Labels":{}},
+  {"Name":"regular-mariadb","Labels":{}},
+  {"Name":"smileadvantage-check-mounted-mariadb","Labels":{}}
+]
+EOF
+  : > "$ACTION_LOG"
+}
+
+test_orphan_database_volumes_are_safe_and_reclaimed() {
+  local out
+  prepare_volume_fixture
+  out=$(run_clean) || fail "volume dry-run failed: $out"
+  for volume in smileadvantage-check-abc123-mariadb sa-review-01abcdefgh-postgres smileadvantage-v3-slice5-enrollment-mysql ddev-labeled-volume; do
+    assert_contains "$out" "orphan-volume: $volume" "eligible volume was not inventoried: $volume"
+  done
+  assert_contains "$out" 'residual-volume: listed-review-01abcdefgh-mariadb (listed-review-01abcdefgh listed)' "listed volume was not preserved"
+  assert_contains "$out" 'residual-volume: protected-review-01abcdefgh-postgres (protected-review-01abcdefgh protected)' "protected volume was not preserved"
+  assert_contains "$out" 'residual-volume: sa-562-gnhf-657abd-mariadb (sa-562-gnhf-657abd protected)' "gnhf volume was not preserved"
+  assert_contains "$out" 'residual-volume: regular-mariadb (regular not allowlisted)' "regular volume was not preserved"
+  assert_contains "$out" 'residual-volume: smileadvantage-check-mounted-mariadb (smileadvantage-check-mounted in use)' "stopped-container mount was not preserved"
+  [ ! -s "$ACTION_LOG" ] || fail "volume dry-run mutated Docker: $(cat "$ACTION_LOG")"
+
+  out=$(run_clean --apply) || fail "volume apply failed: $out"
+  for volume in smileadvantage-check-abc123-mariadb sa-review-01abcdefgh-postgres smileadvantage-v3-slice5-enrollment-mysql ddev-labeled-volume; do
+    assert_grep "docker volume rm $volume" "$ACTION_LOG" "eligible volume was not removed: $volume"
+    assert_contains "$out" "removed-volume: $volume" "eligible volume removal was not reported: $volume"
+  done
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker volume rm listed-review-01abcdefgh-mariadb' "listed volume was removed"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker volume rm smileadvantage-check-mounted-mariadb' "mounted volume was removed"
+  pass "fm-ddev-clean: orphan database volumes respect ownership and stopped mounts"
+}
+
+test_orphan_database_volume_failure_is_visible() {
+  local out
+  prepare_volume_fixture
+  out=$(DOCKER_VOLUME_RM_FAIL=sa-review-01abcdefgh-postgres run_clean --apply) || fail "failed volume apply should continue: $out"
+  assert_contains "$out" 'residual-volume: sa-review-01abcdefgh-postgres (sa-review-01abcdefgh removal failed)' "failed volume removal was not residual"
+  assert_contains "$out" 'volume-failed=1' "failed volume removal was not counted"
+  pass "fm-ddev-clean: failed orphan volume removal remains visible"
 }
 
 test_orphan_removal_failure_is_residual() {
@@ -393,6 +474,7 @@ EOF
   cat > "$DOCKER_NETWORK_INSPECT" <<'EOF'
 [{"Id":"n-approved","Name":"ddev-approved_default","Labels":{"com.docker.compose.project":"ddev-hub-test-5ed446"},"Containers":{"c-approved":{}}}]
 EOF
+  printf '[]\n' > "$DOCKER_VOLUME_INSPECT"
 }
 
 test_post_ddev_inventory_tracks_actual_resources() {
@@ -544,6 +626,8 @@ test_sweep_apply_runs_generated_cleanup_and_host_prune
 test_missing_ddev_is_a_per_task_noop_and_sweep_error
 test_selection_guards_apply_to_both_modes
 test_orphan_compose_inventory_is_safe_and_reports_residuals
+test_orphan_database_volumes_are_safe_and_reclaimed
+test_orphan_database_volume_failure_is_visible
 test_orphan_removal_failure_is_residual
 
 test_recorded_and_legacy_normalized_task_names
