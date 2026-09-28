@@ -3693,6 +3693,7 @@ SH
 #!/usr/bin/env bash
 case "${1:-}" in
   ps|inspect) ;;
+  volume) [ "${2:-}" = ls ] || printf 'docker %s\n' "$*" >> "$DDEV_CASE/actions" ;;
   *) printf 'docker %s\n' "$*" >> "$DDEV_CASE/actions" ;;
 esac
 SH
