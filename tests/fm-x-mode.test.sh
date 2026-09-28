@@ -60,7 +60,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 if [ -n "${FAKE_CURL_LOG:-}" ]; then
-  { echo "argv=$argv"; echo "method=$method"; echo "url=$url"; echo "auth=$auth"; echo "data=$data"; } >> "$FAKE_CURL_LOG"
+  { echo "argv=$argv"; echo "method=$method"; echo "url=$url"; echo "auth=$auth"; echo "data=$data"; echo "home=${FM_HOME:-}"; echo "interval=${FM_CHECK_INTERVAL:-}"; } >> "$FAKE_CURL_LOG"
 fi
 case "$url" in
   */connector/poll)
@@ -823,6 +823,26 @@ test_reply_rejects_flag_like_arguments() {
   pass "fm-x-reply refuses unknown options and surplus positionals before recording anything"
 }
 
+assert_bootstrap_shim_polls() {
+  local home=$1 token=$2 fakebin log rc
+  fakebin=$(make_fake_curl "$home")
+  log="$home/shim-poll.log"
+  (
+    unset FMX_PAIRING_TOKEN
+    cd "$TMP_ROOT" || exit 1
+    . "$home/config/x-mode.env"
+    PATH="$fakebin:$BASE_PATH" FM_HOME=wrong-home FMX_RELAY_URL=https://relay.test \
+      FAKE_CURL_LOG="$log" FAKE_POLL_CODE=204 bash "$home/state/x-watch.check.sh"
+  ); rc=$?
+  expect_code 0 "$rc" "generated shim poll exit"
+  [ "$(sed -n 's/^url=//p' "$log")" = https://relay.test/connector/poll ] \
+    || fail "shim must call the relay poll endpoint"
+  [ "$(sed -n 's/^auth=//p' "$log")" = "Authorization: Bearer $token" ] \
+    || fail "shim must load the intended home's token"
+  [ "$(sed -n 's/^home=//p' "$log")" = "$home" ] || fail "shim must pass the absolute home to the poll"
+  [ "$(sed -n 's/^interval=//p' "$log")" = 30 ] || fail "poll must inherit configured cadence"
+}
+
 test_bootstrap_activates_on_env_token() {
   local home out sum1 sum2 n
   home="$TMP_ROOT/boot-on"; mkdir -p "$home"
@@ -831,9 +851,8 @@ test_bootstrap_activates_on_env_token() {
   assert_contains "$out" "FMX: X mode on" "bootstrap must announce X mode"
   assert_present "$home/state/x-watch.check.sh" "bootstrap must drop the check shim"
   [ -x "$home/state/x-watch.check.sh" ] || fail "the check shim must be executable"
-  assert_grep "fm-x-poll.sh" "$home/state/x-watch.check.sh" "the shim must exec the poll script"
   assert_present "$home/config/x-mode.env" "bootstrap must drop the cadence config"
-  assert_grep "export FM_CHECK_INTERVAL=30" "$home/config/x-mode.env" "cadence must be 30s"
+  assert_bootstrap_shim_polls "$home" tok-boot
   # Cadence inheritance: sourcing the config exports the 30s interval to a child,
   # exactly how fm-watch-arm.sh's forked watcher inherits it.
   local inherited
@@ -852,7 +871,7 @@ test_bootstrap_activates_on_env_token() {
 }
 
 test_bootstrap_relative_home_writes_absolute_poll_shim() {
-  local root home out quoted_home
+  local root home out
   root="$TMP_ROOT/boot-relative-home"
   mkdir -p "$root/home" "$root/cdpath/home"
   home=$(cd "$root/home" && pwd -P)
@@ -862,9 +881,7 @@ test_bootstrap_relative_home_writes_absolute_poll_shim() {
     CDPATH="$root/cdpath" FM_HOME=home "$ROOT/bin/fm-bootstrap.sh" 2>/dev/null
   )
   assert_contains "$out" "FMX: X mode on" "relative-home bootstrap must announce X mode"
-  quoted_home=$(printf '%q' "$home")
-  assert_grep "export FM_HOME=$quoted_home" "$home/state/x-watch.check.sh" \
-    "relative FM_HOME leaked into the durable X-mode poll shim"
+  assert_bootstrap_shim_polls "$home" tok-relative
   pass "bootstrap ignores CDPATH when writing absolute FM_HOME into the durable X-mode poll shim"
 }
 

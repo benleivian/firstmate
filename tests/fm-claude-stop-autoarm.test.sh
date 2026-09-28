@@ -1410,6 +1410,11 @@ write_host_fixture() {
         printf "printf 'signal: fixture.status\\n'\n"
         printf "printf 'supervision-host: the away session could not take this wake: fixture; this wake is yours\\n'\n"
         ;;
+      main-only-pending|main-only-announced|main-only-acked)
+        printf "printf '%s:handling:fixture-generation\\n' > \"\$FM_HOME/state/.watcher-down\"\n" "${kind#main-only-}"
+        printf 'touch "$FM_HOME/state/.last-watcher-beat"\n'
+        printf "printf 'check: decision needs main\\n'\n"
+        ;;
       stood-down)
         printf "printf 'supervision-host stood down: this session no longer owns supervision\\n'\n"
         ;;
@@ -1467,6 +1472,33 @@ test_host_boundary_rewakes_with_the_host_line() {
   [ "$(sed -n 's/^.* owner=\([0-9]*\) .*$/\1/p' "$dir/state/host-env")" = "$(epoch_field "$dir" owner_pid)" ] \
     || fail "the host was not bound to the hook's owner pid: $(cat "$dir/state/host-env")"
   pass "auto-arm: an opted-in home runs the host bound to its generation, and a host line rewakes like a wake"
+}
+
+test_host_handling_successor_rewakes_main() {
+  local phase dir out status expected
+  for phase in pending announced acked; do
+    dir=$(make_primary_dir "$TMP_ROOT/host-handling-$phase")
+    mkdir -p "$dir/config"
+    : > "$dir/config/supervision-host"
+    : > "$dir/state/task.meta"
+    write_host_fixture "$dir" "main-only-$phase"
+    out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+    expected=2
+    [ "$phase" != acked ] || expected=0
+    expect_code "$expected" "$status" "host handoff with $phase handling successor"
+    if [ "$phase" != acked ]; then
+      assert_contains "$out" "check: decision needs main" "main-only wake must reach Claude"
+      [ "$(epoch_outcome "$dir")" = rewake ] || fail "handling successor must record rewake"
+      [ "$(epoch_field "$dir" recovery_generation)" = fixture-generation ] \
+        || fail "rewake must bind the handling successor's recovery generation"
+      [ "$(epoch_field "$dir" session_pid)" = "$(cat "$dir/state/.lock")" ] \
+        || fail "rewake must bind the owning session"
+    fi
+    [ ! -e "$dir/state/successor-ran" ] || fail "hook must not duplicate the host's successor"
+    [ "$(cat "$dir/state/.watcher-down")" = "$phase:handling:fixture-generation" ] \
+      || fail "hook must preserve the host's recovery marker"
+  done
+  pass "auto-arm: pending and announced handling successors deliver main-only wakes; acknowledged ones stay silent"
 }
 
 test_host_handback_under_away_record_is_not_a_return() {
@@ -1607,6 +1639,7 @@ test_active_in_marked_secondmate_home
 test_long_poll_grace_reaches_arm_wrapper
 test_host_absent_flag_keeps_the_arm
 test_host_boundary_rewakes_with_the_host_line
+test_host_handling_successor_rewakes_main
 test_host_handback_under_away_record_is_not_a_return
 test_plain_arm_banner_keeps_its_wake_line_cap
 test_host_handback_carries_every_host_line
