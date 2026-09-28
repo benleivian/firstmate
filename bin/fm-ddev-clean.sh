@@ -482,7 +482,7 @@ volume_inventory() {
 container_mounts_volume() {
   local volume=$1 rows=$2 kind ident resource_name site project service running networks mounts mounted
   while IFS=$'\x1f' read -r kind ident resource_name site project service running networks mounts; do
-    [ "$kind" = container ] || continue
+    [ "$kind" = container ] && [ -n "$mounts" ] || continue
     IFS=, read -r -a mounted <<< "$mounts"
     for mounted in "${mounted[@]}"; do
       [ "$mounted" != "$volume" ] || return 0
