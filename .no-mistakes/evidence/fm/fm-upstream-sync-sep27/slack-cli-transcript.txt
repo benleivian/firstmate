@@ -1,0 +1,9 @@
+$ printf "%s\n" "Review requested: isolated upstream-sync notification test." | fm-slack-notify.sh send
+exit=0
+Local HTTP receiver captured:
+[
+  {
+    "text": "Review requested: isolated upstream-sync notification test."
+  }
+]
+Transport: local HTTP fixture; no Slack service contacted.

@@ -1,0 +1,160 @@
+FM_TEST_BEGIN 2026-09-28T04:29:23Z tests/fm-slack-notify.test.sh family=unclassified expected_gate_skip=none
+ok - absent configuration is a silent no-op with no notification state
+ok - setup atomically replaces an existing symlink with one private local secret
+ok - setup rejects a directory target without mutating it
+ok - setup rejects a symlinked directory without mutating its target
+ok - shell tracing stays disabled throughout webhook handling
+ok - direct send posts exactly the supplied concise notification
+ok - each explicit invocation is one attempt with no scanner or deduplication infrastructure
+ok - delivery failure is bounded, generic, and best-effort
+ok - explicit setup test sends the exact harmless setup message
+FM_TEST_END 2026-09-28T04:29:29Z tests/fm-slack-notify.test.sh exit=0 duration_ms=6266 gate_skip=false
+FM_TEST_BEGIN 2026-09-28T04:29:29Z tests/fm-ddev-clean.test.sh family=pr-forge expected_gate_skip=none
+ok - fm-ddev-clean: worktree cleanup uses its recorded DDEV name
+ok - fm-ddev-clean: fleet cleanup protects names and only stops safe generated environments
+ok - fm-ddev-clean: apply keeps live copies and reclaims generated stale resources
+ok - fm-ddev-clean: missing ddev is safe per task and visible for a sweep
+ok - fm-ddev-clean: both modes share protection and generated suffix eligibility
+ok - fm-ddev-clean: stopped labeled compose leftovers are removed while exclusions remain
+ok - fm-ddev-clean: orphan database volumes respect ownership and stopped mounts
+ok - fm-ddev-clean: reported 60 orphan volumes reclaimed exactly once with exclusions preserved
+ok - fm-ddev-clean: volume name recognition preserves listed managed projects
+warning: docker volume rm sa-review-01abcdefgh-postgres failed (exit 1): 
+ok - fm-ddev-clean: failed orphan volume removal remains visible
+warning: docker rm c-orphan failed (exit 1): 
+ok - fm-ddev-clean: failed orphan removal remains visible and preserves its network
+ok - fm-ddev-clean: recorded names take precedence and normalized legacy IDs remain eligible
+ok - fm-ddev-clean: refresh handles DDEV-deleted and stopped retained services
+ok - fm-ddev-clean: refresh preserves exclusions, resource approval, preview and task scope
+ok - fm-ddev-clean: final summary measures remaining state
+ok - fm-ddev-clean: inventory failures prevent unverified success
+ok - fm-ddev-clean: legacy teardown cleans selected listed services and preserves unrelated resources
+FM_TEST_END 2026-09-28T04:30:11Z tests/fm-ddev-clean.test.sh exit=0 duration_ms=41668 gate_skip=false
+FM_TEST_BEGIN 2026-09-28T04:30:11Z tests/fm-timeout-lib.test.sh family=pure-contract-unit expected_gate_skip=none
+ok - fm_exec_timed supports shells without BASHPID directly and in subshells
+ok - fm_exec_timed passes a command's status and output through unchanged
+_: line 3: 74608 Terminated: 15          "$@"
+ok - fm_run_timed reports 124 when the bound TERMs a read whose wrapper recorded 143
+ok - fm_run_timed passes a natural exit through when the bound fired after completion
+ok - fm_exec_timed sends TERM at the bound and a cooperative command ends there
+ok - fm_exec_timed kills a TERM-ignoring command once the grace has passed
+ok - fm_exec_timed replaces the calling shell instead of wrapping it
+ok - fm_exec_timed reaps a descendant that would otherwise hold the output past the bound
+ok - fm_exec_timed forwards a TERM it receives to the bounded command
+ok - fm_exec_timed ends the command when its named owner is already gone
+ok - fm_exec_timed ends the command when its owner dies during watchdog startup
+ok - fm_exec_timed prefers its perl watchdog over timeout
+ok - fm_exec_timed refuses instead of running unbounded when no mechanism exists
+ok - fm_exec_timed rejects a zero, padded, non-numeric, or missing bound and a missing command
+ok - fm_exec_timed's GNU timeout fallback (skipped: no timeout binary on this host)
+ok - fm_timed_out accepts 124 and 137 and nothing else
+FM_TEST_END 2026-09-28T04:30:21Z tests/fm-timeout-lib.test.sh exit=0 duration_ms=10223 gate_skip=false
+FM_TEST_BEGIN 2026-09-28T04:30:21Z tests/fm-gate-refuse.test.sh family=session-bootstrap expected_gate_skip=none
+ok - fm-gate-refuse-lib: refuses when NO_MISTAKES_GATE is set
+ok - fm-gate-refuse-lib: refuses when NO_MISTAKES_GATE is set empty
+ok - fm-gate-refuse-lib: refuses from a gate worktree via git-common-dir (marker unset)
+ok - fm-gate-refuse-lib: no-op for a normal session (neither signal, set -eu clean)
+ok - fm-gate-refuse-lib: marked lab home permitted in a gate; unmarked home or an override stay refused
+ok - fm-lab-home: create mints marked stock homes only on fresh empty dirs; anything else is refused
+ok - fm-lab-home: a primary starts on a private short tmux socket from a long lab path and teardown removes it
+ok - fm-spawn: refuses on marker and gate-worktree backstop; a normal crew spawn is unaffected
+ok - fm-send: refuses on marker and gate-worktree backstop; a normal steer uses the inbox
+ok - fm-teardown: refuses on marker and gate-worktree backstop; a normal teardown is unaffected
+FM_TEST_END 2026-09-28T04:30:46Z tests/fm-gate-refuse.test.sh exit=0 duration_ms=24734 gate_skip=false
+FM_TEST_BEGIN 2026-09-28T04:30:46Z tests/fm-inbox.test.sh family=unclassified expected_gate_skip=none
+ok - plain note, list, and wake stay on the historical human path
+ok - plain note keeps exit 1 for a saved-but-unannounced failure
+ok - the same request id returns the original note as a distinguishable replay
+ok - announced notes report acknowledgment independently of announcement history
+ok - a delayed initial publisher cannot resurrect an acknowledged retry
+ok - a crash between recording the request id and publishing the note reuses the original id
+ok - saved-but-unannounced notes are repairable without creating a second note
+ok - repair and replay do not wake firstmate for an already-acknowledged note
+ok - receipts JSON is bounded by fixed bounds and discloses what it omitted
+ok - notes that predate the announcement marker are unknown, not re-announced
+ok - the reply channel is durable and its cursor is a strict order
+ok - the reply cursor never goes backwards when the sequence counter is lost
+ok - a reply without a valid sequence is reported as malformed
+ok - a non-UTF-8 note does not break the receipts view
+ok - readiness says unknown (or not-receivable) instead of inferring liveness from a lock
+ok - empty bodies and unsafe request ids are refused
+ok - a note body that opens with a double dash is queued as text
+ok - drain --ack still moves the note to handled
+ok - receipt snapshots exclude reply publication and release their lock
+FM_TEST_END 2026-09-28T04:30:58Z tests/fm-inbox.test.sh exit=0 duration_ms=11393 gate_skip=false
+FM_TEST_BEGIN 2026-09-28T04:30:58Z tests/fm-remote-secondmate-relaunch.test.sh family=secondmate expected_gate_skip=none
+ok - a successful remote relaunch republishes the parent's harness, model, and effort
+ok - a remote relaunch records the identity the host confirmed
+ok - a refused remote relaunch leaves the parent's record untouched
+ok - a local secondmate is refused by the remote relaunch tool
+ok - a remote relaunch keeps an already-armed PR poll authenticating
+ok - remote lifecycle actions serialize against parent recovery and host relaunch
+ALL TESTS PASSED
+FM_TEST_END 2026-09-28T04:31:00Z tests/fm-remote-secondmate-relaunch.test.sh exit=0 duration_ms=1913 gate_skip=false
+FM_TEST_BEGIN 2026-09-28T04:31:00Z tests/fm-pi-watch-extension.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - Pi extension reports external healthy watcher output
+ok - Pi custom tool exposes repair-only metadata and returns automatic-continuation guidance
+ok - Pi redundant tool call returns ownership guidance and spawns no second child
+ok - Pi scheduled retry remains extension-owned after another tool call
+ok - Pi actionable close starts one successor before wake delivery settles
+ok - Pi actionable output waits for predecessor close before successor restoration
+ok - Pi dispatcher branch offer owns accepted wakes and falls back to main
+ok - Pi dispatcher flags a fleet-wide heartbeat offer as branch-eligible
+ok - a co-present check row neither vetoes nor rides a heartbeat into main
+ok - every main-only check class still reaches main, never the supervision branch
+ok - a captain-held signal trigger reaches main with routine rows present
+ok - an unread pending-reply escalation keeps later stale aliases on main
+ok - a mixed batch of two distinct files - one routine, one needs-decision - routes wholly to main
+ok - a co-present needs-decision row neither vetoes nor rides a heartbeat into main
+ok - heartbeat restoration failure stays on main
+ok - watcher-failure repair stays with main even with a live, accepting branch listener
+ok - under the away-posture record every actionable row is offered to the branch while broken-queue wakes and watcher-failure alarms still reach main
+ok - Pi refused handling handshake is classified and not swallowed
+ok - Pi hung successor falls back to one typed actionable wake
+ok - Pi unretired successor falls back without an overlapping retry
+ok - Pi late unretired closes resume classified supervision
+ok - Pi clean empty close triggers a bounded continuity retry
+ok - Pi established clean closes stop at the configured retry limit
+ok - Pi close handler verifies session-lock ownership before successor launch
+ok - Pi watcher arm distinguishes all session lock ownership states
+ok - Pi session transitions auto-arm through a generation owner across /new /resume /fork/reload, stale callbacks, and quit
+ok - Pi session replacement auto-arms and carries its in-flight actionable close
+ok - Pi replacement replays a streaming follow-up before consumption
+ok - Pi streaming-time wake delivery keeps the successor chain and replays only unconsumed wakes
+ok - Pi retries a verified successor that failed during wake delivery once that delivery settles
+ok - Pi replacement receives actionable closes after retirement timeout
+ok - Pi replacement handoff tokens stay unique across fresh modules
+ok - Pi replacement persistence failure keeps its predecessor until a successor commits
+ok - Pi process-exit cleanup listener remains singular across session replacement
+ok - Pi process-exit cleanup stops the attached arm child
+ok - OpenCode plugins have an explicit ESM boundary even under a typeless parent package
+ok - OpenCode watcher plugin uses the effective FM_HOME state
+ok - OpenCode watcher plugin sources the effective config
+ok - OpenCode watcher plugin requires session lock ownership
+ok - OpenCode watcher coordinator respects primary scope
+ok - OpenCode watcher plugin starts one successor before wake prompt delivery settles
+ok - OpenCode watcher plugin runs the supervision host on an opted-in home and relays every host line
+ok - OpenCode pre-ready actionable close preserves its successor
+ok - OpenCode hung successor falls back to one typed actionable wake
+ok - OpenCode unretired successor falls back without an overlapping retry
+ok - OpenCode late unretired closes resume classified supervision
+ok - OpenCode clean empty close triggers a bounded continuity retry
+ok - OpenCode established clean closes stop at the configured retry limit
+ok - OpenCode close handler verifies session-lock ownership before successor launch
+ok - OpenCode watcher plugin coordinates with the turn-end guard
+ok - OpenCode healthy arm output does not suppress the turn-end guard
+FM_TEST_END 2026-09-28T04:32:01Z tests/fm-pi-watch-extension.test.sh exit=0 duration_ms=61807 gate_skip=false
+FM_TEST_SUMMARY total=7 failed=0 skipped_gate=0 duration_ms=158332
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=41668 failed=0
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=1 duration_ms=10223 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=1 duration_ms=1913 failed=0
+FM_TEST_SUMMARY_FAMILY family=session-bootstrap count=1 duration_ms=24734 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=2 duration_ms=17659 failed=0
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=61807 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pi-watch-extension.test.sh duration_ms=61807
+FM_TEST_SLOWEST rank=2 script=tests/fm-ddev-clean.test.sh duration_ms=41668
+FM_TEST_SLOWEST rank=3 script=tests/fm-gate-refuse.test.sh duration_ms=24734
+FM_TEST_SLOWEST rank=4 script=tests/fm-inbox.test.sh duration_ms=11393
+FM_TEST_SLOWEST rank=5 script=tests/fm-timeout-lib.test.sh duration_ms=10223
+FM_TEST_SLOWEST rank=6 script=tests/fm-slack-notify.test.sh duration_ms=6266
+FM_TEST_SLOWEST rank=7 script=tests/fm-remote-secondmate-relaunch.test.sh duration_ms=1913

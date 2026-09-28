@@ -1,0 +1,32 @@
+$ fm-lab-home.sh create /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3K3KMF6NS6B1TBCS150P3J6/.inbox-proof-mqsjf77b
+/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3K3KMF6NS6B1TBCS150P3J6/.inbox-proof-mqsjf77b
+exit=0
+
+$ fm-inbox.sh note --request-id upstream-sync-proof --json Please verify the upstream update.
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1790569839-eT4oBt","request_id":"upstream-sync-proof","saved":true,"announced":true,"acknowledged":false,"path":"/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3K3KMF6NS6B1TBCS150P3J6/.inbox-proof-mqsjf77b/state/inbox/1790569839-eT4oBt.note"}
+exit=0
+
+$ fm-inbox.sh list
+1790569839-eT4oBt
+    Please verify the upstream update.
+exit=0
+
+$ fm-inbox.sh drain --ack 1790569839-eT4oBt
+acked 1790569839-eT4oBt
+exit=0
+
+$ fm-inbox.sh note --request-id upstream-sync-proof --json Please verify the upstream update.
+{"schema":"fm-inbox-note.v1","outcome":"replay","id":"1790569839-eT4oBt","request_id":"upstream-sync-proof","saved":true,"announced":true,"acknowledged":true,"path":"/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3K3KMF6NS6B1TBCS150P3J6/.inbox-proof-mqsjf77b/state/inbox/handled/1790569839-eT4oBt.note"}
+exit=0
+
+$ fm-inbox.sh reply --json 1790569839-eT4oBt Example durable answer from the isolated test home.
+{"schema":"fm-inbox-reply.v1","outcome":"created","id":"1790569839-eT4oBt","path":"/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3K3KMF6NS6B1TBCS150P3J6/.inbox-proof-mqsjf77b/state/inbox/.replies/1790569839-eT4oBt"}
+exit=0
+
+$ fm-inbox.sh receipts --all-handled --all-replies
+{"schema":"fm-inbox-receipts.v1","home":"01M3K3KMF6NS6B1TBCS150P3J6/.inbox-proof-mqsjf77b","generated":"2026-09-28T04:30:40Z","pending":[],"handled":[{"id":"1790569839-eT4oBt","at":"2026-09-28T04:30:39Z","source":"text","request_id":"upstream-sync-proof","body":"Please verify the upstream update.","acknowledged":true,"announced":true,"reply":{"id":"1790569839-eT4oBt","at":"2026-09-28T04:30:40Z","body":"Example durable answer from the isolated test home.","cursor":"000000000001"}}],"replies":[{"id":"1790569839-eT4oBt","at":"2026-09-28T04:30:40Z","body":"Example durable answer from the isolated test home.","cursor":"000000000001"}],"reply_cursor":"000000000001","omitted":[]}
+exit=0
+
+$ fm-inbox.sh receipts --after 000000000001 --all-replies
+{"schema":"fm-inbox-receipts.v1","home":"01M3K3KMF6NS6B1TBCS150P3J6/.inbox-proof-mqsjf77b","generated":"2026-09-28T04:30:40Z","pending":[],"handled":[{"id":"1790569839-eT4oBt","at":"2026-09-28T04:30:39Z","source":"text","request_id":"upstream-sync-proof","body":"Please verify the upstream update.","acknowledged":true,"announced":true,"reply":{"id":"1790569839-eT4oBt","at":"2026-09-28T04:30:40Z","body":"Example durable answer from the isolated test home.","cursor":"000000000001"}}],"replies":[],"reply_cursor":"000000000001","omitted":[]}
+exit=0
