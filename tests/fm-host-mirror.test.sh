@@ -156,6 +156,36 @@ test_operational_foreign_and_unowned_input_is_dropped() {
   pass "mirror: operational input, a harness-started turn, a foreign host's payload, other events, and a session without the lock are never mirrored"
 }
 
+test_record_backed_launch_is_not_captain_dialogue() {
+  local home
+  home=$(make_home record-backed-launch)
+  as_session "$home" "$SAY"'
+    bell=$(printf "%s" "machine launch instructions" | "$PRIMARY_ROOT/bin/fm-operational-input.sh" record launch-brief) || exit 1
+    say captain "$bell" launch
+    [ ! -e "$FM_HOME/state/.host-mirror.jsonl" ] || exit 1
+    say captain "actual captain request" human
+    "$MIRROR" feed s1 new > "$FM_HOME/feed.valid" || exit 1
+    record=$(find "$FM_HOME/state/operational-inbox" -name "*.msg" -type f)
+    printf "%s" "not an operational envelope" > "$record"
+    say captain "$bell" malformed
+    rm "$record"
+    say captain "$bell" missing
+    printf "%s" "$bell" > "$FM_HOME/doorbell"
+    "$MIRROR" feed s2 new > "$FM_HOME/feed.unverified"
+  ' || fail "record-backed launch filtering failed"
+  assert_equals "[captain] actual captain request" "$(cat "$home/feed.valid")" \
+    "a verified launch doorbell must not reach supervision as captain dialogue"
+  assert_equals "captain|actual captain request
+captain|$(cat "$home/doorbell")
+captain|$(cat "$home/doorbell")" "$(entries "$home")" \
+    "doorbell text without a valid backing envelope must remain dialogue"
+  assert_equals "[captain] actual captain request
+[captain] $(cat "$home/doorbell")
+[captain] $(cat "$home/doorbell")" "$(cat "$home/feed.unverified")" \
+    "unverified doorbells must remain visible to supervision"
+  pass "mirror: verified launch doorbells are excluded while unverified text stays dialogue"
+}
+
 # Dialog is recorded as said: a line ending in spaces, blank lines, and
 # indentation inside a message survive, and only the whitespace at the very
 # end of the message is trimmed.
@@ -436,6 +466,7 @@ test_writers_are_inert_without_the_opt_in
 test_only_proven_writers_are_verified
 test_home_without_the_flag_is_untouched
 test_operational_foreign_and_unowned_input_is_dropped
+test_record_backed_launch_is_not_captain_dialogue
 test_internal_whitespace_is_recorded_verbatim
 test_entries_are_deduplicated_and_capped
 test_a_different_reply_under_the_same_id_is_recorded
