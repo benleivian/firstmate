@@ -124,7 +124,7 @@ The server permitting self-approval is what makes this a policy boundary rather 
 - Arming records no `pr_head`: a Gerrit revision names one patch set, and `bin/fm-review-diff.sh` has no Gerrit path to resolve a current head with, so a recorded revision would quietly become the reviewed content after the next amend.
 - The merge path refuses a Gerrit change.
 - Arming accepts a done naming a Gerrit change only when a live read shows the change's current patch set carrying the worker's HEAD tree, even when a remote-tracking ref such as the no-mistakes gate branch holds that HEAD, and refuses a mismatched, unknown, or unreadable patch set before recording anything.
-- Once arming has recorded the change as `pr=`, a later done naming it is accepted from that record with no forge read, so a server-side rebase or new patch set does not revoke it.
+- Passive reconciliation retains a recorded change's acceptance, while explicit re-arming repeats the live checks even for the same URL; `bin/fm-dod-lib.sh` owns that distinction, and the regression rejects both an unpublished local amendment and unreadable pipeline custody on re-arm.
 - A no-mistakes done naming a Gerrit change is also refused unless the copy holds a passed pipeline's result: refused when the run's outcome is missing or not a pass, while the run reports `recover_custody` or `continue_active_run`, when HEAD's tree differs from the pipeline head's, or when the run cannot be read, and accepted once recovered even after the Change-Id stamp rewrote the branch's messages.
 - A `published for review` done whose URL is not a canonical Gerrit change URL is refused, even when a remote-tracking ref holds HEAD.
 

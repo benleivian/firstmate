@@ -26,18 +26,19 @@
 # pr_head= in no-mistakes mode, or a recorded merge
 # (state/<id>.pr-poll-merge-notified). A push to Gerrit's refs/for/ leaves no
 # ref a fetch can see, so a done naming a Gerrit change skips the remote-tracking
-# reachability test entirely: it passes when that change is already the task's
-# recorded pr=, which bin/fm-pr-check.sh writes only after this gate accepted it
-# at arming, and otherwise only when a live read shows the change's current
-# patch set carrying the worker copy's HEAD tree. A published-for-review report
+# reachability test entirely: passive reconciliation passes when that change is
+# already the task's recorded pr=, and otherwise only when a live read shows
+# the change's current patch set carrying the worker copy's HEAD tree. A published-for-review report
 # whose URL is not a canonical Gerrit change is refused outright. A squash is a new commit on the
 # server's base, so the tree rather than the commit is what names the published
 # content. In no-mistakes mode that live read is preceded by
 # fm_dod_nm_custody_returned: a copy that publishes before recovering the
 # pipeline's fix commits agrees with its own unfixed patch set, so the copy must
-# also hold the result of a passed run. These live reads are the one check at the ready
-# decision; a later rebase or patch set on the server does not revoke an armed
-# task's done. Teardown's landed-work test remains the complete discard gate.
+# also hold the result of a passed run. Every explicit bin/fm-pr-check.sh arming,
+# including re-arming the same URL, bypasses the recorded-pr shortcut and repeats
+# those live checks. Passive reconciliation retains the recorded acceptance, so
+# a later rebase or patch set on the server does not revoke an armed task's done.
+# Teardown's landed-work test remains the complete discard gate.
 # The block opens with the fixed machine-readable "Delivery contract: mode=<mode>"
 # line that bin/fm-spawn.sh checks a ship brief against; a forge=gerrit block
 # appends " forge=gerrit shape=squash" to that line. The "Ship branch: <branch>"

@@ -1041,9 +1041,7 @@ EOF
 # inside SECONDMATE_LIVENESS_WINDOW_SECS: the bound marker wakes once, further
 # probes stay silent, and a later live probe ledgers a `rearmed` row and clears
 # the marker so a manually recovered mate rejoins the guarantee with a full
-# budget. The per-mate liveness lock serializes this tick against a concurrent
-# session-start sweep, so neither side can kill or re-probe an endpoint the
-# other is mid-relaunch on.
+# budget. bin/fm-secondmate-liveness-lib.sh owns lifecycle serialization.
 secondmate_liveness_tick() {
   local tick_marker="$STATE/.secondmate-liveness-tick"
   [ "$(age_of "$tick_marker")" -ge "$SECONDMATE_LIVENESS_SECS" ] || return 0

@@ -15,8 +15,8 @@
 # appends captain text (the submitted prompt) and MAIN text (the turn's final
 # assistant message), never tool traffic, as said, with only the whitespace at
 # the very end of the message trimmed. A prompt the shared operational-input
-# protocol classifies
-# (bin/fm-operational-input.sh: watcher wakes, guard follow-ups, launch briefs)
+# protocol classifies, including a doorbell verified against its backing record
+# (bin/fm-operational-input.sh: watcher wakes, guard follow-ups, launch briefs),
 # is fleet machinery, not dialog, and is dropped, and so is a prompt that opens
 # with the wrapper a harness puts around a turn it started itself: Claude
 # submits its Stop-hook rewake inside <task-notification>, with no other field
