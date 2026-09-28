@@ -389,9 +389,9 @@ prepare_volume_fixture() {
   printf 'sa-562-gnhf-657abd\nsa626-gnhf-5a4238\nprotected-review-01abcdefgh\n' > "$CONFIG/ddev-protected-names"
   printf '{"raw":[{"name":"listed-review-01abcdefgh","approot":"%s"}]}\n' "$listed_root" > "$DDEV_JSON"
   cat > "$DOCKER_CONTAINER_INSPECT" <<'EOF'
-[{"Id":"c-stopped-mount","Name":"/stopped-mount","Config":{"Labels":{}},"State":{"Running":false},"Mounts":[{"Type":"volume","Name":"smileadvantage-check-mounted-mariadb"}],"NetworkSettings":{"Networks":{}}}]
+[{"Id":"c-stopped-mount","Name":"/stopped-mount","Config":{"Labels":{}},"State":{"Running":false},"Mounts":[{"Type":"volume","Name":"smileadvantage-check-mounted-mariadb"}],"NetworkSettings":{"Networks":{}}},{"Id":"c-empty-mounts","Name":"/empty-mounts","Config":{"Labels":{}},"State":{"Running":false},"Mounts":[],"NetworkSettings":{"Networks":{}}}]
 EOF
-  printf 'c-stopped-mount\n' > "$DOCKER_PS"
+  printf 'c-stopped-mount\nc-empty-mounts\n' > "$DOCKER_PS"
   printf '[]\n' > "$DOCKER_NETWORK_INSPECT"
   cat > "$DOCKER_VOLUME_INSPECT" <<'EOF'
 [
