@@ -1,0 +1,40 @@
+Isolated inbox CLI round trip; real scripts, no model or external services.
+$ bash bin/fm-inbox.sh note --request-id upstream-sync-evidence --json Keep direct Slack notifications after the upstream update.
+{"schema":"fm-inbox-note.v1","outcome":"created","id":"1790608350-hn5YOm","request_id":"upstream-sync-evidence","saved":true,"announced":true,"acknowledged":false,"path":"/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3M799NYV61SJ21QMZMR8VWV/.test-tmp/manual-inbox/state/inbox/1790608350-hn5YOm.note"}
+
+
+exit=0
+$ bash bin/fm-inbox.sh list
+1790608350-hn5YOm
+    Keep direct Slack notifications after the upstream update.
+
+
+exit=0
+$ bash bin/fm-inbox.sh drain
+1790608350-hn5YOm
+    Keep direct Slack notifications after the upstream update.
+
+Ack with: fm-inbox.sh drain --ack <id>...
+
+
+exit=0
+$ bash bin/fm-inbox.sh reply --json 1790608350-hn5YOm The direct Slack notification command remains available.
+{"schema":"fm-inbox-reply.v1","outcome":"created","id":"1790608350-hn5YOm","path":"/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3M799NYV61SJ21QMZMR8VWV/.test-tmp/manual-inbox/state/inbox/.replies/1790608350-hn5YOm"}
+
+
+exit=0
+$ bash bin/fm-inbox.sh drain --ack 1790608350-hn5YOm
+acked 1790608350-hn5YOm
+
+
+exit=0
+$ bash bin/fm-inbox.sh note --request-id upstream-sync-evidence --json Keep direct Slack notifications after the upstream update.
+{"schema":"fm-inbox-note.v1","outcome":"replay","id":"1790608350-hn5YOm","request_id":"upstream-sync-evidence","saved":true,"announced":true,"acknowledged":true,"path":"/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3M799NYV61SJ21QMZMR8VWV/.test-tmp/manual-inbox/state/inbox/handled/1790608350-hn5YOm.note"}
+
+
+exit=0
+$ bash bin/fm-inbox.sh receipts --all-handled --all-replies
+{"schema":"fm-inbox-receipts.v1","home":".test-tmp/manual-inbox","generated":"2026-09-28T15:12:30Z","pending":[],"handled":[{"id":"1790608350-hn5YOm","at":"2026-09-28T15:12:30Z","source":"text","request_id":"upstream-sync-evidence","body":"Keep direct Slack notifications after the upstream update.","acknowledged":true,"announced":true,"reply":{"id":"1790608350-hn5YOm","at":"2026-09-28T15:12:30Z","body":"The direct Slack notification command remains available.","cursor":"000000000001"}}],"replies":[{"id":"1790608350-hn5YOm","at":"2026-09-28T15:12:30Z","body":"The direct Slack notification command remains available.","cursor":"000000000001"}],"reply_cursor":"000000000001","omitted":[]}
+
+
+exit=0

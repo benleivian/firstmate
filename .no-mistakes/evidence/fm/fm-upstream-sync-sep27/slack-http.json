@@ -1,0 +1,12 @@
+{
+  "command": "printf <notification> | bash bin/fm-slack-notify.sh send",
+  "destination": "isolated localhost HTTP capture; no Slack message sent",
+  "exit_code": 0,
+  "received_posts": [
+    {
+      "text": "Upstream update validation: review the preserved fork behavior."
+    }
+  ],
+  "stdout": "",
+  "stderr": ""
+}

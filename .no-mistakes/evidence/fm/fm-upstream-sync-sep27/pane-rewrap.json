@@ -1,0 +1,18 @@
+{
+  "interface": "bash -c \". bin/fm-watch.sh; hash_pane\"",
+  "cases": [
+    {
+      "pane_text": "done: PR\nhttps://example.test/pr/3\nchecks green after the final\nreview",
+      "hash": "dc72e63e7643e2f24f0f206cd5d4c370"
+    },
+    {
+      "pane_text": "done: PR https://example.test/pr/3 checks green after the final review",
+      "hash": "dc72e63e7643e2f24f0f206cd5d4c370"
+    },
+    {
+      "pane_text": "done: PR https://example.test/pr/3 checks red after the final review",
+      "hash": "e992eff5bf2b3242c6ded827e274ab30"
+    }
+  ],
+  "result": "Rewrapping preserves the hash; changed content changes it."
+}
