@@ -61,7 +61,10 @@
 # `reply` is how the primary publishes its actual answer against a note id.
 # Each reply is stamped with a durable per-home sequence, so the receipts cursor
 # is a strict total order and two replies recorded in the same second are both
-# readable. One reply per note: a second one is refused.
+# readable. Reply publication and the entire receipts note enumeration and
+# reply snapshot share REPLY_SEQ_LOCK, so a concurrent publication cannot move
+# the returned cursor past a reply the scan missed. Receipts refuse if that
+# lock cannot be acquired. One reply per note: a second one is refused.
 # `ready` is the read-only primary-readiness projection (lock, wake-consumer
 # health, away posture, observation time). It never acquires the session lock
 # and never infers liveness from a lock file, a session, or a pane.
@@ -580,9 +583,7 @@ cmd_announce() {
   die "note $id is saved at $path but firstmate was NOT woken"
 }
 
-# Claim the next reply sequence. The caller holds REPLY_SEQ_LOCK across the
-# claim AND the record write, so a reply a reader can see implies every lower
-# sequence is already readable: the cursor stays a strict total order.
+# Claim the next reply sequence under the header's publication/snapshot lock.
 # The claim is above both the counter and every recorded reply, and the counter
 # is replaced by rename, so a torn or lost counter can never move it backwards.
 next_reply_seq() {

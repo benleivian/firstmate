@@ -43,7 +43,12 @@
 #
 # Concurrency: fm_secondmate_liveness_lock serializes probe+kill+relaunch per
 # task using the same .control-<id>.lock as bin/fm-control.sh, across the
-# bootstrap sweep, watcher tick, and manual lifecycle actions. A busy lock
+# bootstrap sweep, watcher tick, and manual lifecycle actions. The remote
+# relaunch wrapper holds the parent's lock through confirmed route publication;
+# on the remote host, launch and the ordinary control-plane relaunch share the
+# host's parent-route .control-<id>.lock. These separate home-local locks protect
+# both the parent's recovery decision and the host's probe/replace sequence.
+# Manual actions refuse a busy lock; a recovery driver with a busy lock
 # skips the probe, so a manual relaunch's stop/start gap cannot authorize
 # killing its replacement.
 # The attempt ledger (.secondmate-relaunch-<id>, one line per attempt plus one
