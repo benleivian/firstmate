@@ -181,6 +181,7 @@ Test cleanup must use the guarded path in [`docs/cmux-backend.md`](cmux-backend.
 ## DDEV protected names (config/ddev-protected-names)
 
 Optional local, gitignored `config/ddev-protected-names` lists one DDEV project name per line that `bin/fm-ddev-clean.sh` must never stop, unlist, or delete.
+Those names also exclude their orphan Docker resources from targeted cleanup, including named database volumes after a project is unlisted.
 The file is not inherited into secondmate homes.
 The [cleanup script header and `--help`](../bin/fm-ddev-clean.sh) own selection patterns and output details.
 The [spawn script header and `--help`](../bin/fm-spawn.sh) own worker DDEV overrides and name-conflict refusals, including this list's use during spawn.

@@ -17,5 +17,5 @@ For every other invocation, run the dry-run first and summarize the stale projec
 For invocations other than `/ddevclean apply`, wait for the captain's explicit go after the dry-run before applying cleanup.
 Read the [cleanup script header](../../../bin/fm-ddev-clean.sh) for project selection, `config/ddev-protected-names`, and host-wide cleanup scope before presenting the preview.
 
-After an applied run, report the script's summary, including residual DDEV compose resources and their exclusions, failures or incomplete verification, and the `docker system df` result as what was reclaimed or remains.
+After an applied run, report the script's summary, including residual DDEV compose resources and database volumes and their exclusions, failures or incomplete verification, and the `docker system df` result as what was reclaimed or remains.
 If DDEV or Docker is unavailable, state the concrete missing tool and make no cleanup claim.

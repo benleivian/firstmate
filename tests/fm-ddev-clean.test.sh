@@ -466,6 +466,69 @@ PYVOLUMES
   pass "fm-ddev-clean: orphan database volumes respect ownership and stopped mounts"
 }
 
+test_reported_sixty_volume_cleanup() {
+  local preview applied repeated evidence=${FM_DDEV_TEST_EVIDENCE_DIR:-}
+  prepare_volume_fixture
+  python3 - "$DOCKER_VOLUME_INSPECT" "$TMP_ROOT/expected-removed.json" <<'PY'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1])
+volumes = json.loads(path.read_text())
+sites = ["smileadvantage-check-abc123"] + [f"smileadvantage-check-{i:06x}" for i in range(26)]
+sites += ["sa-review-01abcdefgh", "smileadvantage-v3-slice5-enrollment",
+          "smileadvantage-v3-nm-bootstrap-5ed446-5"]
+expected = {f"{site}-{db}" for site in sites for db in ("mariadb", "postgres")}
+existing = {v["Name"] for v in volumes}
+volumes += [{"Name": name, "Labels": {}} for name in sorted(expected - existing)]
+path.write_text(json.dumps(volumes, indent=2) + "\n")
+Path(sys.argv[2]).write_text(json.dumps(sorted(expected), indent=2) + "\n")
+PY
+  cp "$DOCKER_VOLUME_INSPECT" "$TMP_ROOT/volumes-before.json"
+  preview=$(run_clean) || fail "60-volume preview failed: $preview"
+  assert_contains "$preview" 'orphan-volume=60 ' "preview missed reported orphan volumes"
+  [ ! -s "$ACTION_LOG" ] || fail "60-volume preview mutated resources"
+  cmp -s "$TMP_ROOT/volumes-before.json" "$DOCKER_VOLUME_INSPECT" || fail "preview changed volumes"
+  applied=$(run_clean --apply) || fail "60-volume apply failed: $applied"
+  assert_contains "$applied" 'volume-removed=60 ' "apply did not verify all 60 removals"
+  assert_contains "$applied" 'volume-failed=0 ' "60-volume apply reported failures"
+  python3 - "$TMP_ROOT/volumes-before.json" "$DOCKER_VOLUME_INSPECT" "$TMP_ROOT/expected-removed.json" "$ACTION_LOG" <<'PY' || fail "60-volume cleanup changed unexpected resources"
+import json, sys
+from pathlib import Path
+before, after = [{v["Name"] for v in json.loads(Path(p).read_text())} for p in sys.argv[1:3]]
+expected = set(json.loads(Path(sys.argv[3]).read_text()))
+actions = Path(sys.argv[4]).read_text().splitlines()
+assert len(expected) == 60
+assert before - after == expected
+assert after == before - expected
+removals = [line for line in actions if line.startswith("docker volume rm ")]
+assert len(removals) == 60
+assert set(removals) == {"docker volume rm " + name for name in expected}
+assert not any(line.startswith(("ddev delete -Oy", "ddev stop")) for line in actions)
+assert not any("-a" in line.split() or "--all" in line.split() for line in actions)
+PY
+  cp "$ACTION_LOG" "$TMP_ROOT/first-apply-actions.log"
+  : > "$ACTION_LOG"
+  repeated=$(run_clean --apply) || fail "repeat cleanup failed: $repeated"
+  assert_contains "$repeated" 'orphan-volume=0 ' "repeat selected already removed volumes"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker volume rm ' "repeat attempted further volume deletion"
+  if [ -n "$evidence" ]; then
+    mkdir -p "$evidence"
+    {
+      printf 'Real fm-ddev-clean.sh CLI; stateful Docker/DDEV test doubles (no host Docker mutations).\n'
+      printf 'Fixture: 27 check sites, one review, one worker preview, one bootstrap; both database families.\n'
+      printf 'No surviving task records or backlog entries. Protected, listed, mounted, regular and out-of-scope volumes coexist.\n\n'
+      printf '$ bin/fm-ddev-clean.sh\n%s\n\n' "$preview"
+      printf '$ bin/fm-ddev-clean.sh --apply\n%s\n\n' "$applied"
+      printf 'Docker/DDEV mutation requests during apply:\n'
+      cat "$TMP_ROOT/first-apply-actions.log"
+      printf '\n$ bin/fm-ddev-clean.sh --apply # repeated\n%s\n' "$repeated"
+    } > "$evidence/sixty-volume-cli.txt"
+    cp "$TMP_ROOT/volumes-before.json" "$evidence/volumes-before.json"
+    cp "$DOCKER_VOLUME_INSPECT" "$evidence/volumes-after.json"
+  fi
+  pass "fm-ddev-clean: reported 60 orphan volumes reclaimed exactly once with exclusions preserved"
+}
+
 test_volume_names_do_not_expand_project_cleanup() {
   local out site listed_root
   prepare_volume_fixture
@@ -686,6 +749,7 @@ test_missing_ddev_is_a_per_task_noop_and_sweep_error
 test_selection_guards_apply_to_both_modes
 test_orphan_compose_inventory_is_safe_and_reports_residuals
 test_orphan_database_volumes_are_safe_and_reclaimed
+test_reported_sixty_volume_cleanup
 test_volume_names_do_not_expand_project_cleanup
 test_orphan_database_volume_failure_is_visible
 test_orphan_removal_failure_is_residual
