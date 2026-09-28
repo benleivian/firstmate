@@ -29,7 +29,7 @@
 # Containers need matching com.ddev.site-name and com.docker.compose.project=ddev-<site>
 # labels plus a nonempty com.docker.compose.service; running candidates require a selected DDEV site.
 # Unlisted sites use recorded ownership or the name allowlist, with the same name protections.
-# In worktree mode, listed resources use the selected project names even without ddev_name;
+# In worktree mode, listed sites' containers and networks use selected project names even without ddev_name;
 # unlisted resources require an exact --ddev-name or metadata-derived name match.
 # After DDEV cleanup, only previously selected container IDs still stopped, consistently labeled,
 # and eligible under refreshed ownership checks are removed.
