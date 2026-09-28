@@ -3285,8 +3285,8 @@ test_secondmate_liveness_tick_skips_mate_whose_lock_is_held() {
   # A concurrent liveness episode (e.g. the session-start sweep) holds the
   # per-mate lock; this tick must skip the mate entirely rather than probe a
   # moving target.
-  ( STATE="$state" bash -c '. "$1" && fm_lock_acquire_wait "$2" && sleep 30' \
-      _ "$ROOT/bin/fm-wake-lib.sh" "$state/.secondmate-liveness-sm1.lock" ) &
+  ( STATE="$state" bash -c '. "$1" && fm_lock_acquire_wait "$2" && fm_lock_acquire_wait "$3" && sleep 30' \
+      _ "$ROOT/bin/fm-wake-lib.sh" "$state/.control-sm1.lock" "$state/.secondmate-liveness-sm1.lock" ) &
   holder=$!
   local i=0
   while [ ! -d "$state/.secondmate-liveness-sm1.lock" ] && [ "$i" -lt 100 ]; do

@@ -1507,8 +1507,8 @@ printf '%s\tdead\n' "$(date +%s)" > "$PARENT/state/.secondmate-relaunch-bound-io
 liveness_lock="$PARENT/state/.secondmate-liveness-ios.lock"
 # The link is published before the claim finishes; signal only after acquire.
 # shellcheck disable=SC2016 # Positional parameters expand in the child shell.
-( STATE="$PARENT/state" exec bash -c '. "$1" && fm_lock_acquire_wait "$2" && touch "$3" && exec sleep 120' \
-    _ "$ROOT/bin/fm-wake-lib.sh" "$liveness_lock" "$TMP_ROOT/liveness.entered" ) &
+( STATE="$PARENT/state" exec bash -c '. "$1" && fm_lock_acquire_wait "$2" && fm_lock_acquire_wait "$3" && touch "$4" && exec sleep 120' \
+    _ "$ROOT/bin/fm-wake-lib.sh" "$PARENT/state/.control-ios.lock" "$liveness_lock" "$TMP_ROOT/liveness.entered" ) &
 liveness_holder_pid=$!
 liveness_wait=0
 while [ ! -f "$TMP_ROOT/liveness.entered" ]; do

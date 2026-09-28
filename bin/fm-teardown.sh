@@ -432,6 +432,7 @@ if [ -f "$META" ] && [ ! -L "$META" ]; then
 fi
 CONTROL_LOCK="$STATE/.control-$ID.lock"
 CONTROL_LOCK_HELD=0
+SM_LIVENESS_LOCK=
 META_LOCK=
 META_LOCK_HELD=0
 DESCENDANT_LOCK_PATHS=()
@@ -465,6 +466,10 @@ teardown_release_locks() {
     fm_lock_release "$META_LOCK" || true
     META_LOCK_HELD=0
   fi
+  if [ -n "${SM_LIVENESS_LOCK:-}" ]; then
+    fm_lock_release "$SM_LIVENESS_LOCK" || true
+    SM_LIVENESS_LOCK=
+  fi
   if [ "$CONTROL_LOCK_HELD" = 1 ]; then
     fm_lock_release "$CONTROL_LOCK" || true
     CONTROL_LOCK_HELD=0
@@ -478,7 +483,11 @@ teardown_release_locks() {
 }
 trap teardown_release_locks EXIT
 fm_lock_try_acquire "$CONTROL_LOCK" || {
-  echo "error: another lifecycle action is already running for task $ID; nothing was changed" >&2
+  if [ -d "$STATE/.secondmate-liveness-$ID.lock" ]; then
+    echo "error: a secondmate liveness check is in progress for $ID; nothing was changed - retry teardown" >&2
+  else
+    echo "error: another lifecycle action is already running for task $ID; nothing was changed" >&2
+  fi
   exit 1
 }
 CONTROL_LOCK_HELD=1
@@ -503,6 +512,15 @@ TEARDOWN_META_KIND=$(fm_meta_get "$META" kind)
 # Retiring a persistent secondmate is main's alone in both postures; the kind
 # is read under the metadata lock (role partition: bin/fm-lease-lib.sh).
 [ "$TEARDOWN_META_KIND" != secondmate ] || fm_lease_forbid_branch "secondmate retirement (fm-teardown)"
+# Liveness takes the control lock first, so this second acquisition cannot deadlock.
+# Retirement owns and removes the liveness lock with its ledger and park marker.
+if [ "$TEARDOWN_META_KIND" = secondmate ]; then
+  fm_lock_try_acquire "$STATE/.secondmate-liveness-$ID.lock" || {
+    echo "error: a secondmate liveness check is in progress for $ID; nothing was changed - retry teardown" >&2
+    exit 1
+  }
+  SM_LIVENESS_LOCK="$STATE/.secondmate-liveness-$ID.lock"
+fi
 TEARDOWN_CLEANUP_RECOVERY=$(fm_meta_get "$META" cleanup_recovery)
 TEARDOWN_META_SPAWN_GEN=
 TEARDOWN_LEGACY_PENDING=0

@@ -42,8 +42,9 @@
 #          when a relaunch is actually authorized.
 #
 # Concurrency: fm_secondmate_liveness_lock serializes probe+kill+relaunch per
-# task using the same .control-<id>.lock as bin/fm-control.sh, across the
-# bootstrap sweep, watcher tick, and manual lifecycle actions. The remote
+# task using the same .control-<id>.lock as bin/fm-control.sh and its own
+# .secondmate-liveness-<id>.lock. The first excludes manual lifecycle actions,
+# while the second makes an active recovery visible to retirement. The remote
 # relaunch wrapper holds the parent's lock through confirmed route publication;
 # on the remote host, launch and the ordinary control-plane relaunch share the
 # host's parent-route .control-<id>.lock. These separate home-local locks protect
@@ -77,12 +78,20 @@ fm_sm_live_require_locks() {
 }
 
 fm_secondmate_liveness_lock() {  # <id>
+  local id=$1 control_lock liveness_lock
   fm_sm_live_require_locks || return 1
-  fm_lock_try_acquire "$STATE/.control-$1.lock"
+  control_lock="$STATE/.control-$id.lock"
+  liveness_lock="$STATE/.secondmate-liveness-$id.lock"
+  fm_lock_try_acquire "$control_lock" || return 1
+  if ! fm_lock_try_acquire "$liveness_lock"; then
+    fm_lock_release "$control_lock" 2>/dev/null || true
+    return 1
+  fi
 }
 
 fm_secondmate_liveness_unlock() {  # <id>
   fm_sm_live_require_locks || return 0
+  fm_lock_release "$STATE/.secondmate-liveness-$1.lock" 2>/dev/null || true
   fm_lock_release "$STATE/.control-$1.lock" 2>/dev/null || true
 }
 
