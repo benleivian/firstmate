@@ -2080,6 +2080,7 @@ FM_ACTIVE_CHECK_PID=
 FM_ACTIVE_CHECK_PGID=
 FM_CHECK_OUTPUT=
 FM_CHECK_RESULT=
+FM_CAPTURE_STATUS=0
 FM_CHECK_SIGNAL_PENDING=
 
 fm_check_output_cleanup() {
@@ -2127,6 +2128,12 @@ watcher_stop_signals() {
 }
 
 run_check_capture() {
+  run_command_capture run_check_process "$@"
+}
+
+# Wait on an owned background job, not a command substitution: Bash 3.2
+# defers TERM while reading substitution output from a blocked pane capture.
+run_command_capture() {
   local pgid
   fm_check_output_cleanup
   FM_CHECK_RESULT=
@@ -2138,7 +2145,7 @@ run_check_capture() {
   # can drop a trap that is pending when one is parsed (watcher_stop_signals).
   trap 'FM_CHECK_SIGNAL_PENDING=1' HUP INT TERM
   set -m
-  ( FM_CHECK_OWNED_GROUP=1 run_check_process "$@" ) > "$FM_CHECK_OUTPUT" 2>/dev/null &
+  ( FM_CHECK_OWNED_GROUP=1 "$@" ) > "$FM_CHECK_OUTPUT" 2>/dev/null &
   FM_ACTIVE_CHECK_PID=$!
   FM_ACTIVE_CHECK_PGID=$FM_ACTIVE_CHECK_PID
   set +m
@@ -2150,7 +2157,8 @@ run_check_capture() {
     fm_check_output_cleanup
     return 1
   fi
-  wait "$FM_ACTIVE_CHECK_PID" 2>/dev/null || true
+  FM_CAPTURE_STATUS=0
+  wait "$FM_ACTIVE_CHECK_PID" 2>/dev/null || FM_CAPTURE_STATUS=$?
   FM_ACTIVE_CHECK_PID=
   fm_active_check_stop || return 1
   FM_CHECK_RESULT=$(cat "$FM_CHECK_OUTPUT" 2>/dev/null || true)
@@ -2993,7 +3001,9 @@ EOF
     if [ "$kind" = secondmate ] && ! status_is_paused_or_captain_held "$last"; then
       continue
     fi
-    tail40=$(fm_backend_capture_unwrapped "$(window_backend "$w")" "$w" 40 "$(window_label "$w")" 2>/dev/null) || continue
+    run_command_capture fm_backend_capture_unwrapped "$(window_backend "$w")" "$w" 40 "$(window_label "$w")" || exit 1
+    [ "$FM_CAPTURE_STATUS" -eq 0 ] || continue
+    tail40=$FM_CHECK_RESULT
     h=$(printf '%s' "$tail40" | hash_pane)
     hf="$STATE/.hash-$key"
     cf="$STATE/.count-$key"
