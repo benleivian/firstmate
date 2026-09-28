@@ -830,6 +830,7 @@ assert_bootstrap_shim_polls() {
   (
     unset FMX_PAIRING_TOKEN
     cd "$TMP_ROOT" || exit 1
+    # shellcheck source=/dev/null
     . "$home/config/x-mode.env"
     PATH="$fakebin:$BASE_PATH" FM_HOME=wrong-home FMX_RELAY_URL=https://relay.test \
       FAKE_CURL_LOG="$log" FAKE_POLL_CODE=204 bash "$home/state/x-watch.check.sh"
