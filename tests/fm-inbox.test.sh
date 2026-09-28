@@ -604,3 +604,23 @@ run_inbox "$home" drain --ack "$did" >/dev/null || fail "drain --ack failed"
 assert_absent "$home/state/inbox/$did.note" "acked note leaves pending"
 assert_present "$home/state/inbox/handled/$did.note" "acked note is in handled"
 pass "drain --ack still moves the note to handled"
+
+home=$(make_home snapshot-lock)
+real_python=$(command -v python3)
+mkdir -p "$home/fakebin"
+cat > "$home/fakebin/python3" <<'SH'
+#!/usr/bin/env bash
+. "$FM_TEST_ROOT/bin/fm-wake-lib.sh"
+if fm_lock_try_acquire "$FM_HOME/state/inbox/.replies.lock"; then
+  fm_lock_release "$FM_HOME/state/inbox/.replies.lock"
+  echo "reply publication was not excluded during snapshot" >&2
+  exit 1
+fi
+exec "$FM_REAL_PYTHON" "$@"
+SH
+chmod +x "$home/fakebin/python3"
+out=$(PATH="$home/fakebin:$PATH" FM_TEST_ROOT="$ROOT" FM_REAL_PYTHON="$real_python" run_inbox "$home" receipts) \
+  || fail "receipts must exclude reply publication during snapshot"
+assert_equals fm-inbox-receipts.v1 "$(printf '%s' "$out" | json_get schema)" "receipt snapshot must still be returned"
+[ ! -e "$home/state/inbox/.replies.lock" ] || fail "receipts left the snapshot locked"
+pass "receipt snapshots exclude reply publication and release their lock"

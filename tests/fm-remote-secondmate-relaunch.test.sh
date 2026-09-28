@@ -72,6 +72,12 @@ $command_fields
 EOF
 [ "$cmd" = fm-remote-secondmate-control.sh ] || exit 93
 [ "$action" = relaunch ] || exit 94
+. "$FM_TEST_ROOT/bin/fm-wake-lib.sh"
+if fm_lock_try_acquire "$FM_HOME/state/.control-$id.lock"; then
+  fm_lock_release "$FM_HOME/state/.control-$id.lock"
+  printf 'parent lifecycle was not serialized\n' >&2
+  exit 95
+fi
 case "$FM_FAKE_RELAUNCH_MODE" in
   refuse)
     printf 'error: unverified remote secondmate harness: %s\n' "$harness" >&2
@@ -96,7 +102,7 @@ SH
 chmod +x "$FAKEBIN/fake-ssh"
 
 run_relaunch() {  # <args...>
-  env FM_HOME="$HOME_DIR" FM_SSH_BIN="$FAKEBIN/fake-ssh" \
+  env FM_TEST_ROOT="$ROOT" FM_HOME="$HOME_DIR" FM_SSH_BIN="$FAKEBIN/fake-ssh" \
     FM_FAKE_RELAUNCH_MODE="${FM_FAKE_RELAUNCH_MODE:-}" \
     "$ROOT/bin/fm-remote-secondmate-relaunch.sh" "$@" 2>&1
 }
@@ -188,5 +194,22 @@ expect_code 0 "$RC" "a confirmed remote relaunch should succeed with an armed PR
 fm_pr_poll_artifacts_valid "$HOME_DIR/state" ios "$ROOT/bin/fm-pr-poll.sh" \
   || fail "a remote relaunch broke PR poll authentication by writing harness/model/effort after pr="
 pass "a remote relaunch keeps an already-armed PR poll authenticating"
+
+. "$ROOT/bin/fm-wake-lib.sh"
+fm_lock_try_acquire "$HOME_DIR/state/.control-ios.lock" || fail "cannot hold parent lifecycle lock"
+OUT=$(run_relaunch ios claude default default); RC=$?
+fm_lock_release "$HOME_DIR/state/.control-ios.lock"
+expect_code 1 "$RC" "remote relaunch must refuse concurrent parent recovery"
+assert_contains "$OUT" "another lifecycle action" "remote relaunch must report lifecycle contention"
+
+mkdir -p "$HOME_DIR/state/parent-route" "$HOME_DIR/bin"
+printf 'ios\n' > "$HOME_DIR/.fm-secondmate-home"
+: > "$HOME_DIR/AGENTS.md"
+fm_lock_try_acquire "$HOME_DIR/state/parent-route/.control-ios.lock" || fail "cannot hold host lifecycle lock"
+OUT=$(FM_HOME="$HOME_DIR" "$ROOT/bin/fm-remote-secondmate-control.sh" launch ios claude - - herdr 2>&1); RC=$?
+fm_lock_release "$HOME_DIR/state/parent-route/.control-ios.lock"
+expect_code 1 "$RC" "remote launch must refuse concurrent host relaunch"
+assert_contains "$OUT" "another lifecycle action" "remote launch must report lifecycle contention"
+pass "remote lifecycle actions serialize against parent recovery and host relaunch"
 
 echo "ALL TESTS PASSED"

@@ -40,6 +40,11 @@ MODEL=$3
 EFFORT=$4
 case "$ID" in ''|*[!A-Za-z0-9._-]*) die "invalid secondmate id: $ID" ;; esac
 
+CONTROL_LOCK="$STATE/.control-$ID.lock"
+fm_lock_try_acquire "$CONTROL_LOCK" \
+  || die "another lifecycle action is already running for task $ID"
+trap 'fm_lock_release "$CONTROL_LOCK"' EXIT
+
 META="$STATE/$ID.meta"
 [ -f "$META" ] && [ ! -L "$META" ] || die "no metadata for $ID at $META"
 REMOTE_HOST=$(fm_meta_get "$META" remote_host)

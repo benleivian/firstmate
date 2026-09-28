@@ -673,7 +673,7 @@ PY
   fi
 }
 
-cmd_receipts() {
+cmd_receipts() (
   local after="" all_pending=0 all_handled=0 all_replies=0
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -691,6 +691,10 @@ cmd_receipts() {
     esac
   done
   need_python
+  mkdir -p "$INBOX"
+  load_wake_lib || die "the reply snapshot needs $FM_ROOT/bin/fm-wake-lib.sh"
+  fm_lock_acquire_wait "$REPLY_SEQ_LOCK" || die "could not claim the reply snapshot"
+  trap 'fm_lock_release "$REPLY_SEQ_LOCK"' EXIT
   python3 - "$INBOX" "$ANNOUNCED_DIR" "$REPLIES" "$FM_HOME" \
     "$RECEIPTS_PENDING_BOUND" "$RECEIPTS_HANDLED_BOUND" "$RECEIPTS_REPLIES_BOUND" \
     "$all_pending" "$all_handled" "$all_replies" "$after" \
@@ -863,7 +867,7 @@ json.dump({
 }, sys.stdout, separators=(",", ":"))
 sys.stdout.write("\n")
 PY
-}
+)
 
 cmd_ready() {
   [ "$#" -eq 0 ] || die "usage: fm-inbox.sh ready"

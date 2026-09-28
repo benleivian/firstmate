@@ -2260,6 +2260,15 @@ function liveArmPids() {
     .map((arm) => arm.pid);
 }
 
+globalThis.__firstmatePiWatchReplacements = new Map([
+  [`${process.env.FM_HOME}/state/extensions/pi-primary-watch/session-replacement-actionable.json`, {
+    receiver: null,
+    pending: [],
+    nextTokenId: 0,
+    deliveries: new Map(),
+  }],
+]);
+
 const mod = await import(pathToFileURL(process.env.PLUGIN).href);
 
 const startup = makePi();

@@ -186,7 +186,10 @@ const replacementCoordinatorGlobal = globalThis as ReplacementCoordinatorGlobal;
 const replacementCoordinators = replacementCoordinatorGlobal.__firstmatePiWatchReplacements ??= new Map<string, ReplacementCoordinator>();
 function replacementCoordinatorFor(handoff: string): ReplacementCoordinator {
   const existing = replacementCoordinators.get(handoff);
-  if (existing) return existing;
+  if (existing) {
+    existing.nextGenerationId ??= 0;
+    return existing;
+  }
   const created: ReplacementCoordinator = {
     receiver: null,
     pending: [],

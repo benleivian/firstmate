@@ -178,6 +178,10 @@ cmd_launch() {
   # a remote route depends on. bin/fm-remote-doctor.sh is the readiness owner.
   case "$selected_backend" in herdr) ;; *) die "a remote secondmate runs only on the herdr backend, not '$selected_backend'" ;; esac
   mkdir -p "$CONTROL_STATE" "$CONTROL_DATA"
+  CONTROL_LOCK="$CONTROL_STATE/.control-$id.lock"
+  fm_lock_try_acquire "$CONTROL_LOCK" \
+    || die "another lifecycle action is already running for task $id"
+  trap 'fm_lock_release "$CONTROL_LOCK"' EXIT
   meta=$(meta_path "$id")
   if [ -f "$meta" ]; then
     remote_endpoint_require "$id"

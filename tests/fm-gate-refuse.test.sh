@@ -261,6 +261,10 @@ test_lab_home_helper() {
   out=$("$LABHOME" create "$populated" 2>&1); rc=$?
   [ "$rc" -ne 0 ] || fail "lab-home: create on a populated dir must refuse"
   assert_absent "$populated/.fm-lab-home" "lab-home: refused create must not write the marker"
+  ln -s "$populated" "$TMP/populated-link"
+  out=$("$LABHOME" create "$TMP/populated-link" 2>&1); rc=$?
+  [ "$rc" -ne 0 ] || fail "lab-home: create through a populated symlink must refuse"
+  assert_absent "$populated/.fm-lab-home" "lab-home: symlink target must stay unmarked"
   # refuses a populated dir it cannot list, rather than reading it as empty.
   unlistable="$TMP/unlistable"; mkdir -p "$unlistable/state"; chmod 300 "$unlistable"
   out=$("$LABHOME" create "$unlistable" 2>&1); rc=$?

@@ -95,6 +95,7 @@ fm_gate_lab_home() {
 fm_gate_lab_mark() {
   local home=${1:-} listing
   [ -n "$home" ] && [ -d "$home" ] || return 1
+  home=$(cd "$home" && pwd -P) || return 1
   listing=$(find "$home" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null) || return 1
   [ -z "$listing" ] || return 1
   printf '%s\n' "$FM_GATE_LAB_TOKEN" > "$home/$FM_GATE_LAB_MARKER"
