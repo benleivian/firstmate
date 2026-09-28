@@ -73,12 +73,12 @@ fm_sm_live_require_locks() {
 
 fm_secondmate_liveness_lock() {  # <id>
   fm_sm_live_require_locks || return 1
-  fm_lock_try_acquire "$STATE/.secondmate-liveness-$1.lock"
+  fm_lock_try_acquire "$STATE/.control-$1.lock"
 }
 
 fm_secondmate_liveness_unlock() {  # <id>
   fm_sm_live_require_locks || return 0
-  fm_lock_release "$STATE/.secondmate-liveness-$1.lock" 2>/dev/null || true
+  fm_lock_release "$STATE/.control-$1.lock" 2>/dev/null || true
 }
 
 fm_sm_live_first_line() {

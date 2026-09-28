@@ -376,33 +376,51 @@ test_sweep_respawns_confirmed_dead_secondmate() {
   pass "sweep: a confirmed-dead secondmate endpoint is killed and respawned"
 }
 
-test_sweep_skips_mate_whose_liveness_lock_is_held() {
+test_sweep_skips_mate_whose_lifecycle_lock_is_held() {
   local w fb tmuxfb log out holder i=0
   w=$(new_world sweep-lock-held)
   add_sm_home "$w" sm1 firstmate:fm-sm1
   fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
   log="$w/calls.log"; : > "$log"
 
-  # A concurrent liveness episode (the watcher's tick) owns the per-mate lock;
-  # the sweep must skip rather than probe or relaunch a moving target.
   ( STATE="$w/home/state" bash -c \
       '. "$1" && fm_lock_acquire_wait "$2" && sleep 30' \
-      _ "$ROOT/bin/fm-wake-lib.sh" "$w/home/state/.secondmate-liveness-sm1.lock" ) &
+      _ "$ROOT/bin/fm-wake-lib.sh" "$w/home/state/.control-sm1.lock" ) &
   holder=$!
-  while [ ! -d "$w/home/state/.secondmate-liveness-sm1.lock" ] && [ "$i" -lt 100 ]; do
+  while [ ! -d "$w/home/state/.control-sm1.lock" ] && [ "$i" -lt 100 ]; do
     sleep 0.05
     i=$((i + 1))
   done
-  [ -d "$w/home/state/.secondmate-liveness-sm1.lock" ] || fail "the fixture never acquired the liveness lock"
+  [ -d "$w/home/state/.control-sm1.lock" ] || fail "the fixture never acquired the lifecycle lock"
 
   out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" zsh "$log")
 
   assert_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1: skipped: another liveness check is already in progress" \
-    "a mate under an active liveness lock should be skipped, not probed"
+    "a mate under an active lifecycle lock should be skipped, not probed"
   [ ! -s "$log" ] || fail "a locked mate must never be killed or respawned: $(cat "$log")"
   kill "$holder" 2>/dev/null || true
   wait "$holder" 2>/dev/null || true
-  pass "sweep: a mate mid-episode under the shared liveness lock is skipped entirely"
+  pass "sweep: a mate mid-episode under the shared lifecycle lock is skipped entirely"
+}
+
+test_liveness_excludes_manual_control_until_unlock() {
+  local w out
+  w=$(new_world control-during-liveness)
+  add_sm_home "$w" sm1 firstmate:fm-sm1
+  out=$(FM_HOME="$w/home" FM_STATE_OVERRIDE="$w/home/state" STATE="$w/home/state" \
+    bash -c '
+      . "$1/bin/fm-secondmate-liveness-lib.sh"
+      fm_secondmate_liveness_lock sm1 || exit 1
+      trap "fm_secondmate_liveness_unlock sm1" EXIT
+      if bash "$1/bin/fm-control.sh" sm1 relaunch; then exit 1; fi
+      fm_secondmate_liveness_unlock sm1
+      trap - EXIT
+      fm_lock_try_acquire "$STATE/.control-sm1.lock" || exit 1
+      fm_lock_release "$STATE/.control-sm1.lock"
+    ' _ "$ROOT" 2>&1) || fail "liveness did not release lifecycle ownership: $out"
+  assert_contains "$out" "another lifecycle action is already running for task sm1" \
+    "manual relaunch must refuse before touching a mate under liveness recovery"
+  pass "liveness excludes manual relaunch until its recovery lock is released"
 }
 
 test_sweep_refuses_relaunch_on_ledger_errors() {
@@ -717,7 +735,8 @@ test_sweep_never_acts_on_unverified_harness_dead_reading
 test_sweep_converges_no_retouch_once_alive
 test_sweep_skipped_under_detect_only
 test_sweep_noop_with_no_secondmate_meta
-test_sweep_skips_mate_whose_liveness_lock_is_held
+test_sweep_skips_mate_whose_lifecycle_lock_is_held
+test_liveness_excludes_manual_control_until_unlock
 test_sweep_refuses_relaunch_on_ledger_errors
 test_remote_poll_probe_maps_states
 test_remote_poll_probe_unreachable_preserves_route
