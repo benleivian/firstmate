@@ -157,7 +157,8 @@ When restoration does not succeed, the model is never left blind.
 
 ### Claude handling successor
 
-Claude's Stop hook also starts one handling successor before notification.
+Without the supervision host, Claude's Stop hook starts one handling successor before notification.
+Opted-in homes use the [host's successor handoff](supervision-host.md#attended); the Stop hook's header owns rewake acceptance for that path.
 After an actionable foreground close, including an attached peer cycle that ended, the hook:
 
 1. Launches `bin/fm-watch-arm.sh` with the closed arm's pid as `FM_WATCH_PREDECESSOR_ARM_PID`.

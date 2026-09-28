@@ -93,8 +93,13 @@
 #
 # The epoch ledger state/.claude-autoarm-epoch records the latest claim
 # generation and outcome, and binds rewake outcomes to the session-lock pid and
-# watcher recovery generation, so the synchronous Stop guard
-# (bin/fm-turnend-guard.sh --claude) can allow a stop whose recovery this hook
+# watcher recovery generation. A rewake accepts either downtime or handling
+# phase, pending or announced: the supervision host can confirm a successor's
+# handling handoff before returning a main-only close, and that confirmation
+# must not suppress delivery to main. Session and auto-arm generation ownership
+# remain required (regression: tests/fm-claude-stop-autoarm.test.sh).
+# This binding lets the synchronous Stop guard
+# (bin/fm-turnend-guard.sh --claude) allow a stop whose recovery this hook
 # already owns, instead of forcing a duplicate continuation for the same event
 # epoch. The failure marker
 # state/.claude-autoarm-failure-notified deduplicates the last-resort notice,
@@ -494,7 +499,7 @@ if [ "$ACTIONABLE" -eq 1 ]; then
     [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
     exit 0
   fi
-  # The host owns its own successors and stops its cycle before handing back.
+  # The host owns successor retention and cleanup (bin/fm-supervision-host.sh).
   if [ "$HOST_MODE" -eq 0 ]; then
     start_handling_successor "$CLOSED_ARM_PID" || true
   fi
