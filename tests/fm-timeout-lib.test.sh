@@ -55,6 +55,17 @@ wait_for_file() {  # <path>
   done
 }
 
+test_exec_without_bashpid() {
+  local out rc form
+  for form in 'fm_exec_timed 5 1 bash -c "echo portable; exit 7"' '(fm_exec_timed 5 1 bash -c "echo portable; exit 7")'; do
+    rc=0
+    out=$(/bin/bash -uc 'unset BASHPID; . "$1/bin/fm-timeout-lib.sh"; eval "$2"' _ "$ROOT" "$form") || rc=$?
+    [ "$rc" -eq 7 ] || fail "a shell without BASHPID lost the command status: $rc"
+    [ "$out" = portable ] || fail "a shell without BASHPID lost command output"
+  done
+  pass "fm_exec_timed supports shells without BASHPID directly and in subshells"
+}
+
 test_passes_the_command_status_and_output_through() {
   local out rc=0
   out=$(exec_timed "$PERL_ONLY" 5 1 bash -c 'echo to-stdout; echo to-stderr >&2; exit 7' 2>&1) || rc=$?
@@ -109,7 +120,7 @@ test_the_bound_replaces_the_calling_shell() {
     rm -f "$dir/caller" "$dir/parent"
     (
       . "$ROOT/bin/fm-timeout-lib.sh"
-      printf '%s\n' "$BASHPID" > "$dir/caller"
+      perl -e 'print getppid' > "$dir/caller"
       PATH=$path fm_exec_timed 5 1 bash -c 'echo "$PPID" > "$1"' _ "$dir/parent"
     ) || fail "the bounded probe failed under PATH=$path"
     caller=$(cat "$dir/caller")
@@ -211,7 +222,7 @@ test_an_owner_that_dies_during_startup_ends_the_command() {
   PATH=$PERL_ONLY bash -c '
     . "$1/bin/fm-timeout-lib.sh"
     (
-      echo "$BASHPID" > "$2/watchdog"
+      perl -e "print getppid" > "$2/watchdog"
       while kill -0 "$$" 2>/dev/null; do sleep 0.05; done
       fm_exec_timed 60 1 bash -c "exec sleep 300"
     ) >/dev/null 2>&1 &
@@ -327,6 +338,7 @@ test_run_timed_passes_a_natural_exit_through_a_fired_bound() {
   pass 'fm_run_timed passes a natural exit through when the bound fired after completion'
 }
 
+test_exec_without_bashpid
 test_passes_the_command_status_and_output_through
 test_run_timed_reports_the_bound_when_the_wrapper_records_a_signal_death
 test_run_timed_passes_a_natural_exit_through_a_fired_bound

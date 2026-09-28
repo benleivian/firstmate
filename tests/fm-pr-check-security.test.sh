@@ -1817,6 +1817,14 @@ test_gerrit_ready_gate_reads_the_published_tree() {
   set -e
   [ "$rc" -eq 0 ] || fail "a server-side rebase after arming revoked the recorded change's done: $out"
   [ ! -s "$dir/gerrit-axi.log" ] || fail "a done naming the recorded change read the server again"
+  printf 'unpublished amendment\n' > "$dir/wt/a"
+  git -C "$dir/wt" add a
+  git -C "$dir/wt" commit -q --amend --no-edit
+  rc=0
+  out=$(FM_TEST_GERRIT_REVISION=$published run_check_entry "$dir" task-published \
+    https://gerrit.example/c/group/apps/console/+/4201 2>&1) || rc=$?
+  [ "$rc" -ne 0 ] || fail "re-arming accepted an unpublished amendment for the recorded change"
+  assert_contains "$out" "not the published content" "re-arming skipped live patch-set validation"
   pass "Gerrit arming accepts a published HEAD only by the change's current patch set tree"
 }
 
@@ -1954,6 +1962,11 @@ test_gerrit_nm_ready_gate_requires_recovered_custody() {
   FM_TEST_GERRIT_REVISION=$squash FM_TEST_NM_PIPELINE_HEAD=$fixed run_check_entry "$dir" task-recovered "$url" >/dev/null \
     || fail "arming refused a recovered copy whose squash carries the pipeline's result"
   grep -qxF "pr=$url" "$state/task-recovered.meta" || fail "the recovered publish was not recorded"
+
+  rc=0
+  out=$(FM_TEST_GERRIT_REVISION=$squash FM_TEST_NM_FAIL=1 \
+    run_check_entry "$dir" task-recovered "$url" 2>&1) || rc=$?
+  [ "$rc" -ne 0 ] || fail "re-arming skipped pipeline custody validation for the recorded change"
 
   # A direct-PR task never runs the pipeline, so no run is asked about.
   : > "$dir/nm.log"

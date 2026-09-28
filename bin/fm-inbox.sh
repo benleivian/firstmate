@@ -370,7 +370,10 @@ finish_note_result() {  # <outcome> <id> <request-id> <json> <strict-exit> <summ
     0) announced=1 ;;
     2) acknowledged=1 ;;
   esac
-  [ -f "$INBOX/handled/$id.note" ] && path="$INBOX/handled/$id.note"
+  if [ -f "$INBOX/handled/$id.note" ]; then
+    path="$INBOX/handled/$id.note"
+    acknowledged=1
+  fi
   if [ "$json" -eq 1 ]; then
     emit_note_json "$outcome" "$id" "$request_id" 1 "$announced" "$path" "$acknowledged"
   else
@@ -380,10 +383,10 @@ finish_note_result() {  # <outcome> <id> <request-id> <json> <strict-exit> <summ
       printf 'queued %s\n' "$id"
     fi
     printf '  %s\n' "$summary"
-    if [ "$announced" -eq 1 ]; then
-      printf '  firstmate will pick this up at its next check.\n'
-    elif [ "$acknowledged" -eq 1 ]; then
+    if [ "$acknowledged" -eq 1 ]; then
       printf '  firstmate has already acknowledged this note.\n'
+    elif [ "$announced" -eq 1 ]; then
+      printf '  firstmate will pick this up at its next check.\n'
     fi
   fi
   if [ "$announced" -eq 1 ] || [ "$acknowledged" -eq 1 ]; then
@@ -407,6 +410,22 @@ claim_request_id() {  # <request-id> <note-id>  -> 0 claimed, 1 already exists
   return 1
 }
 
+publish_reserved_note() {
+  need_python
+  python3 - "$1" "$INBOX" "$2" "$REQUESTS/$3" <<'PYTHON'
+import fcntl, os, sys
+staging, inbox, note_id, reservation = sys.argv[1:]
+pending = os.path.join(inbox, note_id + ".note")
+handled = os.path.join(inbox, "handled", note_id + ".note")
+with open(reservation) as lock:
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    if not os.path.exists(pending) and not os.path.exists(handled):
+        os.replace(staging, pending)
+    else:
+        os.unlink(staging)
+PYTHON
+}
+
 publish_from_reservation() {  # <request-id> <source> <body> <extra>
   local request_id=$1 source=$2 body=$3 extra=$4
   local reserved="$REQUESTS/$request_id" id tmp
@@ -417,7 +436,7 @@ publish_from_reservation() {  # <request-id> <source> <body> <extra>
   if [ ! -f "$INBOX/$id.note" ] && [ ! -f "$INBOX/handled/$id.note" ]; then
     tmp=$(mktemp "$INBOX/.staging-XXXXXX")
     write_note_file "$tmp" "$id" "$source" "$body" "$extra" "$request_id"
-    mv "$tmp" "$INBOX/$id.note"
+    publish_reserved_note "$tmp" "$id" "$request_id" || return 1
   fi
   printf '%s\n' "$id"
 }
@@ -454,7 +473,7 @@ queue_note() {
       finish_note_result replay "$id" "$request_id" "$json" "$strict" "$summary"
       return $?
     fi
-    mv "$tmp" "$INBOX/$id.note"
+    publish_reserved_note "$tmp" "$id" "$request_id" || return 1
     summary=$(note_summary_from_body "$body")
     finish_note_result created "$id" "$request_id" "$json" "$strict" "$summary"
     return $?
@@ -499,7 +518,7 @@ cmd_note() {
 }
 
 cmd_announce() {
-  local json=0 id summary path state rc=0
+  local json=0 id summary path state rc=0 acknowledged=0
   if [ "${1:-}" = "--json" ]; then
     json=1
     shift
@@ -510,13 +529,16 @@ cmd_announce() {
   path=$(note_path "$id") || die "no such note: $id"
   summary=$(note_summary_from_body "$(read_note_body "$path")")
   state=$(note_announce_state "$id" "$path")
+  [ "$path" != "$INBOX/handled/$id.note" ] || acknowledged=1
   if [ "$state" != true ] && [ "$path" = "$INBOX/handled/$id.note" ]; then
     state=acknowledged
   fi
   case "$state" in
     true)
       if [ "$json" -eq 1 ]; then
-        emit_note_json replay "$id" "" 1 1 "$path"
+        emit_note_json replay "$id" "" 1 1 "$path" "$acknowledged"
+      elif [ "$acknowledged" -eq 1 ]; then
+        printf 'already-acknowledged %s\n' "$id"
       else
         printf 'already-announced %s\n' "$id"
       fi

@@ -123,6 +123,66 @@ assert_contains "$replay_human" "replay $first_id" \
 assert_equals "1" "$(count_notes "$home")" "human replay still does not duplicate"
 pass "the same request id returns the original note as a distinguishable replay"
 
+home=$(make_home acknowledged-announcement)
+first=$(run_inbox "$home" note --request-id announced-acked --json "already processed")
+id=$(printf '%s' "$first" | json_get id)
+run_inbox "$home" drain --ack "$id" >/dev/null
+for result in "$(run_inbox "$home" note --request-id announced-acked --json "retry")" \
+  "$(run_inbox "$home" announce --json "$id")"; do
+  assert_equals True "$(printf '%s' "$result" | json_get acknowledged)" "handled state survives announcement marker"
+  assert_equals True "$(printf '%s' "$result" | json_get announced)" "announcement history survives acknowledgment"
+done
+assert_contains "$(run_inbox "$home" note --request-id announced-acked retry)" \
+  "already acknowledged" "human replay reports completed processing"
+assert_contains "$(run_inbox "$home" announce "$id")" \
+  "already-acknowledged" "human announce reports completed processing"
+assert_equals 1 "$(count_wakes "$home")" "handled retries never append another wake"
+pass "announced notes report acknowledgment independently of announcement history"
+
+home=$(make_home delayed-publication)
+mkdir -p "$home/fakebin"
+real_python=$(command -v python3)
+real_mv=$(command -v mv)
+cat > "$home/fakebin/publish-delay" <<'SH'
+#!/bin/bash
+case "$*" in
+  *'.staging-'*)
+    if mkdir "$FM_TEST_DELAY/claimed" 2>/dev/null; then
+      touch "$FM_TEST_DELAY/ready"
+      for ((i=0; i<500; i++)); do
+        [ ! -e "$FM_TEST_DELAY/release" ] || break
+        sleep 0.02
+      done
+      [ -e "$FM_TEST_DELAY/release" ] || exit 99
+    fi
+    ;;
+esac
+case "${0##*/}" in
+  python3) exec "$FM_TEST_REAL_PYTHON" "$@" ;;
+  mv) exec "$FM_TEST_REAL_MV" "$@" ;;
+esac
+SH
+chmod +x "$home/fakebin/publish-delay"
+ln -s publish-delay "$home/fakebin/python3"
+ln -s publish-delay "$home/fakebin/mv"
+FM_TEST_DELAY="$home" FM_TEST_REAL_PYTHON="$real_python" FM_TEST_REAL_MV="$real_mv" \
+  PATH="$home/fakebin:$PATH" run_inbox "$home" note --request-id racing --json original > "$home/first.json" &
+writer=$!
+for ((i=0; i<500; i++)); do
+  [ ! -e "$home/ready" ] || break
+  sleep 0.02
+done
+[ -e "$home/ready" ] || fail "publisher did not reach publication barrier"
+retry=$(run_inbox "$home" note --request-id racing --json original)
+id=$(printf '%s' "$retry" | json_get id)
+run_inbox "$home" drain --ack "$id" >/dev/null
+touch "$home/release"
+wait "$writer" || fail "delayed publisher failed"
+assert_equals 0 "$(count_notes "$home")" "delayed publication must not resurrect an acknowledged note"
+[ -f "$home/state/inbox/handled/$id.note" ] || fail "handled note was lost"
+assert_equals True "$(json_get acknowledged < "$home/first.json")" "delayed writer sees completed processing"
+pass "a delayed initial publisher cannot resurrect an acknowledged retry"
+
 # --- crash window: reservation exists, note not yet published ---------------
 
 home=$(make_home crash-reserve)
