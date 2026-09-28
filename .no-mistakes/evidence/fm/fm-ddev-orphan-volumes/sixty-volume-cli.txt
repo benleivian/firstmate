@@ -3,7 +3,7 @@ Fixture: 27 check sites, one review, one worker preview, one bootstrap; both dat
 No surviving task records or backlog entries. Protected, listed, mounted, regular and out-of-scope volumes coexist.
 
 $ bin/fm-ddev-clean.sh
-protected: listed-review-01abcdefgh (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3JP5KMMWZTJ5WPMEN0Q3VD2/.test-tmp/fm-ddev-clean.08O8Cu/home/Sites/listed)
+protected: listed-review-01abcdefgh (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3JRM78S6QAKQ7PQ5XTF1X50/.test-tmp/fm-ddev-clean.MBeyJY/home/Sites/listed)
 orphan-volume: smileadvantage-check-abc123-mariadb (smileadvantage-check-abc123)
 orphan-volume: smileadvantage-check-abc123-postgres (smileadvantage-check-abc123)
 orphan-volume: sa-review-01abcdefgh-mariadb (sa-review-01abcdefgh)
@@ -80,7 +80,7 @@ would: ddev delete images -y (host-wide, dangling-only)
 summary: stop-unlist=0 delete=0 orphan-container=0 orphan-network=0 orphan-volume=60 residual=0 volume-residual=10 protected=1 ambiguous=0 mode=fleet
 
 $ bin/fm-ddev-clean.sh --apply
-protected: listed-review-01abcdefgh (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3JP5KMMWZTJ5WPMEN0Q3VD2/.test-tmp/fm-ddev-clean.08O8Cu/home/Sites/listed)
+protected: listed-review-01abcdefgh (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3JRM78S6QAKQ7PQ5XTF1X50/.test-tmp/fm-ddev-clean.MBeyJY/home/Sites/listed)
 orphan-volume: smileadvantage-check-abc123-mariadb (smileadvantage-check-abc123)
 orphan-volume: smileadvantage-check-abc123-postgres (smileadvantage-check-abc123)
 orphan-volume: sa-review-01abcdefgh-mariadb (sa-review-01abcdefgh)
@@ -280,7 +280,7 @@ ddev delete images -y
 docker system df
 
 $ bin/fm-ddev-clean.sh --apply # repeated
-protected: listed-review-01abcdefgh (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3JP5KMMWZTJ5WPMEN0Q3VD2/.test-tmp/fm-ddev-clean.08O8Cu/home/Sites/listed)
+protected: listed-review-01abcdefgh (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M3JRM78S6QAKQ7PQ5XTF1X50/.test-tmp/fm-ddev-clean.MBeyJY/home/Sites/listed)
 residual-volume: smileadvantage-check-abc124-mariadb (label mismatch)
 residual-volume: smileadvantage-check-permanent-mariadb (smileadvantage-check-permanent not allowlisted)
 residual-volume: smileadvantage-v3-nm-bootstrap-permanent-postgres (smileadvantage-v3-nm-bootstrap-permanent not allowlisted)
