@@ -3637,7 +3637,7 @@ fi
 
 # Fix 4 (see script header): delete only this task's DDEV project before its
 # worktree returns to the pool. The cleanup script is intentionally best effort.
-if [ "$KIND" != secondmate ] && [ -d "$WT" ]; then
+if [ "$KIND" != secondmate ] && teardown_owns_worktree && [ -d "$WT" ]; then
   ddev_cleanup_args=(--worktree "$WT" --apply)
   [ -z "$DDEV_NAME" ] || ddev_cleanup_args+=(--ddev-name "$DDEV_NAME")
   "$SCRIPT_DIR/fm-ddev-clean.sh" "${ddev_cleanup_args[@]}" >&2 \

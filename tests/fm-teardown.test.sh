@@ -4801,8 +4801,8 @@ EOF
 }
 
 test_teardown_deletes_nested_ddev_before_worktree_return() {
-  local case_dir rc
-  case_dir=$(make_case nested-ddev/.treehouse/project/1)
+  local case_dir rc ownership=${1:-owned}
+  case_dir=$(make_case "nested-ddev/$ownership/.treehouse/project/1")
   write_meta "$case_dir" local-only ship
   mkdir -p "$case_dir/wt/nested/.ddev"
   printf 'name: nested-project\n' > "$case_dir/wt/nested/.ddev/config.yaml"
@@ -4814,6 +4814,10 @@ test_teardown_deletes_nested_ddev_before_worktree_return() {
   printf 'nested/.ddev/config.local.yaml\n' >> "$case_dir/project/.git/info/exclude"
   printf 'name: nested-project-task-x1\n' > "$case_dir/wt/nested/.ddev/config.local.yaml"
   printf 'protected-task-x1\n' > "$case_dir/config/ddev-protected-names"
+  if [ "$ownership" = reassigned ]; then
+    printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' "$case_dir/wt" > "$case_dir/../treehouse-state.json"
+    printf 'task=task-successor\nhome=%s\n' "$case_dir" > "$case_dir/.fm-slot-owner"
+  fi
   cat > "$case_dir/fakebin/ddev" <<'SH'
 #!/usr/bin/env bash
 if [ "${1:-}" = list ]; then
@@ -4836,8 +4840,18 @@ printf 'treehouse %s\n' "$*" >> "$DDEV_CASE/actions"
 SH
   chmod +x "$case_dir/fakebin/ddev" "$case_dir/fakebin/docker" "$case_dir/fakebin/treehouse"
   rc=0
-  HOME="$TMP_ROOT/nested-ddev" DDEV_CASE="$case_dir" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+  FM_HOME="$case_dir" HOME="$TMP_ROOT/nested-ddev/$ownership" DDEV_CASE="$case_dir" \
+    run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
   expect_code 0 "$rc" "nested DDEV teardown failed: $(cat "$case_dir/stderr")"
+  if [ "$ownership" = reassigned ]; then
+    assert_absent "$case_dir/actions" "records-only teardown mutated the successor's environment"
+    assert_absent "$case_dir/state/task-x1.meta" "records-only teardown retained the stale task record"
+    assert_contains "$(cat "$case_dir/.fm-slot-owner")" 'task=task-successor' "records-only teardown changed the successor's claim"
+    assert_contains "$(cat "$case_dir/wt/nested/.ddev/config.local.yaml")" 'name: nested-project-task-x1' "records-only teardown changed the successor's DDEV configuration"
+    assert_contains "$(cat "$case_dir/stderr")" 'reassigned to task task-successor' "teardown did not recognize the reassigned slot"
+    pass "records-only teardown preserves the successor's DDEV environment"
+    return
+  fi
   [ "$(head -n 1 "$case_dir/actions")" = 'ddev delete -Oy nested-project-task-x1' ] \
     || fail "nested DDEV was not deleted before worktree return"
   [ "$(grep '^ddev ' "$case_dir/actions")" = 'ddev delete -Oy nested-project-task-x1' ] \
@@ -4852,10 +4866,12 @@ SH
 
 if [ "${1:-}" = --ddev-only ]; then
   test_teardown_deletes_nested_ddev_before_worktree_return
+  test_teardown_deletes_nested_ddev_before_worktree_return reassigned
   exit 0
 fi
 
 test_teardown_deletes_nested_ddev_before_worktree_return
+test_teardown_deletes_nested_ddev_before_worktree_return reassigned
 
 # Copy the public teardown script tree, then drop or blank one required file.
 # Symlinks keep the copy cheap; an unreadable case replaces one link with a
