@@ -312,10 +312,12 @@
 #     root still exists, so the account's healthy LaunchAgent worker and every
 #     live remote secondmate worker are out of scope. Best effort: a sweep
 #     failure never blocks this teardown.
-#   Fix 4 - remove the task's DDEV environment. When its worktree exists,
-#     bin/fm-ddev-clean.sh receives --worktree and the recorded ddev_name, if any;
-#     its header owns the shared selection and protection rules. A missing DDEV
-#     tool or cleanup failure is best effort and never blocks the already-authorized
+#   Fix 4 - remove the task's DDEV environment. For a non-secondmate task whose
+#     worktree exists and passes teardown_owns_worktree, bin/fm-ddev-clean.sh
+#     receives --worktree and the recorded ddev_name, if any.
+#     Records-only cleanup of a reassigned slot skips DDEV cleanup entirely.
+#     The cleanup script's header owns the shared selection and protection rules.
+#     A missing DDEV tool or cleanup failure never blocks the already-authorized
 #     teardown; protected or ambiguous environments may remain after worktree return.
 # After Fix 1 and Fix 2, when config/pipeline-spend opts this home in, a ship
 # task whose local copy this teardown owns has its no-mistakes pipeline spend
