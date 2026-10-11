@@ -1,0 +1,47 @@
+ok - teardown deletes nested DDEV projects before returning the worktree
+
+=== owned pool slot: real fm-teardown CLI; stubbed DDEV/Docker/Treehouse ===
+teardown task-x1 complete (window firstmate:fm-task-x1, worktree /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/owned/.treehouse/project/1/wt)
+Backlog: task-x1 just finished (this home keeps no markdown backlog at /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/owned/.treehouse/project/1/data/backlog.md). Update /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/owned/.treehouse/project/1/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 0s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ambiguous: nested-project (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/owned/.treehouse/project/1/wt/nested)
+protected: protected-task-x1 (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/owned/.treehouse/project/1/wt/nested)
+delete: nested-project-task-x1 (/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/owned/.treehouse/project/1/wt/nested)
+summary: stop-unlist=0 delete=1 ddev-removed=1 ddev-failed=0 orphan-container=0 orphan-network=0 orphan-volume=0 removed=0 residual=0 failed=0 volume-removed=0 volume-residual=0 volume-failed=0 protected=1 ambiguous=1 mode=worktree
+
+External mutation calls:
+ddev delete -Oy nested-project-task-x1
+treehouse return --force /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/owned/.treehouse/project/1/wt
+
+Persisted stale task metadata: removed
+ok - records-only teardown preserves the successor's DDEV environment
+
+=== reassigned pool slot: real fm-teardown CLI; stubbed DDEV/Docker/Treehouse ===
+teardown task-x1 complete (window firstmate:fm-task-x1; pool slot /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/reassigned/.treehouse/project/1/wt left to task task-successor (home /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/reassigned/.treehouse/project/1), which it was reassigned to)
+Backlog: task-x1 just finished (this home keeps no markdown backlog at /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/reassigned/.treehouse/project/1/data/backlog.md). Update /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/reassigned/.treehouse/project/1/data/backlog.md - move task-x1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no live watcher process holds this home lock (last beat: 0s ago).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task task-x1's recorded worktree /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/reassigned/.treehouse/project/1/wt was reassigned to task task-successor (home /Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/reassigned/.treehouse/project/1), which claimed that pool slot after this record was written; that slot is no longer task-x1's, so its processes, copy, and claim are left untouched and only task-x1's own cleanup runs.
+
+External mutation calls:
+(none)
+
+Persisted stale task metadata: removed
+
+Successor ownership record:
+task=task-successor
+home=/Users/bleivian/.no-mistakes/worktrees/dca6a1f2fc96/01M4P6HY0XFWXYDR7CXYXD9MWV/.test-phase-tmp/fm-teardown-tests.cHiU4Q/nested-ddev/reassigned/.treehouse/project/1
+
+Successor DDEV configuration:
+name: nested-project-task-x1
