@@ -11,7 +11,14 @@
 # Merge method on GitHub defaults to --squash when the caller passes none of
 # --squash, --merge, --rebase, or --method after the optional -- separator,
 # except that a pull request containing a merge commit defaults to --merge so
-# its merged ancestry survives; github_default_merge_method owns that choice.
+# its merged ancestry survives. Automatic selection requires a nonempty, valid
+# paginated history of fewer than 250 commits ending at the verified merge head;
+# an unreadable, capped, malformed, empty, or changed-head history refuses.
+# For history containing merge commits, the repository must allow merge commits
+# and the queue-rule read must establish either no queue or only MERGE methods;
+# incompatible, conflicting, unknown, or unreadable queue methods refuse.
+# Explicit caller methods bypass this automatic selection, not the other guards.
+# github_default_merge_method implements this policy.
 # A GitHub merge is refused unless every pre-merge condition holds, each read
 # live at merge time rather than taken from recorded metadata: the pull request
 # is open, not a draft, mergeable, free of conflicts, every unwaived check
@@ -69,7 +76,7 @@
 # An attended caller that already passed the configured method with --auto is
 # told instead that the accepted request has not entered the queue and its queue
 # state has to be re-checked.
-# No method is selected for the caller in any case. A rules response that names
+# No retry method is applied automatically. A rules response that names
 # no queue rule, one that could not be read, rules that disagree, and a method
 # this script does not recognise are four distinct outcomes and are reported
 # apart, because each one leaves the operator somewhere different.
@@ -1328,11 +1335,9 @@ gitlab_confirm_merged() {
   [ "$state" = merged ]
 }
 
-# The merge method used when the caller names none: --squash, unless any commit
-# on the pull request is itself a merge commit, such as an upstream sync,
-# because squashing would drop that merged ancestry. Such a pull request gets
-# --merge, or is refused when the repository disallows merge commits or either
-# read fails. Prints the chosen flag.
+# Implements the header's default-method policy and prints the chosen flag.
+# The history must end at FM_PR_MERGE_HEAD because that same verified head is
+# bound to the merge command; inspecting another head could lose sync ancestry.
 github_default_merge_method() {
   local commits merges allowed
   if ! commits=$(gh api --paginate "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/commits" 2>/dev/null) \

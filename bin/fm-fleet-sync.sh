@@ -227,9 +227,9 @@ prune_gone_branches() {
   # that still has a worktree (a live or not-yet-torn-down task). "Gone" plus
   # "no worktree" already proves the work landed: teardown removes a branch's
   # worktree only after confirming the work reached the remote. We deliberately
-  # do NOT also require the branch to be an ancestor of origin/<default> - PRs in
-  # this fleet are squash-merged, so a merged branch is never an ancestor and
-  # such a check would prune nothing. The no-worktree guard is the real safety
+  # do NOT also require the branch to be an ancestor of origin/<default> - a
+  # squash merge can land its content without preserving branch ancestry, so
+  # such a check would retain those branches. The no-worktree guard is the real safety
   # net. Set FM_FLEET_PRUNE=0 to skip pruning entirely.
   [ "${FM_FLEET_PRUNE:-1}" != "0" ] || return 0
 
