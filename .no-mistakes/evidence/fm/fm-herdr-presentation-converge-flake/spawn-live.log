@@ -1,0 +1,11 @@
+Selected product outputs from the targeted spawn run (exit 0); unrelated cleanup inventory omitted.
+ok - real Herdr lab: an opted-out spawn retains the Stage 1 Herdr command sequence with zero ordering calls
+ok - real Herdr lab: a home that configured nothing is projected by default on herdr 0.9.0
+ok - real Herdr lab: every projected create, task-tab create, seeded prune, and move preserves active workspace and tab
+spawned default-on harness=sh kind=ship mode=no-mistakes yolo=off window=fm-lab-fm-herdr-present-3033-16913:w2:p2 worktree=~/.treehouse/project-01080c/2/project
+spawned shape harness=sh kind=ship mode=no-mistakes yolo=off window=fm-lab-fm-herdr-present-3033-16913:w5:p2 worktree=~/.treehouse/project-01080c/2/project
+{"id":"cli:tab:list","result":{"tabs":[{"agent_status":"unknown","focused":false,"label":"fm-shape","number":2,"pane_count":1,"tab_id":"w5:t2","workspace_id":"w5"}],"type":"tab_list"}}
+{"id":"cli:pane:list","result":{"panes":[{"agent_status":"unknown","cwd":"~/.no-mistakes/worktrees/dca6a1f2fc96/01M50Y9G0NHGXYXX0A2ETKE167/.test-tmp/fm-herdr-presentation.SjOucp/project","focused":false,"foreground_cwd":"~/.treehouse/project-01080c/2/project","pane_id":"w5:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w5:t2","terminal_id":"term_65de975cf69929","workspace_id":"w5"}],"type":"pane_list"}}
+teardown shape complete (window fm-lab-fm-herdr-present-3033-16913:w5:p2, worktree ~/.treehouse/project-01080c/2/project)
+teardown anchor complete (window fm-lab-fm-herdr-present-3033-16913:w1:p2, worktree ~/.treehouse/project-01080c/1/project)
+ok - targeted spawn checks and guarded lab cleanup completed
