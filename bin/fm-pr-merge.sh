@@ -1334,10 +1334,15 @@ gitlab_confirm_merged() {
 # --merge, or is refused when the repository disallows merge commits or either
 # read fails. Prints the chosen flag.
 github_default_merge_method() {
-  local merges allowed
-  if ! merges=$(gh api --paginate "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/commits" \
-    --jq '.[] | select((.parents | length) > 1) | .sha' 2>/dev/null); then
-    printf 'error: could not read the commits of %s to choose a default merge method; pass --squash, --merge, or --rebase after --\n' \
+  local commits merges allowed
+  if ! commits=$(gh api --paginate "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/commits" 2>/dev/null) \
+    || ! merges=$(printf '%s' "$commits" | jq -sr --arg head "$FM_PR_MERGE_HEAD" '
+      if length > 0 and all(.[]; type == "array") then add else error("invalid pages") end
+      | if length > 0 and length < 250 and .[-1].sha == $head
+          and all(.[]; (.sha | type) == "string" and (.parents | type) == "array" and (.parents | length) > 0)
+        then .[] | select((.parents | length) > 1) | .sha
+        else error("incomplete history or changed head") end' 2>/dev/null); then
+    printf 'error: could not establish complete commit history at the verified head of %s to choose a default merge method; pass --squash, --merge, or --rebase after --\n' \
       "$URL" >&2
     return 1
   fi
@@ -1374,10 +1379,6 @@ case "$PROVIDER" in
   github)
     merge_output=
     merge_args=()
-    if ! caller_has_merge_method "$@"; then
-      default_method=$(github_default_merge_method) || exit 1
-      merge_args=("$default_method")
-    fi
     FM_PR_GITHUB_CALLER_METHOD=$(caller_merge_method "$@")
     # mergeable reads UNKNOWN for a short while after a push or base-branch
     # change while GitHub recomputes it; retry a bounded number of times,
@@ -1407,6 +1408,10 @@ case "$PROVIDER" in
         printf 'error: mergeability for %s is still being computed by GitHub; retry shortly\n' "$URL" >&2
       fi
       exit 1
+    fi
+    if ! caller_has_merge_method "$@"; then
+      default_method=$(github_default_merge_method) || exit 1
+      merge_args=("$default_method")
     fi
     # The away record is locked first, so this last presence and authority read
     # and the forge command below share one live-owner critical section.

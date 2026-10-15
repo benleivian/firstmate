@@ -174,6 +174,14 @@ case "${1:-} ${2:-}" in
   "pr view")
     case " $* " in
       *statusCheckRollup*)
+        if [ -f "$FM_TEST_GH_PR_COMMITS.next-head" ]; then
+          next_head=$(cat "$FM_TEST_GH_PR_COMMITS.next-head")
+          printf '%s\n' "$next_head" > "$FM_TEST_GH_HEAD"
+          jq --arg head "$next_head" '.headRefOid = $head' "$FM_TEST_GH_VIEW_JSON" > "$FM_TEST_GH_VIEW_JSON.next"
+          mv "$FM_TEST_GH_VIEW_JSON.next" "$FM_TEST_GH_VIEW_JSON"
+          jq -n --arg head "$next_head" '[{sha: $head, parents: [{sha: "parent"}, {sha: "upstream"}]}]' > "$FM_TEST_GH_PR_COMMITS"
+          rm "$FM_TEST_GH_PR_COMMITS.next-head"
+        fi
         if [ -n "${FM_TEST_GH_MERGEABLE_SEQUENCE:-}" ]; then
           call_n=$(( $(cat "$FM_TEST_GH_MERGEABLE_CALLS" 2>/dev/null || echo 0) + 1 ))
           printf '%s\n' "$call_n" > "$FM_TEST_GH_MERGEABLE_CALLS"
@@ -245,9 +253,13 @@ case "${1:-} ${2:-}" in
     # the merge-queue filter the queue reader below applies.
     case " $* " in
       *" repos/"*"/pulls/"*"/commits "*)
-        # The pull request's merge commits, one sha per line, as the jq
-        # filter selects them; none by default.
-        cat "$FM_TEST_GH_PR_MERGE_COMMITS" 2>/dev/null
+        if [ -f "$FM_TEST_GH_PR_COMMITS" ]; then
+          cat "$FM_TEST_GH_PR_COMMITS"
+        else
+          jq -n --arg head "$(cat "$FM_TEST_GH_HEAD")" \
+            --arg merge "$(cat "$FM_TEST_GH_PR_MERGE_COMMITS" 2>/dev/null)" \
+            '[{sha: $head, parents: (if $merge == "" then [{sha: "parent"}] else [{sha: "parent"}, {sha: "upstream"}] end)}]'
+        fi
         exit 0
         ;;
       *" repos/example/repo --jq .allow_merge_commit "*)
@@ -473,6 +485,7 @@ run_pr_merge() {
   FM_TEST_GH_MERGEABLE_SEQUENCE="${FM_TEST_GH_MERGEABLE_SEQUENCE:-}" \
   FM_TEST_GH_MERGEABLE_CALLS="$case_dir/mergeable-calls" \
   FM_TEST_GH_HEAD="$case_dir/github-head" \
+  FM_TEST_GH_PR_COMMITS="$case_dir/github-pr-commits.json" \
   FM_TEST_GH_PR_MERGE_COMMITS="$case_dir/github-pr-merge-commits" \
   FM_TEST_GH_ALLOW_MERGE_COMMIT="$case_dir/github-allow-merge-commit" \
   FM_TEST_GH_RUNS="$case_dir/github-runs.json" \
@@ -1753,6 +1766,52 @@ test_merge_commit_pr_defaults_to_merge() {
   pass "fm-pr-merge defaults a pull request with merge commits to --merge, honours explicit --squash, and refuses when merge commits are disallowed"
 }
 
+test_default_method_requires_complete_verified_history() {
+  local case_dir scenario rc
+  for scenario in capped changed-head empty malformed paginated; do
+    case_dir=$(make_case "history-$scenario")
+    mkdir -p "$case_dir/wt"
+    add_gh_mocks "$case_dir" "$MR_HEAD"
+    case "$scenario" in
+      capped)
+        jq -n --arg head "$MR_HEAD" '[range(250) | {sha: $head, parents: [{sha: "parent"}]}]' \
+          > "$case_dir/github-pr-commits.json"
+        ;;
+      changed-head)
+        jq -n --arg head "$MR_STALE_HEAD" '[{sha: $head, parents: [{sha: "parent"}, {sha: "upstream"}]}]' \
+          > "$case_dir/github-pr-commits.json"
+        ;;
+      empty) printf '[]\n' > "$case_dir/github-pr-commits.json" ;;
+      malformed) printf '[{"sha":"%s"}]\n' "$MR_HEAD" > "$case_dir/github-pr-commits.json" ;;
+      paginated)
+        jq -n --arg head "$MR_HEAD" \
+          '[{sha: "merge", parents: [{sha: "parent"}, {sha: "upstream"}]}], [{sha: $head, parents: [{sha: "merge"}]}]' \
+          > "$case_dir/github-pr-commits.json"
+        ;;
+    esac
+    rc=0
+    run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/24 \
+      > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+    if [ "$scenario" = paginated ]; then
+      expect_code 0 "$rc" "history-$scenario: complete history should merge"
+      assert_logged_gh_merge "$case_dir" 24 example/repo --merge
+    else
+      expect_code 1 "$rc" "history-$scenario: unsafe default should refuse"
+      assert_no_grep 'pr merge' "$case_dir/gh.log" "history-$scenario: merge ran"
+      assert_grep 'complete commit history at the verified head' "$case_dir/stderr" "history-$scenario: missing diagnostic"
+    fi
+  done
+  case_dir=$(make_case history-push-before-verification)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$MR_HEAD"
+  printf '%s\n' "$MR_STALE_HEAD" > "$case_dir/github-pr-commits.json.next-head"
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/24 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr" || fail "history-push-before-verification: merge failed"
+  assert_logged_gh_merge "$case_dir" 24 example/repo --merge
+  assert_grep "--match-head-commit $MR_STALE_HEAD" "$case_dir/gh.log" "history-push-before-verification: wrong merged head"
+  pass "default merging requires complete history matching the verified head across pages"
+}
+
 test_method_equals_merge_method_not_overridden() {
   local case_dir
   case_dir=$(make_case method-equals-merge-method)
@@ -2452,6 +2511,7 @@ test_repo_override_args_refuse_before_recording
 test_bundled_repo_override_args_refuse_before_recording
 test_explicit_merge_method_not_overridden
 test_merge_commit_pr_defaults_to_merge
+test_default_method_requires_complete_verified_history
 test_method_equals_merge_method_not_overridden
 test_parses_pr_url_for_gh_axi
 test_github_still_forwards_sha_arg
