@@ -227,8 +227,8 @@ IFS=$'\t' read -r WS_SEVEN TAB_SEVEN_SEEDED PANE_SEVEN_SEEDED <<<"$FIXTURE"
 FIXTURE=$(new_tab "$WS_SEVEN" fm-viewer-seeded-task) || fail "could not create the scenario 7 task tab"
 IFS=$'\t' read -r _ PANE_SEVEN_TASK <<<"$FIXTURE"
 lab tab list --workspace "$WS_SEVEN" \
-  | jq -e --arg tab "$TAB_SEVEN_SEEDED" '.result.tabs[] | select(.tab_id == $tab) | .label == "1"' >/dev/null \
-  || fail "the seeded tab is not the label-1 default tab the prune identifies"
+  | jq -e --arg tab "$TAB_SEVEN_SEEDED" '.result.tabs[] | select(.tab_id == $tab) | .label == "1" or (.label | startswith("1 · "))' >/dev/null \
+  || fail "the seeded tab does not carry the automatic label the prune identifies"
 lab tab focus "$TAB_SEVEN_SEEDED" >/dev/null || fail "could not focus the seeded tab"
 [ "$(focused_tab)" = "$TAB_SEVEN_SEEDED" ] || fail "scenario 7 did not start focused on the seeded tab"
 

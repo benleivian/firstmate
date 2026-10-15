@@ -1873,7 +1873,9 @@ fm_backend_herdr_launcher_identity() {  # <session>
 # labeled.
 #
 # Defense in depth on top of that gate (not the primary safety mechanism):
-# re-verify <seeded_tab_id> is still present, still carries label "1" (a
+# re-verify <seeded_tab_id> is still present, still carries Herdr's automatic
+# label - "1", or "1 · <cwd>..." once Herdr relabels it a few hundred
+# milliseconds after create, when the seeded shell reports its directory (a
 # human could have renamed or repurposed it in the interim), and refuse to
 # close it if its pane hosts an actively working agent per herdr's own
 # agent-state detection (`agent get`) - belt-and-suspenders against any other
@@ -1894,7 +1896,7 @@ fm_backend_herdr_workspace_prune_seeded_default_tab() {  # <session> <workspace_
   tab_count=$(printf '%s' "$tabs" | jq -r '.result.tabs? // [] | length' 2>/dev/null)
   case "$tab_count" in ''|*[!0-9]*|0|1) return 0 ;; esac
   current_label=$(printf '%s' "$tabs" | jq -r --arg t "$tab_id" '.result.tabs[]? | select(.tab_id == $t) | .label' 2>/dev/null)
-  [ "$current_label" = "1" ] || return 0
+  case "$current_label" in 1|"1 · "*) ;; *) return 0 ;; esac
   pane_id=$(fm_backend_herdr_pane_for_tab "$session" "$wsid" "$tab_id") || return 0
   [ -n "$pane_id" ] || return 0
   agent_out=$(fm_backend_herdr_cli "$session" agent get "$pane_id" 2>/dev/null)
