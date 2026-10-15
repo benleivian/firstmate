@@ -1,0 +1,6 @@
+ok - fm-pr-merge records pr= and pr_head= for a verified GitHub merge
+ok - fm-pr-merge does not add default --squash when the caller passes an explicit merge method
+ok - fm-pr-merge respects --method=<value> as an explicit merge method
+ok - fm-pr-merge defaults a pull request with merge commits to --merge, honours explicit --squash, and refuses when merge commits are disallowed
+ok - automatic ancestry preservation refuses incompatible or uncertain queues before ordinary and auto submissions
+ok - default merging requires complete history matching the verified head across pages
