@@ -9,7 +9,9 @@
 # below owns why.
 #
 # Merge method on GitHub defaults to --squash when the caller passes none of
-# --squash, --merge, --rebase, or --method after the optional -- separator.
+# --squash, --merge, --rebase, or --method after the optional -- separator,
+# except that a pull request containing a merge commit defaults to --merge so
+# its merged ancestry survives; github_default_merge_method owns that choice.
 # A GitHub merge is refused unless every pre-merge condition holds, each read
 # live at merge time rather than taken from recorded metadata: the pull request
 # is open, not a draft, mergeable, free of conflicts, every unwaived check
@@ -1326,6 +1328,34 @@ gitlab_confirm_merged() {
   [ "$state" = merged ]
 }
 
+# The merge method used when the caller names none: --squash, unless any commit
+# on the pull request is itself a merge commit, such as an upstream sync,
+# because squashing would drop that merged ancestry. Such a pull request gets
+# --merge, or is refused when the repository disallows merge commits or either
+# read fails. Prints the chosen flag.
+github_default_merge_method() {
+  local merges allowed
+  if ! merges=$(gh api --paginate "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/commits" \
+    --jq '.[] | select((.parents | length) > 1) | .sha' 2>/dev/null); then
+    printf 'error: could not read the commits of %s to choose a default merge method; pass --squash, --merge, or --rebase after --\n' \
+      "$URL" >&2
+    return 1
+  fi
+  if [ -z "$merges" ]; then
+    printf '%s\n' --squash
+    return 0
+  fi
+  if ! allowed=$(gh api "repos/$PR_OWNER/$PR_REPO" --jq '.allow_merge_commit' 2>/dev/null) \
+    || [ "$allowed" != true ]; then
+    printf 'error: %s contains merge commits, so squashing would drop their ancestry, and %s/%s does not allow merge commits or could not be read; pass an explicit merge method after --\n' \
+      "$URL" "$PR_OWNER" "$PR_REPO" >&2
+    return 1
+  fi
+  printf 'note: %s contains merge commits, so it is merged with --merge instead of the default --squash to keep their ancestry\n' \
+    "$URL" >&2
+  printf '%s\n' --merge
+}
+
 # Record before either forge call. This arms the merge poll without claiming a
 # landed outcome, so even a provider read failure after a real merge cannot
 # leave teardown without the PR identity it needs to verify the result.
@@ -1345,7 +1375,8 @@ case "$PROVIDER" in
     merge_output=
     merge_args=()
     if ! caller_has_merge_method "$@"; then
-      merge_args=(--squash)
+      default_method=$(github_default_merge_method) || exit 1
+      merge_args=("$default_method")
     fi
     FM_PR_GITHUB_CALLER_METHOD=$(caller_merge_method "$@")
     # mergeable reads UNKNOWN for a short while after a push or base-branch
