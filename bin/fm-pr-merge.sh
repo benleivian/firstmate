@@ -1356,6 +1356,15 @@ github_default_merge_method() {
       "$URL" "$PR_OWNER" "$PR_REPO" >&2
     return 1
   fi
+  github_read_queue_method
+  case "$FM_PR_GITHUB_QUEUE_STATUS:$FM_PR_GITHUB_QUEUE_METHOD" in
+    none:|single:MERGE) ;;
+    *)
+      printf 'error: %s contains merge commits, but the merge queue for base branch %s does not prove ancestry preservation (status=%s, methods=%s); refusing automatic merge method selection\n' \
+        "$URL" "$FM_PR_GITHUB_BASE" "$FM_PR_GITHUB_QUEUE_STATUS" "$FM_PR_GITHUB_QUEUE_METHODS" >&2
+      return 1
+      ;;
+  esac
   printf 'note: %s contains merge commits, so it is merged with --merge instead of the default --squash to keep their ancestry\n' \
     "$URL" >&2
   printf '%s\n' --merge

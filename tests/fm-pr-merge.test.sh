@@ -1766,6 +1766,57 @@ test_merge_commit_pr_defaults_to_merge() {
   pass "fm-pr-merge defaults a pull request with merge commits to --merge, honours explicit --squash, and refuses when merge commits are disallowed"
 }
 
+test_merge_commit_default_requires_preserving_queue() {
+  local case_dir scenario mode rc
+  local extra=()
+  for mode in ordinary auto; do
+    extra=()
+    [ "$mode" != auto ] || extra=(-- --auto)
+    for scenario in none merge agreeing squash rebase conflicting unknown empty unreadable; do
+      case_dir=$(make_case "ancestry-queue-$mode-$scenario")
+      mkdir -p "$case_dir/wt"
+      add_gh_mocks "$case_dir" "$MR_HEAD"
+      printf '%s\n' "$MR_HEAD" > "$case_dir/github-pr-merge-commits"
+      case "$scenario" in
+        none) : > "$case_dir/github-rules" ;;
+        merge) printf 'merge_method=MERGE\n' > "$case_dir/github-rules" ;;
+        agreeing) printf 'merge_method=MERGE\nmerge_method=MERGE\n' > "$case_dir/github-rules" ;;
+        squash) printf 'merge_method=SQUASH\n' > "$case_dir/github-rules" ;;
+        rebase) printf 'merge_method=REBASE\n' > "$case_dir/github-rules" ;;
+        conflicting) printf 'merge_method=MERGE\nmerge_method=SQUASH\n' > "$case_dir/github-rules" ;;
+        unknown) printf 'merge_method=UNKNOWN\n' > "$case_dir/github-rules" ;;
+        empty) printf 'merge_method=\n' > "$case_dir/github-rules" ;;
+        unreadable) : > "$case_dir/github-rules-fail" ;;
+      esac
+      [ "$scenario" = none ] || write_github_outcome "$case_dir" OPEN false true main
+      rc=0
+      run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/24 \
+        --attended-override "${extra[@]+"${extra[@]}"}" \
+        > "$case_dir/stdout" 2> "$case_dir/stderr" || rc=$?
+      case "$scenario" in
+        none|merge|agreeing)
+          expect_code 0 "$rc" "ancestry-queue-$mode-$scenario: compatible method refused"
+          if [ "$mode" = auto ]; then
+            assert_logged_gh_merge "$case_dir" 24 example/repo --merge --auto
+          else
+            assert_logged_gh_merge "$case_dir" 24 example/repo --merge
+          fi
+          if [ "$scenario" != none ]; then
+            assert_grep 'is queued' "$case_dir/stdout" "ancestry-queue-$mode-$scenario: queue outcome missing"
+          fi
+          ;;
+        *)
+          expect_code 1 "$rc" "ancestry-queue-$mode-$scenario: unsafe queue accepted"
+          assert_no_grep 'pr merge' "$case_dir/gh.log" "ancestry-queue-$mode-$scenario: submitted to forge"
+          assert_grep 'does not prove ancestry preservation' "$case_dir/stderr" "ancestry-queue-$mode-$scenario: missing refusal"
+          assert_no_grep 'to keep their ancestry' "$case_dir/stderr" "ancestry-queue-$mode-$scenario: falsely claimed preservation"
+          ;;
+      esac
+    done
+  done
+  pass "automatic ancestry preservation refuses incompatible or uncertain queues before ordinary and auto submissions"
+}
+
 test_default_method_requires_complete_verified_history() {
   local case_dir scenario rc
   for scenario in capped changed-head empty malformed paginated; do
@@ -2511,6 +2562,7 @@ test_repo_override_args_refuse_before_recording
 test_bundled_repo_override_args_refuse_before_recording
 test_explicit_merge_method_not_overridden
 test_merge_commit_pr_defaults_to_merge
+test_merge_commit_default_requires_preserving_queue
 test_default_method_requires_complete_verified_history
 test_method_equals_merge_method_not_overridden
 test_parses_pr_url_for_gh_axi
