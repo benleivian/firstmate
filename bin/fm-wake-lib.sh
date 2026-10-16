@@ -1664,9 +1664,11 @@ fm_treehouse_slot_owner_state() {  # <worktree> <task-id>
 }
 
 # Succeed when another record's worktree= names this pool slot while the slot's
-# claim names this task: that record describes a previous holder the pool has
-# since handed the slot on from, so it cannot protect the slot from its claimant.
-# An absent or unreadable claim proves nothing and never succeeds.
+# claim names this task and its own Firstmate home: that record describes a
+# previous holder, so it cannot protect the slot from its claimant. Both worktree
+# paths and both home paths must resolve to the same respective physical directory.
+# An absent or unreadable claim, or an empty, unresolvable, or different claim
+# home proves nothing and never succeeds, even when task IDs match across homes.
 fm_treehouse_slot_record_superseded() {  # <slot> <claimant-id> <other-worktree> <claimant-home>
   local slot other owner_home claimant_home
   fm_treehouse_slot_owner_state "$1" "$2"

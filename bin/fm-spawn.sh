@@ -528,8 +528,8 @@
 # and dashes. Both derived and adopted names are refused if they match the primary
 # config name, config/ddev-protected-names, or another task's recorded ddev_name
 # in this home; refusal identifies the conflicting file and name without writing
-# the override. A record whose worktree= is this Treehouse pool slot, once this
-# task has claimed the slot, is the slot's previous holder and does not conflict:
+# the override. A previous holder's record does not conflict when
+# fm_treehouse_slot_record_superseded (bin/fm-wake-lib.sh) proves it superseded:
 # the name belongs to the directory, which may derive it from its own path.
 # The override is excluded through Git's common info/exclude when needed,
 # without changing tracked ignore rules. Nested DDEV configs are not prepared.
@@ -4644,9 +4644,8 @@ exclude_path() {
 # shellcheck source=bin/fm-ddev-name-lib.sh
 . "$SCRIPT_DIR/fm-ddev-name-lib.sh"
 DDEV_NAME=
-# A DDEV project is bound to its directory, so another record naming this same
-# pool slot, while the slot's owner claim names this task, describes the slot's
-# previous holder and its name is this slot's to adopt.
+# Limit the shared supersession proof to a verified pool slot before adopting
+# the directory's DDEV name; the header above owns the adoption policy.
 task_ddev_record_superseded() {  # <other-meta>
   local other_wt
   fm_treehouse_pool_slot "$PROJ_ABS" "$WT" || return 1

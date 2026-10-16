@@ -123,10 +123,9 @@
 # owner claim (below). A claim naming another task makes this teardown
 # records-only, touching nothing under the slot, so the scan is skipped rather
 # than stranding the stale record and, with it, the claimant's own teardown.
-# A claim naming this task makes another record's worktree= for the slot a
-# previous holder's, so that record is passed over rather than blocking the
-# claimant until the earlier task is cleaned up; another record's home= still
-# refuses.
+# Another record's worktree= is passed over only when
+# fm_treehouse_slot_record_superseded (bin/fm-wake-lib.sh) proves it superseded;
+# another record's home= still refuses.
 # That scan alone cannot prove THIS record is the current owner, because the task
 # that took the slot next may leave no record it can reach - its own worker may
 # have exited and its record been cleaned up, or it may live in a home this
@@ -2444,7 +2443,7 @@ require_exclusive_worktree_slot_record() {
         [ -n "$other_path" ] || continue
         other_slot=$(canonical_existing_dir "$other_path") || continue
         [ "$other_slot" = "$slot" ] || continue
-        # This task's claim proves the pool handed the slot on from that record.
+        # Use the shared proof, including home identity, before ignoring a record.
         if [ "$field" = worktree ] && fm_treehouse_slot_record_superseded "$slot" "$record_id" "$other_slot" "$record_home"; then
           continue
         fi
@@ -2467,8 +2466,7 @@ require_exclusive_task_worktree_slot() {
 # into the slot itself (bin/fm-wake-lib.sh owns the claim and its states).
 #
 # For a slot this task still claims, or one with no claim, the record scan above
-# proves that no OTHER task record names it, apart from a previous holder's
-# worktree= on a slot this task claims. It cannot prove that THIS record is
+# applies the header's exclusivity rules. It cannot prove that THIS record is
 # not the stale one, because the task that took the slot next may leave no record
 # this scan can reach: its own worker may have exited and its record been cleaned
 # up, or it may belong to a home this machine does not register. The claim closes that gap from the other side - it names the
