@@ -170,6 +170,9 @@ case "${1:-} ${2:-}" in
     ;;
 esac
 case " $* " in
+  *" api --paginate repos/"*"/pulls/"*"/commits "*)
+    printf '[{"sha":"%s","parents":[{"sha":"0000000000000000000000000000000000000000"}]}]\n' "${FM_TEST_GH_HEAD:-0123456789abcdef0123456789abcdef01234567}"
+    ;;
   *" api repos/"*"/issues/"*"/comments?per_page=100 "*|*" api repos/"*"/pulls/"*"/reviews?per_page=100 "*|*" api repos/"*"/pulls/"*"/comments?per_page=100 "*)
     printf '%s\n' '[[]]'
     ;;

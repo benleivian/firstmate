@@ -9,7 +9,16 @@
 # below owns why.
 #
 # Merge method on GitHub defaults to --squash when the caller passes none of
-# --squash, --merge, --rebase, or --method after the optional -- separator.
+# --squash, --merge, --rebase, or --method after the optional -- separator,
+# except that a pull request containing a merge commit defaults to --merge so
+# its merged ancestry survives. Automatic selection requires a nonempty, valid
+# paginated history of fewer than 250 commits ending at the verified merge head;
+# an unreadable, capped, malformed, empty, or changed-head history refuses.
+# For history containing merge commits, the repository must allow merge commits
+# and the queue-rule read must establish either no queue or only MERGE methods;
+# incompatible, conflicting, unknown, or unreadable queue methods refuse.
+# Explicit caller methods bypass this automatic selection, not the other guards.
+# github_default_merge_method implements this policy.
 # A GitHub merge is refused unless every pre-merge condition holds, each read
 # live at merge time rather than taken from recorded metadata: the pull request
 # is open, not a draft, mergeable, free of conflicts, every unwaived check
@@ -67,7 +76,7 @@
 # An attended caller that already passed the configured method with --auto is
 # told instead that the accepted request has not entered the queue and its queue
 # state has to be re-checked.
-# No method is selected for the caller in any case. A rules response that names
+# No retry method is applied automatically. A rules response that names
 # no queue rule, one that could not be read, rules that disagree, and a method
 # this script does not recognise are four distinct outcomes and are reported
 # apart, because each one leaves the operator somewhere different.
@@ -1326,6 +1335,46 @@ gitlab_confirm_merged() {
   [ "$state" = merged ]
 }
 
+# Implements the header's default-method policy and prints the chosen flag.
+# The history must end at FM_PR_MERGE_HEAD because that same verified head is
+# bound to the merge command; inspecting another head could lose sync ancestry.
+github_default_merge_method() {
+  local commits merges allowed
+  if ! commits=$(gh api --paginate "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/commits" 2>/dev/null) \
+    || ! merges=$(printf '%s' "$commits" | jq -sr --arg head "$FM_PR_MERGE_HEAD" '
+      if length > 0 and all(.[]; type == "array") then add else error("invalid pages") end
+      | if length > 0 and length < 250 and .[-1].sha == $head
+          and all(.[]; (.sha | type) == "string" and (.parents | type) == "array" and (.parents | length) > 0)
+        then .[] | select((.parents | length) > 1) | .sha
+        else error("incomplete history or changed head") end' 2>/dev/null); then
+    printf 'error: could not establish complete commit history at the verified head of %s to choose a default merge method; pass --squash, --merge, or --rebase after --\n' \
+      "$URL" >&2
+    return 1
+  fi
+  if [ -z "$merges" ]; then
+    printf '%s\n' --squash
+    return 0
+  fi
+  if ! allowed=$(gh api "repos/$PR_OWNER/$PR_REPO" --jq '.allow_merge_commit' 2>/dev/null) \
+    || [ "$allowed" != true ]; then
+    printf 'error: %s contains merge commits, so squashing would drop their ancestry, and %s/%s does not allow merge commits or could not be read; pass an explicit merge method after --\n' \
+      "$URL" "$PR_OWNER" "$PR_REPO" >&2
+    return 1
+  fi
+  github_read_queue_method
+  case "$FM_PR_GITHUB_QUEUE_STATUS:$FM_PR_GITHUB_QUEUE_METHOD" in
+    none:|single:MERGE) ;;
+    *)
+      printf 'error: %s contains merge commits, but the merge queue for base branch %s does not prove ancestry preservation (status=%s, methods=%s); refusing automatic merge method selection\n' \
+        "$URL" "$FM_PR_GITHUB_BASE" "$FM_PR_GITHUB_QUEUE_STATUS" "$FM_PR_GITHUB_QUEUE_METHODS" >&2
+      return 1
+      ;;
+  esac
+  printf 'note: %s contains merge commits, so it is merged with --merge instead of the default --squash to keep their ancestry\n' \
+    "$URL" >&2
+  printf '%s\n' --merge
+}
+
 # Record before either forge call. This arms the merge poll without claiming a
 # landed outcome, so even a provider read failure after a real merge cannot
 # leave teardown without the PR identity it needs to verify the result.
@@ -1344,9 +1393,6 @@ case "$PROVIDER" in
   github)
     merge_output=
     merge_args=()
-    if ! caller_has_merge_method "$@"; then
-      merge_args=(--squash)
-    fi
     FM_PR_GITHUB_CALLER_METHOD=$(caller_merge_method "$@")
     # mergeable reads UNKNOWN for a short while after a push or base-branch
     # change while GitHub recomputes it; retry a bounded number of times,
@@ -1376,6 +1422,10 @@ case "$PROVIDER" in
         printf 'error: mergeability for %s is still being computed by GitHub; retry shortly\n' "$URL" >&2
       fi
       exit 1
+    fi
+    if ! caller_has_merge_method "$@"; then
+      default_method=$(github_default_merge_method) || exit 1
+      merge_args=("$default_method")
     fi
     # The away record is locked first, so this last presence and authority read
     # and the forge command below share one live-owner critical section.
