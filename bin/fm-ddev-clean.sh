@@ -770,7 +770,9 @@ select_cache_orphans() {
     case "$name" in */*) continue ;; esac
     name_in "$name" ${listed[@]+"${listed[@]}"} && continue
     if name_in "$name" ${running[@]+"${running[@]}"}; then
-      [ "$APPLY" -eq 0 ] && selected_ddev_site "$name" || continue
+      if [ "$APPLY" -ne 0 ] || ! selected_ddev_site "$name"; then
+        continue
+      fi
     fi
     if [ "$MODE" = worktree ]; then
       name_in "$name" "${candidates[@]}" || continue
