@@ -119,10 +119,14 @@
 # cleanup step, teardown verifies record exclusivity: no OTHER task record in
 # this home or any locally registered Firstmate home may name the same live path
 # in its worktree= or home=. One live path with two task records is the reuse
-# collision itself, whichever record is stale. The one exception is a slot whose
-# owner claim (below) names another task: this teardown is then records-only and
-# touches nothing under the slot, so the scan is skipped rather than stranding
-# the stale record and, with it, the claimant's own teardown.
+# collision itself, whichever record is stale. The exceptions follow the slot's
+# owner claim (below). A claim naming another task makes this teardown
+# records-only, touching nothing under the slot, so the scan is skipped rather
+# than stranding the stale record and, with it, the claimant's own teardown.
+# A claim naming this task makes another record's worktree= for the slot a
+# previous holder's, so that record is passed over rather than blocking the
+# claimant until the earlier task is cleaned up; another record's home= still
+# refuses.
 # That scan alone cannot prove THIS record is the current owner, because the task
 # that took the slot next may leave no record it can reach - its own worker may
 # have exited and its record been cleaned up, or it may live in a home this
@@ -2440,6 +2444,10 @@ require_exclusive_worktree_slot_record() {
         [ -n "$other_path" ] || continue
         other_slot=$(canonical_existing_dir "$other_path") || continue
         [ "$other_slot" = "$slot" ] || continue
+        # This task's claim proves the pool handed the slot on from that record.
+        if [ "$field" = worktree ] && fm_treehouse_slot_record_superseded "$slot" "$record_id" "$other_slot"; then
+          continue
+        fi
         echo "REFUSED: task $record_id's recorded worktree $slot is also task $other_id's recorded $field." >&2
         echo "Returning that pool slot would kill $other_id's processes and reset its copy, so nothing was changed - not even with --force." >&2
         echo "Reconcile whichever record is wrong (bin/fm-crew-state.sh $record_id; bin/fm-crew-state.sh $other_id), then re-run teardown." >&2
@@ -2459,7 +2467,8 @@ require_exclusive_task_worktree_slot() {
 # into the slot itself (bin/fm-wake-lib.sh owns the claim and its states).
 #
 # For a slot this task still claims, or one with no claim, the record scan above
-# proves that no OTHER task record names it. It cannot prove that THIS record is
+# proves that no OTHER task record names it, apart from a previous holder's
+# worktree= on a slot this task claims. It cannot prove that THIS record is
 # not the stale one, because the task that took the slot next may leave no record
 # this scan can reach: its own worker may have exited and its record been cleaned
 # up, or it may belong to a home this machine does not register. The claim closes that gap from the other side - it names the

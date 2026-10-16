@@ -1663,6 +1663,19 @@ fm_treehouse_slot_owner_state() {  # <worktree> <task-id>
   fi
 }
 
+# Succeed when another record's worktree= names this pool slot while the slot's
+# claim names this task: that record describes a previous holder the pool has
+# since handed the slot on from, so it cannot protect the slot from its claimant.
+# An absent or unreadable claim proves nothing and never succeeds.
+fm_treehouse_slot_record_superseded() {  # <slot> <claimant-id> <other-worktree>
+  local slot other
+  fm_treehouse_slot_owner_state "$1" "$2"
+  [ "$FM_TREEHOUSE_SLOT_OWNER" = mine ] || return 1
+  slot=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -P) || return 1
+  other=$(CDPATH='' cd -- "$3" 2>/dev/null && pwd -P) || return 1
+  [ "$slot" = "$other" ]
+}
+
 # Drop a task's own claim once its slot is back in the pool. Never removes
 # another task's claim, so a misdirected release cannot strip the evidence that
 # protects the slot's real owner.

@@ -1020,6 +1020,33 @@ test_stale_record_on_claimed_slot_retires_then_claimant_tears_down() {
   pass "fm-teardown: a stale record on a claimed slot retires, then the claimant tears down"
 }
 
+# The same reuse in the other order: the stale record must outlive the claimant,
+# for example while its pushed PR waits for a merge. The claimant's own claim
+# proves that record is a previous holder's, so the claimant tears down without
+# waiting on it, and the stale record is left untouched.
+test_claimant_tears_down_beside_previous_holders_record() {
+  local dir id=live-task other=stale-task
+
+  dir=$(make_case slot-claimant-first)
+  mark_case_as_treehouse_pool "$dir"
+  fm_write_meta "$dir/home/state/$id.meta" \
+    "window=firstmate:fm-$id" "endpoint_task_id=$id" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  fm_write_meta "$dir/home/state/$other.meta" \
+    "window=firstmate:fm-$other" "endpoint_task_id=$other" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  claim_pool_slot "$dir" "$id"
+
+  run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr" \
+    || fail "claimant teardown refused beside a previous holder's record: $(cat "$dir/stderr")"
+  assert_absent "$dir/home/state/$id.meta" "claimant teardown left its record"
+  assert_present "$dir/home/state/$other.meta" "claimant teardown removed the previous holder's record"
+  grep -Fq "treehouse <return>" "$dir/runtime.log" \
+    || fail "claimant teardown did not return its pool slot: $(cat "$dir/runtime.log")"
+
+  pass "fm-teardown: a slot's claimant tears down beside its previous holder's surviving record"
+}
+
 # The two states that must never become a false refusal: the task's own claim,
 # and no claim at all (a slot taken before claims existed, or already returned).
 test_own_and_absent_slot_claims_still_tear_down() {
@@ -1441,6 +1468,7 @@ test_cross_home_pool_slot_collision_refuses
 test_sole_slot_record_still_tears_down
 test_reassigned_pool_slot_finishes_own_cleanup_without_touching_the_slot
 test_stale_record_on_claimed_slot_retires_then_claimant_tears_down
+test_claimant_tears_down_beside_previous_holders_record
 test_own_and_absent_slot_claims_still_tear_down
 test_recorded_endpoint_that_changed_directory_still_tears_down
 test_project_lock_anchors_at_the_local_root_across_home_layouts

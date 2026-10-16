@@ -528,8 +528,11 @@
 # and dashes. Both derived and adopted names are refused if they match the primary
 # config name, config/ddev-protected-names, or another task's recorded ddev_name
 # in this home; refusal identifies the conflicting file and name without writing
-# the override. The override is excluded through Git's common info/exclude when
-# needed, without changing tracked ignore rules. Nested DDEV configs are not prepared.
+# the override. A record whose worktree= is this Treehouse pool slot, once this
+# task has claimed the slot, is the slot's previous holder and does not conflict:
+# the name belongs to the directory, which may derive it from its own path.
+# The override is excluded through Git's common info/exclude when needed,
+# without changing tracked ignore rules. Nested DDEV configs are not prepared.
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
 # When the home session's frozen trace-context decision is enabled (see
@@ -4641,6 +4644,15 @@ exclude_path() {
 # shellcheck source=bin/fm-ddev-name-lib.sh
 . "$SCRIPT_DIR/fm-ddev-name-lib.sh"
 DDEV_NAME=
+# A DDEV project is bound to its directory, so another record naming this same
+# pool slot, while the slot's owner claim names this task, describes the slot's
+# previous holder and its name is this slot's to adopt.
+task_ddev_record_superseded() {  # <other-meta>
+  local other_wt
+  fm_treehouse_pool_slot "$PROJ_ABS" "$WT" || return 1
+  other_wt=$(fm_meta_get "$1" worktree)
+  [ -n "$other_wt" ] && fm_treehouse_slot_record_superseded "$WT" "$ID" "$other_wt"
+}
 configure_task_ddev_name() {
   local config local_config base safe_base safe_id max_base common exclude existing primary protected_name meta line candidate
   [ "$KIND" = secondmate ] && return 0
@@ -4685,6 +4697,7 @@ configure_task_ddev_name() {
   fi
   for meta in "$STATE"/*.meta; do
     [ -f "$meta" ] && [ "$meta" != "$STATE/$ID.meta" ] || continue
+    task_ddev_record_superseded "$meta" && continue
     while IFS= read -r line || [ -n "$line" ]; do
       if [ "$line" = "ddev_name=$candidate" ]; then
         echo "error: DDEV local configuration $local_config name $candidate is already recorded by $meta" >&2

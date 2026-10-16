@@ -743,6 +743,43 @@ test_pool_slot_claim_follows_the_spawn_outcome() {
   pass "a Treehouse slot claim names the launched task, refuses when unclaimable, and is dropped by a locked abort"
 }
 
+# A project may derive its DDEV name from the slot path, so every task in a slot
+# adopts the same name. A previous holder's record of it must not refuse the
+# slot's new claimant, while a record of that name on another directory still does.
+test_pool_slot_adopts_ddev_name_its_previous_holder_recorded() {
+  local rec id out status name=project-check-slot1 holder
+  for holder in previous elsewhere; do
+    id="pool-ddev-$holder-r1"
+    rec=$(make_case "ddev-$holder" "$id")
+    read_case_record "$rec"
+    lay_out_as_pool_slot
+    mkdir -p "$CASE_DIR/publisher/.ddev" "$POOL_DIR/.ddev" "$CASE_DIR/elsewhere"
+    printf 'name: captain-project\n' > "$CASE_DIR/publisher/.ddev/config.yaml"
+    git -C "$CASE_DIR/publisher" add .ddev/config.yaml
+    git -C "$CASE_DIR/publisher" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm ddev
+    git -C "$CASE_DIR/publisher" push --quiet origin "$DEFAULT_BRANCH"
+    printf '.ddev/config.local.yaml\n' >> "$PROJECT_DIR/.git/info/exclude"
+    printf 'name: %s\n' "$name" > "$POOL_DIR/.ddev/config.local.yaml"
+    if [ "$holder" = previous ]; then
+      fm_write_meta "$HOME_DIR/state/held-task.meta" "worktree=$POOL_DIR" "ddev_name=$name" "kind=ship"
+    else
+      fm_write_meta "$HOME_DIR/state/held-task.meta" "worktree=$CASE_DIR/elsewhere" "ddev_name=$name" "kind=ship"
+    fi
+    out=$(run_spawn "$id" --mode no-mistakes --yolo off)
+    status=$?
+    assert_grep "ddev_name=$name" "$HOME_DIR/state/held-task.meta" "spawn changed the held task's record"
+    if [ "$holder" = previous ]; then
+      expect_code 0 "$status" "the slot's claimant should adopt its previous holder's DDEV name"$'\n'"$out"
+      assert_grep "ddev_name=$name" "$HOME_DIR/state/$id.meta" "the claimant did not record the slot's DDEV name"
+    else
+      [ "$status" -ne 0 ] || fail "spawn adopted a DDEV name another directory's task records"
+      assert_contains "$out" "is already recorded by" "the conflict refusal did not explain itself"
+      [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "a refused DDEV conflict published task metadata"
+    fi
+  done
+  pass "a slot's previous holder does not block its DDEV name; another directory's task still does"
+}
+
 publish_feature_branch() { # <branch>
   git -C "$CASE_DIR/publisher" checkout --quiet -b "$1"
   printf 'only on %s\n' "$1" > "$CASE_DIR/publisher/feature-only.txt"
@@ -876,6 +913,7 @@ test_scout_base_branch_refused_on_gerrit_forge() {
 
 test_remote_seeded_home_spawns_from_treehouse_pool
 test_pool_slot_claim_follows_the_spawn_outcome
+test_pool_slot_adopts_ddev_name_its_previous_holder_recorded
 test_linked_spawning_home_rejects_primary_before_refresh
 test_stale_pool_base_refreshes_before_branching
 test_named_base_branch_starts_from_that_branch
