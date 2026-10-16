@@ -2420,7 +2420,7 @@ collect_local_firstmate_states() {
 }
 
 require_exclusive_worktree_slot_record() {
-  local record_meta=$1 record_id=$2 record_state=$3 worktree=$4
+  local record_meta=$1 record_id=$2 record_state=$3 worktree=$4 record_home=$5
   local slot state_dir other other_id field other_path other_slot
   slot=$(canonical_existing_dir "$worktree") || return 0
   # A slot whose owner claim names another task was reassigned, so this record's
@@ -2445,7 +2445,7 @@ require_exclusive_worktree_slot_record() {
         other_slot=$(canonical_existing_dir "$other_path") || continue
         [ "$other_slot" = "$slot" ] || continue
         # This task's claim proves the pool handed the slot on from that record.
-        if [ "$field" = worktree ] && fm_treehouse_slot_record_superseded "$slot" "$record_id" "$other_slot"; then
+        if [ "$field" = worktree ] && fm_treehouse_slot_record_superseded "$slot" "$record_id" "$other_slot" "$record_home"; then
           continue
         fi
         echo "REFUSED: task $record_id's recorded worktree $slot is also task $other_id's recorded $field." >&2
@@ -2460,7 +2460,7 @@ require_exclusive_worktree_slot_record() {
 require_exclusive_task_worktree_slot() {
   local slot
   slot=$(teardown_live_slot_path) || return 0
-  require_exclusive_worktree_slot_record "$META" "$ID" "$STATE" "$slot"
+  require_exclusive_worktree_slot_record "$META" "$ID" "$STATE" "$slot" "$FM_HOME"
 }
 
 # Positive slot ownership, read from the claim the task that took the slot wrote
@@ -3050,7 +3050,7 @@ preflight_descendant_treehouse_slots() {
       continue
     fi
     fm_backend_validate_task_endpoint "$meta" "$task_id" || return 1
-    require_exclusive_worktree_slot_record "$meta" "$task_id" "$state" "$worktree" || return 1
+    require_exclusive_worktree_slot_record "$meta" "$task_id" "$state" "$worktree" "${state%/state}" || return 1
     owner_rc=0
     require_owned_worktree_slot_record "$task_id" "$worktree" || owner_rc=$?
     case "$owner_rc" in

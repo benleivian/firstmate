@@ -4651,7 +4651,7 @@ task_ddev_record_superseded() {  # <other-meta>
   local other_wt
   fm_treehouse_pool_slot "$PROJ_ABS" "$WT" || return 1
   other_wt=$(fm_meta_get "$1" worktree)
-  [ -n "$other_wt" ] && fm_treehouse_slot_record_superseded "$WT" "$ID" "$other_wt"
+  [ -n "$other_wt" ] && fm_treehouse_slot_record_superseded "$WT" "$ID" "$other_wt" "$FM_HOME"
 }
 configure_task_ddev_name() {
   local config local_config base safe_base safe_id max_base common exclude existing primary protected_name meta line candidate

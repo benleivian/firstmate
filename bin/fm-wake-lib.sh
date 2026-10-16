@@ -1667,10 +1667,14 @@ fm_treehouse_slot_owner_state() {  # <worktree> <task-id>
 # claim names this task: that record describes a previous holder the pool has
 # since handed the slot on from, so it cannot protect the slot from its claimant.
 # An absent or unreadable claim proves nothing and never succeeds.
-fm_treehouse_slot_record_superseded() {  # <slot> <claimant-id> <other-worktree>
-  local slot other
+fm_treehouse_slot_record_superseded() {  # <slot> <claimant-id> <other-worktree> <claimant-home>
+  local slot other owner_home claimant_home
   fm_treehouse_slot_owner_state "$1" "$2"
   [ "$FM_TREEHOUSE_SLOT_OWNER" = mine ] || return 1
+  [ -n "$FM_TREEHOUSE_SLOT_OWNER_HOME" ] && [ -n "$4" ] || return 1
+  owner_home=$(CDPATH='' cd -- "$FM_TREEHOUSE_SLOT_OWNER_HOME" 2>/dev/null && pwd -P) || return 1
+  claimant_home=$(CDPATH='' cd -- "$4" 2>/dev/null && pwd -P) || return 1
+  [ "$owner_home" = "$claimant_home" ] || return 1
   slot=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -P) || return 1
   other=$(CDPATH='' cd -- "$3" 2>/dev/null && pwd -P) || return 1
   [ "$slot" = "$other" ]
