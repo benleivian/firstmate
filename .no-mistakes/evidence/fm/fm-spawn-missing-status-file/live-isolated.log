@@ -1,0 +1,12 @@
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/isolated/home
+zsh:1: no such file or directory: ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/isolated/absent.status
+BASELINE: zsh refuses append to absent status
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/isolated/home
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+spawned fresh harness=zsh kind=scout window=fm-lab-status-local:w1:p2 worktree=~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/isolated/project/.treehouse/project-a93410/1/project
+fresh spawn exit=0
+fresh empty status is already seen (no creation wake)
+worker append remains unread for supervisor
+working [at=1]: real zsh worker reported
+{"error":{"code":"pane_not_found","message":"pane p2 not found"},"id":"cli:pane:read"}
+lab teardown exit=0; default-session tripwire unchanged

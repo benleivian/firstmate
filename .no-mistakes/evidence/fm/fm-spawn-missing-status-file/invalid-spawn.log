@@ -1,0 +1,4 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/refusal/home
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+error: status file ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/refusal/home/state/invalid.status could not be created as a writable file; the worker could not report, so it was not launched
+warning: leaving task invalid's slot claim on ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/refusal/project/.treehouse/project-8e4224/1/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it

@@ -1,0 +1,22 @@
+treehouse get
+❯ treehouse get
+A new version of treehouse is available: v2.1.1 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Entered worktree at ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/project/.
+treehouse/project-2dbfd0/2/project. Type 'exit' to return.
+❯ cd -- '~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/project/.
+treehouse/project-2dbfd0/2/project'
+❯ export GOTMPDIR=/tmp/fm-kept/gotmp
+export COMPACT_ADVISER_DISABLE=1
+❯ export COMPACT_ADVISER_DISABLE=1
+export FM_TASK_ID=kept
+❯ export FM_TASK_ID=kept
+❯ . '/tmp/fm-kept+a361a73abaf88a91a1ea835375a9b693ed100cc3b4fedaaf79b7d12e3f349e28/launch.s1792184728.95213.4726.sh'
+status existed at worker start
+append succeeded
+
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/project/.treehouse/project-2dbfd
+0/2/project @78565710
+❯

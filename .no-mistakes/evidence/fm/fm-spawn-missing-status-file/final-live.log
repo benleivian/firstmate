@@ -1,0 +1,24 @@
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/home
+zsh:1: no such file or directory: ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/absent.status
+BASELINE: zsh refuses append to absent status
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/home
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+spawned fresh harness=zsh kind=scout window=fm-lab-status-final:w1:p2 worktree=~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/project/.treehouse/project-2dbfd0/1/project
+fresh spawn exit=0
+fresh empty status is already seen (no creation wake)
+worker append remains unread for supervisor
+working [at=1]: real zsh worker reported
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/home
+spawned kept harness=zsh kind=scout window=fm-lab-status-final:w2:p2 worktree=~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/project/.treehouse/project-2dbfd0/2/project
+kept spawn exit=0
+earlier report preserved byte-for-byte
+worker append remains unread for supervisor
+failed [at=1]: earlier report
+working [at=1]: real zsh worker reported
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/home
+error: status file ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/home/state/invalid.status could not be created as a writable file; the worker could not report, so it was not launched
+warning: herdr presentation cleanup could not verify the exact pane; refusing focus-unsafe pane close
+warning: leaving task invalid's slot claim on ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/project/.treehouse/project-2dbfd0/3/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+invalid spawn exit=1
+unusable status path refused; worker never started
+lab teardown exit=0; default-session tripwire unchanged

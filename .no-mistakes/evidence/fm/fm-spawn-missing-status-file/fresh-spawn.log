@@ -1,0 +1,3 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/home
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+spawned fresh harness=zsh kind=scout window=fm-lab-status-final:w1:p2 worktree=~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/final/project/.treehouse/project-2dbfd0/1/project

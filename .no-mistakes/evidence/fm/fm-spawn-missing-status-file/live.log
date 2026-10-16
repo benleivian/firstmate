@@ -1,0 +1,24 @@
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/home
+zsh:1: no such file or directory: ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/absent.status
+BASELINE: zsh refuses append to absent status
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/home
+warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+spawned fresh harness=zsh kind=scout window=fm-lab-status-live:w1:p2 worktree=~/.treehouse/project-6c475d/1/project
+fresh spawn exit=0
+fresh empty status is already seen (no creation wake)
+worker append remains unread for supervisor
+working [at=1]: real zsh worker reported
+{"error":{"code":"pane_not_found","message":"pane fm-lab-status-live:w1:p2 not found"},"id":"cli:pane:read"}
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/home
+spawned kept harness=zsh kind=scout window=fm-lab-status-live:w2:p2 worktree=~/.treehouse/project-6c475d/2/project
+kept spawn exit=0
+earlier report preserved byte-for-byte
+worker append remains unread for supervisor
+failed [at=1]: earlier report
+working [at=1]: real zsh worker reported
+{"error":{"code":"pane_not_found","message":"pane fm-lab-status-live:w2:p2 not found"},"id":"cli:pane:read"}
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/home
+error: status file ~/.no-mistakes/worktrees/dca6a1f2fc96/01M538ASFP2524EWKK3ZMXWSSQ/.test-status-lab/home/state/invalid.status could not be created as a writable file; the worker could not report, so it was not launched
+warning: herdr presentation cleanup could not verify the exact pane; refusing focus-unsafe pane close
+warning: leaving task invalid's slot claim on ~/.treehouse/project-6c475d/3/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+invalid spawn exit=1
