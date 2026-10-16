@@ -2156,6 +2156,48 @@ test_claude_worker_launch_covers_task_channel_dirs() {
   pass "claude worker launches cover the task-channel directories in bypass and auto modes"
 }
 
+# A worker reports by appending to state/<id>.status, but zsh with NO_CLOBBER
+# set refuses `>>` on a missing file ("no such file or directory"), so a worker
+# whose tool shell inherits that option could never report unless the spawn
+# creates the log first. A fresh log must exist before the worker starts, be
+# appendable under that option, and not itself wake the watcher; an existing
+# log must be left byte-for-byte untouched.
+test_spawn_creates_the_status_file_before_launch() {
+  local rec id out status statusf
+  id="status-file-fresh-z1"
+  rec=$(make_spawn_case status-file-fresh claude "$id")
+  read_case_record "$rec"
+  statusf="$HOME_DIR/state/$id.status"
+
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn for the status-file check should succeed"$'\n'"$out"
+  [ -f "$statusf" ] && [ ! -s "$statusf" ] || fail "spawn did not leave an empty status file at $statusf"
+  FM_STATE_OVERRIDE="$HOME_DIR/state" bash -c '. "$1"; fm_wake_signal_seen_current "$2" "$3"' \
+    _ "$ROOT/bin/fm-wake-lib.sh" "$HOME_DIR/state" "$statusf" \
+    || fail "creating the empty status file would itself wake the watcher"
+  if command -v zsh >/dev/null 2>&1; then
+    zsh -f -o noclobber -c 'echo "working [at=1]: setup done" >> "$1"' _ "$statusf" \
+      || fail "a NO_CLOBBER zsh worker could not append to the spawned status file"
+    assert_grep 'working [at=1]: setup done' "$statusf" "the worker's append did not land"
+    FM_STATE_OVERRIDE="$HOME_DIR/state" bash -c '. "$1"; fm_wake_signal_seen_current "$2" "$3"' \
+      _ "$ROOT/bin/fm-wake-lib.sh" "$HOME_DIR/state" "$statusf" \
+      && fail "the worker's first status line did not wake the watcher"
+  fi
+
+  id="status-file-kept-z2"
+  rec=$(make_spawn_case status-file-kept claude "$id")
+  read_case_record "$rec"
+  statusf="$HOME_DIR/state/$id.status"
+  printf '%s\n' 'failed [at=1]: an earlier incarnation' > "$statusf"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR")
+  status=$?
+  expect_code 0 "$status" "claude spawn over an existing status log should succeed"$'\n'"$out"
+  [ "$(cat "$statusf")" = 'failed [at=1]: an earlier incarnation' ] \
+    || fail "spawn rewrote an existing status log: $(cat "$statusf")"
+  pass "spawn creates an appendable, non-waking status file before launch and keeps an existing log"
+}
+
 test_claude_permission_mode_invalid_refuses_before_endpoint_or_metadata() {
   local rec id out status
   id=permmode-invalid-z22
@@ -2250,6 +2292,7 @@ test_claude_permission_mode_bypass_matches_absent_launch
 test_claude_permission_mode_auto_swaps_only_the_permission_flag
 test_claude_permission_mode_auto_reaches_scout_launch
 test_claude_worker_launch_covers_task_channel_dirs
+test_spawn_creates_the_status_file_before_launch
 test_claude_permission_mode_invalid_refuses_before_endpoint_or_metadata
 test_non_claude_harness_ignores_claude_permission_mode
 test_non_claude_harness_ignores_config_dir
