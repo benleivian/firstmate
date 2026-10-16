@@ -80,16 +80,17 @@ test_runs_at_most_daily_and_retries_docker_failure() {
   pass "fm-ddev-bloat-check: evaluates at most daily and retries when Docker is unavailable"
 }
 
-test_config_thresholds_override_defaults() {
+test_fixed_threshold_boundaries() {
   local out
   reset_home
-  printf '# local limits\nddev-global-cache-gb=4\nlocal-volumes-gb=0\n' > "$HOME_DIR/config/ddev-bloat-thresholds"
-  set_sizes 5GB 10GB
+  set_sizes 15GB 45GB
   out=$(run_check "$DAY") || fail "$out"
-  assert_contains "$out" 'ddev-global-cache is 5.0 GB (threshold 4 GB)' "configured cache threshold was ignored"
-  assert_contains "$out" 'config/ddev-bloat-thresholds has an invalid line' "invalid threshold was not reported"
-  assert_not_contains "$out" 'local Docker volumes' "invalid volume threshold replaced the default"
-  pass "fm-ddev-bloat-check: config thresholds override defaults and invalid lines are reported"
+  [ -z "$out" ] || fail "exact thresholds notified: $out"
+  set_sizes 15.001GB 45GB
+  out=$(run_check $((DAY * 2))) || fail "$out"
+  assert_contains "$out" 'threshold 15 GB' "cache crossing was missed"
+  assert_contains "$out" 'threshold 60 GB' "total crossing was missed"
+  pass "fm-ddev-bloat-check: fixed decimal GB boundaries"
 }
 
 test_arm_registers_and_disarm_removes() {
@@ -111,5 +112,5 @@ test_arm_registers_and_disarm_removes() {
 
 test_notifies_once_per_crossing
 test_runs_at_most_daily_and_retries_docker_failure
-test_config_thresholds_override_defaults
+test_fixed_threshold_boundaries
 test_arm_registers_and_disarm_removes

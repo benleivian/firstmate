@@ -12,10 +12,8 @@
 # A due evaluation runs one bounded `docker system df -v` and compares the
 # ddev-global-cache volume and the sum of all local volumes against thresholds:
 #   ddev-global-cache-gb=15   local-volumes-gb=60   (decimal GB, Docker's units)
-# Optional config/ddev-bloat-thresholds overrides either with one key=value line;
-# blank and # lines are ignored, and any other line is reported as invalid.
 # It prints one ddev-bloat: line, which the watcher turns into a check wake, only
-# when the set of crossed thresholds (or a config problem) differs from the last
+# when the set of crossed thresholds differs from the last
 # reported set; it stays silent while that set is unchanged and re-arms once
 # usage falls back under every threshold.
 # Docker being absent, stopped, or slow is silent and retried on the next poll.
@@ -30,12 +28,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
-CONFIG_DIR="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 CHECK_ID=ddev-bloat
 CHECK_SHIM="$STATE/$CHECK_ID.check.sh"
 CHECK_TRUST="$STATE/$CHECK_ID.check-trust"
 RECORD="$STATE/.ddev-bloat-check"
 INTERVAL=86400
+# Fixed limits in decimal GB, matching Docker volume sizes.
+CACHE_THRESHOLD_GB=15
+VOLUMES_THRESHOLD_GB=60
 
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
@@ -55,7 +55,7 @@ record_value() {  # <key>
 }
 
 run_check() {
-  local now last cache_gb=15 volumes_gb=60 invalid='' line key value sizes cache_bytes total_bytes
+  local now last sizes cache_bytes total_bytes
   local found='' keys='' previous tmp
   case "${FM_DDEV_BLOAT_NOW:-}" in
     ''|*[!0-9]*) now=$(date +%s) ;;
@@ -64,21 +64,6 @@ run_check() {
   last=$(record_value last_eval)
   case "$last" in ''|*[!0-9]*) last=0 ;; esac
   [ $((now - last)) -ge "$INTERVAL" ] || return 0
-
-  if [ -f "$CONFIG_DIR/ddev-bloat-thresholds" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-      case "$line" in ''|'#'*) continue ;; esac
-      key=${line%%=*}
-      value=${line#*=}
-      case "$key=$value" in
-        ddev-global-cache-gb=[1-9]*|local-volumes-gb=[1-9]*)
-          case "$value" in *[!0-9]*) invalid=1; continue ;; esac
-          if [ "$key" = ddev-global-cache-gb ]; then cache_gb=$value; else volumes_gb=$value; fi
-          ;;
-        *) invalid=1 ;;
-      esac
-    done < "$CONFIG_DIR/ddev-bloat-thresholds"
-  fi
 
   command -v docker >/dev/null 2>&1 || return 0
   sizes=$(fm_run_timed 20 docker system df -v --format '{{json .}}' 2>/dev/null | python3 -c '
@@ -96,17 +81,13 @@ print(cache, sum(size(v["Size"]) for v in volumes))
   read -r cache_bytes total_bytes <<< "$sizes"
   case "$cache_bytes$total_bytes" in ''|*[!0-9]*) return 0 ;; esac
 
-  if [ "$cache_bytes" -gt $((cache_gb * 1000000000)) ]; then
-    found="$found; ddev-global-cache is $(gb "$cache_bytes") GB (threshold $cache_gb GB)"
+  if [ "$cache_bytes" -gt $((CACHE_THRESHOLD_GB * 1000000000)) ]; then
+    found="$found; ddev-global-cache is $(gb "$cache_bytes") GB (threshold $CACHE_THRESHOLD_GB GB)"
     keys="$keys cache"
   fi
-  if [ "$total_bytes" -gt $((volumes_gb * 1000000000)) ]; then
-    found="$found; local Docker volumes total $(gb "$total_bytes") GB (threshold $volumes_gb GB)"
+  if [ "$total_bytes" -gt $((VOLUMES_THRESHOLD_GB * 1000000000)) ]; then
+    found="$found; local Docker volumes total $(gb "$total_bytes") GB (threshold $VOLUMES_THRESHOLD_GB GB)"
     keys="$keys volumes"
-  fi
-  if [ -n "$invalid" ]; then
-    found="$found; config/ddev-bloat-thresholds has an invalid line that was ignored"
-    keys="$keys config"
   fi
   previous=$(record_value reported)
   if [ -n "$keys" ] && [ "$keys" != "$previous" ]; then

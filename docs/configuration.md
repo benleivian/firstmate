@@ -531,7 +531,7 @@ The file is not inherited into secondmate homes.
 The [cleanup script header and `--help`](../bin/fm-ddev-clean.sh) own selection patterns and output details.
 The [spawn script header and `--help`](../bin/fm-spawn.sh) own worker DDEV overrides and name-conflict refusals, including this list's use during spawn.
 
-## DDEV volume bloat check (config/ddev-bloat-thresholds)
+## DDEV volume bloat check
 
 `bin/fm-ddev-bloat-check.sh arm` registers a daily watcher check that measures the `ddev-global-cache` volume and the total of all local Docker volumes.
 It writes `state/ddev-bloat.check.sh` and binds it through the existing authenticated watcher-check mechanism, so no extra daemon or scheduler is installed, and an armed home keeps needing a watcher after its last task is torn down.
@@ -541,15 +541,6 @@ Use `bin/fm-ddev-bloat-check.sh disarm` to remove the check and its record.
 The check raises one notification when a threshold is first crossed, suggesting `/ddevclean`, and stays silent while the same thresholds stay crossed.
 It never deletes, prunes, or stops anything; cleanup remains the captain-approved `/ddevclean` path.
 
-Optional local, gitignored `config/ddev-bloat-thresholds` overrides the decimal-GB defaults with one `key=value` line each:
-
-```text
-ddev-global-cache-gb=15
-local-volumes-gb=60
-```
-
-Blank and `#` lines are ignored, and an invalid line is reported in the notification rather than silently applied.
-The file is not inherited into secondmate homes.
 The [check script header and `--help`](../bin/fm-ddev-bloat-check.sh) own the daily gate, measurement, and notification details.
 
 ## Away-mode supervisor backend (FM_SUPERVISOR_BACKEND / FM_SUPERVISOR_TARGET)

@@ -37,6 +37,7 @@ if [ "${1:-}" = list ] && [ "${2:-}" = --json-output ]; then
   exit 0
 fi
 printf 'ddev %s\n' "$*" >> "$ACTION_LOG"
+[ -z "${DDEV_REMOVE_FAIL:-}" ] || exit 1
 if [ -n "${DDEV_UNLIST_ON_DELETE:-}" ] && [ "${2:-}" != images ]; then
   python3 -c '
 import json, sys
@@ -829,6 +830,69 @@ test_fleet_cache_reclaims_unregistered_entries_only() {
   pass "fm-ddev-clean: fleet cache cleanup removes only unregistered, idle, unprotected entries"
 }
 
+test_cache_recorded_removal() {
+  local out mode result entry
+  for mode in stop delete; do
+    for result in removed listed failed; do
+      prepare_cache_fixture
+      if [ "$mode" = stop ]; then
+        rm -rf "$HOME_DIR/.treehouse/project/1/stale"
+      fi
+      fm_write_meta "$STATE/stale.meta" "ddev_name=stale-review-01abcdefgh" \
+        "worktree=$HOME_DIR/.treehouse/project/1/missing"
+      mkdir -p "$DOCKER_CACHE_DIR/nvm_dir/stale-review-01abcdefgh-web"
+      case "$result" in
+        removed) out=$(DDEV_UNLIST_ON_DELETE=1 run_clean --apply 2>&1) ;;
+        listed) out=$(run_clean --apply 2>&1) ;;
+        failed) out=$(DDEV_REMOVE_FAIL=1 run_clean --apply 2>&1) ;;
+      esac
+      for entry in n_prefix nvm_dir; do
+        if [ "$result" = removed ]; then
+          [ ! -e "$DOCKER_CACHE_DIR/$entry/stale-review-01abcdefgh-web" ] \
+            || fail "$mode retained recorded cache: $out"
+        else
+          [ -d "$DOCKER_CACHE_DIR/$entry/stale-review-01abcdefgh-web" ] \
+            || fail "$mode reclaimed unverified cache: $out"
+        fi
+      done
+      assert_cache_kept
+    done
+  done
+  pass "fm-ddev-clean: recorded caches require successful verified project removal"
+}
+
+test_cache_running_project_preview() {
+  local out applied representation entry
+  for representation in label name; do
+    prepare_cache_fixture
+    mkdir -p "$DOCKER_CACHE_DIR/nvm_dir/stale-review-01abcdefgh-web"
+    python3 - "$DOCKER_CONTAINER_INSPECT" "$representation" <<'PYFIX'
+import json, sys
+path, representation = sys.argv[1:]
+items = json.load(open(path))
+item = items[0]
+if representation == "label":
+    item["Config"]["Labels"]["com.ddev.site-name"] = "stale-review-01abcdefgh"
+else:
+    item["Name"] = "/ddev-stale-review-01abcdefgh-web"
+json.dump(items, open(path, "w"))
+PYFIX
+    out=$(run_clean 2>&1) || fail "$out"
+    assert_contains "$out" 'cache-orphan=4 cache-bytes=' "preview omitted running project's caches"
+    assert_not_contains "$out" 'cache-bytes=0 ' "preview omitted cache bytes"
+    for entry in n_prefix nvm_dir; do
+      assert_contains "$out" "orphan-cache: $entry/stale-review-01abcdefgh-web" "preview omitted $entry"
+      [ -d "$DOCKER_CACHE_DIR/$entry/stale-review-01abcdefgh-web" ] || fail "preview deleted cache"
+    done
+    applied=$(DDEV_UNLIST_ON_DELETE=1 run_clean --apply 2>&1) || fail "$applied"
+    for entry in n_prefix nvm_dir; do
+      [ -d "$DOCKER_CACHE_DIR/$entry/stale-review-01abcdefgh-web" ] || fail "apply ignored fresh running $representation"
+    done
+    assert_cache_kept
+  done
+  pass "fm-ddev-clean: preview anticipates removal while apply protects running containers"
+}
+
 test_fleet_cache_refuses_without_keep_list() {
   local out
   prepare_cache_fixture
@@ -890,5 +954,7 @@ test_refresh_inventory_failures_are_visible
 test_legacy_teardown_cleans_only_selected_listed_resources
 
 test_fleet_cache_reclaims_unregistered_entries_only
+test_cache_recorded_removal
+test_cache_running_project_preview
 test_fleet_cache_refuses_without_keep_list
 test_worktree_cache_removes_only_its_deleted_project

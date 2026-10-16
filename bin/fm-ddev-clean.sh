@@ -473,6 +473,7 @@ VOLUME_REMAINING_COUNT=0
 ORPHAN_RESIDUAL_COUNT=0
 ORPHAN_REMOVED_COUNT=0
 ORPHAN_FAILED_COUNT=0
+DDEV_REMOVED_NAMES=()
 DDEV_REMOVED_COUNT=0
 DDEV_FAILED_COUNT=0
 
@@ -763,12 +764,22 @@ select_cache_orphans() {
     base=${path#*/}
     name=${base%-web}
     case "$name" in */*) continue ;; esac
-    name_in "$name" ${listed[@]+"${listed[@]}"} ${running[@]+"${running[@]}"} && continue
+    name_in "$name" ${listed[@]+"${listed[@]}"} && continue
+    if name_in "$name" ${running[@]+"${running[@]}"}; then
+      [ "$APPLY" -eq 0 ] && selected_ddev_site "$name" || continue
+    fi
     if [ "$MODE" = worktree ]; then
       name_in "$name" "${candidates[@]}" || continue
       [ "$(current_owner_verdict "$name")" = eligible ] || continue
     else
-      protected_by_config "$name" || registered_project_name "$name" || recorded_ddev_name "$name" && continue
+      protected_by_config "$name" || registered_project_name "$name" && continue
+      if recorded_ddev_name "$name"; then
+        if [ "$APPLY" -eq 1 ]; then
+          name_in "$name" ${DDEV_REMOVED_NAMES[@]+"${DDEV_REMOVED_NAMES[@]}"} || continue
+        else
+          selected_ddev_site "$name" || continue
+        fi
+      fi
     fi
     printf 'orphan-cache: %s (%s)\n' "$path" "$name"
     CACHE_PATHS+=("$path")
@@ -824,6 +835,7 @@ for i in "${!STOP_NAMES[@]}"; do
   print_project stop-unlist "${STOP_NAMES[$i]}" "${STOP_ROOTS[$i]}"
   if run_cleanup "ddev stop --remove-data --omit-snapshot --unlist ${STOP_NAMES[$i]}" \
     ddev stop --remove-data --omit-snapshot --unlist "${STOP_NAMES[$i]}"; then
+    DDEV_REMOVED_NAMES+=("${STOP_NAMES[$i]}")
     DDEV_REMOVED_COUNT=$((DDEV_REMOVED_COUNT + 1))
   else
     printf 'residual-project: %s (stop-unlist failed)\n' "${STOP_NAMES[$i]}"
@@ -833,6 +845,7 @@ done
 for i in "${!DELETE_NAMES[@]}"; do
   print_project delete "${DELETE_NAMES[$i]}" "${DELETE_ROOTS[$i]}"
   if run_cleanup "ddev delete -Oy ${DELETE_NAMES[$i]}" ddev delete -Oy "${DELETE_NAMES[$i]}"; then
+    DDEV_REMOVED_NAMES+=("${DELETE_NAMES[$i]}")
     DDEV_REMOVED_COUNT=$((DDEV_REMOVED_COUNT + 1))
   else
     printf 'residual-project: %s (delete failed)\n' "${DELETE_NAMES[$i]}"
