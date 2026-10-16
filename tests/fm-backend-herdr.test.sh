@@ -5407,6 +5407,33 @@ EOF
   pass "fm_backend_herdr_create_task: prunes exactly the seeded default tab container_ensure identified, once the first real task tab exists"
 }
 
+test_seeded_prune_accepts_herdr_cwd_relabel_only() {
+  # Real Herdr shows the seeded tab as "1" right after create, then relabels it
+  # "1 · <cwd>" a few hundred milliseconds later when its shell reports a
+  # directory; a spawn that reaches the prune after that relabel must still
+  # prune it, while a human rename must still block the prune.
+  local dir log state fb raw container seeded wsid label want tabcount
+  for label in "1 · proj" notes; do
+    dir="$TMP_ROOT/prune-relabel-${label%% *}"; mkdir -p "$dir"; log="$dir/log"; state="$dir/state.json"; : > "$log"
+    fb=$(make_herdr_statefake "$dir")
+    raw=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_FAKE_HERDR_STATE="$state" HERDR_SESSION=fmtest \
+      bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_container_ensure /proj' "$ROOT" ) \
+      || fail "container_ensure failed against the stateful fake"
+    container=${raw%%$'\t'*}
+    seeded=${raw#*$'\t'}
+    wsid=${container#*:}
+    jq --arg t "$seeded" --arg l "$label" '(.tabs[] | select(.tab_id == $t) | .label) = $l' "$state" > "$state.tmp" \
+      && mv "$state.tmp" "$state"
+    PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_FAKE_HERDR_STATE="$state" HERDR_SESSION=fmtest \
+      bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_create_task "$1" "$2" /proj "$3"' "$ROOT" "$container" fm-relabel "$seeded" >/dev/null \
+      || fail "create_task failed against the stateful fake"
+    want=2; [ "$label" = notes ] || want=1
+    tabcount=$(jq -r --arg w "$wsid" '[.tabs[]|select(.workspace_id==$w)]|length' "$state")
+    [ "$tabcount" = "$want" ] || fail "seeded tab labeled '$label' should leave $want tab(s), got $tabcount: $(jq -c '.tabs' "$state")"
+  done
+  pass "fm_backend_herdr_create_task: prunes the seeded tab after Herdr's cwd relabel, never after a human rename"
+}
+
 test_repeated_cycles_reuse_one_workspace_no_orphans() {
   local dir log state fb i raw container seeded wsid ids pane first_ws="" wscount total tabcount created
   dir="$TMP_ROOT/cycles"; mkdir -p "$dir"; log="$dir/log"; state="$dir/state.json"; : > "$log"
@@ -5943,6 +5970,7 @@ test_container_ensure_reuses_existing_workspace
 test_container_ensure_creates_with_no_focus_flag
 test_container_ensure_uses_secondmate_home_label
 test_workspace_ensure_prunes_default_tab
+test_seeded_prune_accepts_herdr_cwd_relabel_only
 test_repeated_cycles_reuse_one_workspace_no_orphans
 test_adopted_workspace_never_prunes_default_tab
 test_label_collision_startup_workspace_leaves_live_tab_alone
