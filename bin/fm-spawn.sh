@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
+# Before sending the launch command, ensure state/<id>.status is a writable
+# regular file, creating it if absent and preserving any existing log.
+# Refuse launch if that check fails; mark a newly created empty log current
+# so creation alone does not wake the watcher.
 # Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
@@ -5774,9 +5778,7 @@ fi
 # create a missing file in every worker shell: zsh with NO_CLOBBER set (and
 # APPEND_CREATE unset) refuses `>>` on a missing path with "no such file or
 # directory", so a worker whose tool shell inherits that option could never
-# report. The file is created here, before launch, and an existing log is left
-# untouched. A freshly created empty log is marked current so its creation is
-# not itself a wake; that marking only ever covers zero bytes.
+# report. This implements the header's status-file launch contract.
 SPAWN_STATUS_FILE="$STATE/$ID.status"
 if [ ! -e "$SPAWN_STATUS_FILE" ] && [ ! -L "$SPAWN_STATUS_FILE" ]; then
   if : >>"$SPAWN_STATUS_FILE" 2>/dev/null; then
