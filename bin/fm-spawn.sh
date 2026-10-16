@@ -5770,6 +5770,23 @@ if ! (umask 077 && printf '%s\n' "$LAUNCH" >"$LAUNCH_STAGE" &&
   echo "error: could not stage the launch command at $LAUNCH_FILE" >&2
   exit 1
 fi
+# The worker reports by appending to its status file, but an append does not
+# create a missing file in every worker shell: zsh with NO_CLOBBER set (and
+# APPEND_CREATE unset) refuses `>>` on a missing path with "no such file or
+# directory", so a worker whose tool shell inherits that option could never
+# report. The file is created here, before launch, and an existing log is left
+# untouched. A freshly created empty log is marked current so its creation is
+# not itself a wake; that marking only ever covers zero bytes.
+SPAWN_STATUS_FILE="$STATE/$ID.status"
+if [ ! -e "$SPAWN_STATUS_FILE" ] && [ ! -L "$SPAWN_STATUS_FILE" ]; then
+  if : >>"$SPAWN_STATUS_FILE" 2>/dev/null; then
+    fm_wake_status_mark_current "$STATE" "$SPAWN_STATUS_FILE" 2>/dev/null || true
+  fi
+fi
+if [ ! -f "$SPAWN_STATUS_FILE" ] || [ ! -w "$SPAWN_STATUS_FILE" ]; then
+  echo "error: status file $SPAWN_STATUS_FILE could not be created as a writable file; the worker could not report, so it was not launched" >&2
+  exit 1
+fi
 sleep 0.3
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"
