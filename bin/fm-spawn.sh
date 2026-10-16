@@ -528,8 +528,11 @@
 # and dashes. Both derived and adopted names are refused if they match the primary
 # config name, config/ddev-protected-names, or another task's recorded ddev_name
 # in this home; refusal identifies the conflicting file and name without writing
-# the override. The override is excluded through Git's common info/exclude when
-# needed, without changing tracked ignore rules. Nested DDEV configs are not prepared.
+# the override. A previous holder's record does not conflict when
+# fm_treehouse_slot_record_superseded (bin/fm-wake-lib.sh) proves it superseded:
+# the name belongs to the directory, which may derive it from its own path.
+# The override is excluded through Git's common info/exclude when needed,
+# without changing tracked ignore rules. Nested DDEV configs are not prepared.
 # Every fresh spawn or relaunch records a new spawn_gen= incarnation token so durable
 # consumers can distinguish a replacement worker that reuses the same task id.
 # When the home session's frozen trace-context decision is enabled (see
@@ -3834,10 +3837,10 @@ else
     # it stands up a DIFFERENT home's own workspace by design - so it asks for
     # the per-home container instead of inheriting this launcher's.
     HERDR_LABEL_HOME=$FM_HOME
-    HERDR_LAUNCHER_RELATIONSHIP=launcher-home
+    HERDR_LAUNCHER_RELATIONSHIP='launcher-home'
     if [ "$KIND" = secondmate ]; then
       HERDR_LABEL_HOME=$PROJ_ABS
-      HERDR_LAUNCHER_RELATIONSHIP=other-home
+      HERDR_LAUNCHER_RELATIONSHIP='other-home'
     fi
     HERDR_PRESENTATION_JOURNAL=$(fm_backend_herdr_projection_journal_path "$STATE" "$ID")
     HERDR_PROJECTED=0
@@ -4641,6 +4644,14 @@ exclude_path() {
 # shellcheck source=bin/fm-ddev-name-lib.sh
 . "$SCRIPT_DIR/fm-ddev-name-lib.sh"
 DDEV_NAME=
+# Limit the shared supersession proof to a verified pool slot before adopting
+# the directory's DDEV name; the header above owns the adoption policy.
+task_ddev_record_superseded() {  # <other-meta>
+  local other_wt
+  fm_treehouse_pool_slot "$PROJ_ABS" "$WT" || return 1
+  other_wt=$(fm_meta_get "$1" worktree)
+  [ -n "$other_wt" ] && fm_treehouse_slot_record_superseded "$WT" "$ID" "$other_wt" "$FM_HOME"
+}
 configure_task_ddev_name() {
   local config local_config base safe_base safe_id max_base common exclude existing primary protected_name meta line candidate
   [ "$KIND" = secondmate ] && return 0
@@ -4685,6 +4696,7 @@ configure_task_ddev_name() {
   fi
   for meta in "$STATE"/*.meta; do
     [ -f "$meta" ] && [ "$meta" != "$STATE/$ID.meta" ] || continue
+    task_ddev_record_superseded "$meta" && continue
     while IFS= read -r line || [ -n "$line" ]; do
       if [ "$line" = "ddev_name=$candidate" ]; then
         echo "error: DDEV local configuration $local_config name $candidate is already recorded by $meta" >&2

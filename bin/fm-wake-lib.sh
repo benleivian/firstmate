@@ -1663,6 +1663,25 @@ fm_treehouse_slot_owner_state() {  # <worktree> <task-id>
   fi
 }
 
+# Succeed when another record's worktree= names this pool slot while the slot's
+# claim names this task and its own Firstmate home: that record describes a
+# previous holder, so it cannot protect the slot from its claimant. Both worktree
+# paths and both home paths must resolve to the same respective physical directory.
+# An absent or unreadable claim, or an empty, unresolvable, or different claim
+# home proves nothing and never succeeds, even when task IDs match across homes.
+fm_treehouse_slot_record_superseded() {  # <slot> <claimant-id> <other-worktree> <claimant-home>
+  local slot other owner_home claimant_home
+  fm_treehouse_slot_owner_state "$1" "$2"
+  [ "$FM_TREEHOUSE_SLOT_OWNER" = mine ] || return 1
+  [ -n "$FM_TREEHOUSE_SLOT_OWNER_HOME" ] && [ -n "$4" ] || return 1
+  owner_home=$(CDPATH='' cd -- "$FM_TREEHOUSE_SLOT_OWNER_HOME" 2>/dev/null && pwd -P) || return 1
+  claimant_home=$(CDPATH='' cd -- "$4" 2>/dev/null && pwd -P) || return 1
+  [ "$owner_home" = "$claimant_home" ] || return 1
+  slot=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -P) || return 1
+  other=$(CDPATH='' cd -- "$3" 2>/dev/null && pwd -P) || return 1
+  [ "$slot" = "$other" ]
+}
+
 # Drop a task's own claim once its slot is back in the pool. Never removes
 # another task's claim, so a misdirected release cannot strip the evidence that
 # protects the slot's real owner.

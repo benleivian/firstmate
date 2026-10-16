@@ -1020,6 +1020,66 @@ test_stale_record_on_claimed_slot_retires_then_claimant_tears_down() {
   pass "fm-teardown: a stale record on a claimed slot retires, then the claimant tears down"
 }
 
+test_same_task_claim_requires_matching_home() {
+  local dir id=shared-task child_home mode claim_home claim_before
+  for mode in different empty missing; do
+    dir=$(make_case "slot-claim-home-$mode")
+    mark_case_as_treehouse_pool "$dir"
+    child_home="$dir/child-home"
+    make_home "$child_home"
+    write_local_parent_record "$child_home" "$dir/home"
+    printf '%s\n' "- mate - fixture (home: $child_home; scope: test; projects: project; added 2026-01-01)" \
+      > "$dir/home/data/secondmates.md"
+    fm_write_meta "$dir/home/state/$id.meta" \
+      "window=firstmate:fm-$id" "endpoint_task_id=$id" \
+      "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+    cp "$dir/home/state/$id.meta" "$child_home/state/$id.meta"
+    case "$mode" in
+      different) claim_home=$child_home ;;
+      empty) claim_home= ;;
+      missing) claim_home="$dir/missing-home" ;;
+    esac
+    printf 'task=%s\nhome=%s\n' "$id" "$claim_home" > "$dir/pool/1/.fm-slot-owner"
+    claim_before=$(cat "$dir/pool/1/.fm-slot-owner")
+
+    assert_refused_without_mutation "$dir" "$id" "$mode claim home"
+    assert_contains "$(cat "$dir/stderr")" "also task $id's recorded worktree" \
+      "$mode claim home should preserve the record-exclusivity refusal"
+    assert_present "$child_home/state/$id.meta" "$mode claim home removed the other home's record"
+    assert_equals "$(cat "$dir/pool/1/.fm-slot-owner")" "$claim_before" \
+      "$mode claim home changed the slot claim"
+  done
+  pass "fm-teardown: equal task IDs require matching claim homes to bypass conflicting records"
+}
+
+# The same reuse in the other order: the stale record must outlive the claimant,
+# for example while its pushed PR waits for a merge. The claimant's own claim
+# proves that record is a previous holder's, so the claimant tears down without
+# waiting on it, and the stale record is left untouched.
+test_claimant_tears_down_beside_previous_holders_record() {
+  local dir id=live-task other=stale-task
+
+  dir=$(make_case slot-claimant-first)
+  mark_case_as_treehouse_pool "$dir"
+  fm_write_meta "$dir/home/state/$id.meta" \
+    "window=firstmate:fm-$id" "endpoint_task_id=$id" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  fm_write_meta "$dir/home/state/$other.meta" \
+    "window=firstmate:fm-$other" "endpoint_task_id=$other" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  ln -s home "$dir/home-alias"
+  claim_pool_slot "$dir" "$id" "$dir/home-alias"
+
+  run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr" \
+    || fail "claimant teardown refused beside a previous holder's record: $(cat "$dir/stderr")"
+  assert_absent "$dir/home/state/$id.meta" "claimant teardown left its record"
+  assert_present "$dir/home/state/$other.meta" "claimant teardown removed the previous holder's record"
+  grep -Fq "treehouse <return>" "$dir/runtime.log" \
+    || fail "claimant teardown did not return its pool slot: $(cat "$dir/runtime.log")"
+
+  pass "fm-teardown: a slot's claimant tears down beside its previous holder's surviving record"
+}
+
 # The two states that must never become a false refusal: the task's own claim,
 # and no claim at all (a slot taken before claims existed, or already returned).
 test_own_and_absent_slot_claims_still_tear_down() {
@@ -1441,6 +1501,8 @@ test_cross_home_pool_slot_collision_refuses
 test_sole_slot_record_still_tears_down
 test_reassigned_pool_slot_finishes_own_cleanup_without_touching_the_slot
 test_stale_record_on_claimed_slot_retires_then_claimant_tears_down
+test_same_task_claim_requires_matching_home
+test_claimant_tears_down_beside_previous_holders_record
 test_own_and_absent_slot_claims_still_tear_down
 test_recorded_endpoint_that_changed_directory_still_tears_down
 test_project_lock_anchors_at_the_local_root_across_home_layouts
