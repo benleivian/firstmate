@@ -1,0 +1,53 @@
+docker: /opt/homebrew/bin/docker
+
+ddev: /opt/homebrew/bin/ddev
+
+dockerd: None
+
+limactl: None
+
+podman: None
+
+colima: None
+
+qemu-system-aarch64: None
+
+vfkit: None
+
+Isolated Docker endpoint: unix://~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/.d.sock
+
+$ docker info
+Client: Docker Engine - Community
+ Version:    28.2.2
+ Context:    default
+ Debug Mode: false
+
+Server:
+Cannot connect to the Docker daemon at unix://~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/.d.sock. Is the docker daemon running?
+exit=1
+
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/bin/fm-ddev-bloat-check.sh arm
+armed: state/ddev-bloat.check.sh
+exit=0
+
+Generated executable watcher shim:
+#!/usr/bin/env bash
+export FM_HOME=~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/.test-ddev-phase/live-home
+exec ~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/bin/fm-ddev-bloat-check.sh check
+
+
+Trust registration exists: true
+
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/.test-ddev-phase/live-home/state/ddev-bloat.check.sh
+exit=0
+
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/.test-ddev-phase/live-home/state/ddev-bloat.check.sh
+exit=0
+
+Two real CLI polls with unavailable isolated Docker returned silently and left no daily record, permitting retry.
+
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M516JGAFSVZ3HK67GKGZ14JJ/bin/fm-ddev-bloat-check.sh disarm
+disarmed: state/ddev-bloat.check.sh
+exit=0
+
+Disarm removed shim and trust registration.

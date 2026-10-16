@@ -1,0 +1,4 @@
+ok - fm-ddev-bloat-check: notifies once per threshold crossing and never deletes
+ok - fm-ddev-bloat-check: evaluates at most daily and retries when Docker is unavailable
+ok - fm-ddev-bloat-check: fixed decimal GB boundaries
+ok - fm-ddev-bloat-check: arm registers a watcher check and disarm removes it

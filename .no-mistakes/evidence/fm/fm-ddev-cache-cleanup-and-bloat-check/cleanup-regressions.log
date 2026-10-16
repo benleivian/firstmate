@@ -1,0 +1,24 @@
+ok - fm-ddev-clean: worktree cleanup uses its recorded DDEV name
+ok - fm-ddev-clean: fleet cleanup protects names and only stops safe generated environments
+ok - fm-ddev-clean: apply keeps live copies and reclaims generated stale resources
+ok - fm-ddev-clean: missing ddev is safe per task and visible for a sweep
+ok - fm-ddev-clean: both modes share protection and generated suffix eligibility
+ok - fm-ddev-clean: stopped labeled compose leftovers are removed while exclusions remain
+ok - fm-ddev-clean: orphan database volumes respect ownership and stopped mounts
+ok - fm-ddev-clean: reported 60 orphan volumes reclaimed exactly once with exclusions preserved
+ok - fm-ddev-clean: volume name recognition preserves listed managed projects
+warning: docker volume rm sa-review-01abcdefgh-postgres failed (exit 1): 
+ok - fm-ddev-clean: failed orphan volume removal remains visible
+warning: docker rm c-orphan failed (exit 1): 
+ok - fm-ddev-clean: failed orphan removal remains visible and preserves its network
+ok - fm-ddev-clean: recorded names take precedence and normalized legacy IDs remain eligible
+ok - fm-ddev-clean: refresh handles DDEV-deleted and stopped retained services
+ok - fm-ddev-clean: refresh preserves exclusions, resource approval, preview and task scope
+ok - fm-ddev-clean: final summary measures remaining state
+ok - fm-ddev-clean: inventory failures prevent unverified success
+ok - fm-ddev-clean: legacy teardown cleans selected listed services and preserves unrelated resources
+ok - fm-ddev-clean: fleet cache cleanup removes only unregistered, idle, unprotected entries
+ok - fm-ddev-clean: recorded caches require successful verified project removal
+ok - fm-ddev-clean: preview anticipates removal while apply protects running containers
+ok - fm-ddev-clean: cache cleanup refuses an empty or unreadable keep-list
+ok - fm-ddev-clean: worktree cache cleanup touches only its verified-gone project
