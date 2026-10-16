@@ -1,0 +1,27 @@
+HEAD is now at 996a454 ddev
+SCENARIO: launch into slot still recorded by parked task
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned new-owner harness=codex kind=scout window=lab:fm-new-owner worktree=~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project
+Published owner record:
+window=lab:fm-new-owner
+endpoint_task_id=new-owner
+worktree=~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project
+project=~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/project
+harness=codex
+kind=scout
+tasktmp=/tmp/fm-new-owner
+ddev_name=fixture-slot-only
+model=default
+effort=default
+spawn_gen=s1792176141.33583.23201
+Preserved parked record:
+window=lab:fm-parked
+endpoint_task_id=parked
+worktree=~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project
+project=~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/project
+kind=scout
+ddev_name=fixture-slot-only
+lab:zsh zsh ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live
+lab:fm-new-owner zsh ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project
+can't find session: firstmate

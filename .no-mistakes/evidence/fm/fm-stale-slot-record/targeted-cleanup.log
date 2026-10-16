@@ -1,0 +1,4 @@
+ok - fm-teardown: equal task IDs require matching claim homes to bypass conflicting records
+ok - fm-teardown: a slot's claimant tears down beside its previous holder's surviving record
+ok - fm-teardown: a pool slot claimed by another task is left alone while the task's own cleanup finishes
+ok - fm-teardown: a stale record on a claimed slot retires, then the claimant tears down

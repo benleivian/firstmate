@@ -1,0 +1,10 @@
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+summary: stop-unlist=0 delete=0 ddev-removed=0 ddev-failed=0 orphan-container=0 orphan-network=0 orphan-volume=0 removed=0 residual=2 failed=0 volume-removed=0 volume-residual=14 volume-failed=0 cache-orphan=0 cache-removed=0 cache-bytes=0 cache-failed=0 protected=0 ambiguous=0 mode=worktree
+warning: failed to remove ./: Invalid argument
+error: could not clean scratch in worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/fm-teardown-endpoint-safety.7H7NYp/metadata-lock/worktree before returning it; teardown aborted

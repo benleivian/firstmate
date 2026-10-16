@@ -1,0 +1,14 @@
+SCENARIO: old record retires without touching the new owner copy
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: task parked's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project was reassigned to task survivor (home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home), which claimed that pool slot after this record was written; that slot is no longer parked's, so its processes, copy, and claim are left untouched and only parked's own cleanup runs.
+teardown parked complete (window lab:fm-parked; pool slot ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project left to task survivor (home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home), which it was reassigned to)
+Backlog: parked just finished (this home keeps no markdown backlog at ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home/data/backlog.md). Update ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home/data/backlog.md - move parked to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Old record removed; sentinel and survivor ownership preserved.
+SCENARIO: a recorded home at this path must still block the claimant
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task survivor's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project is also task protected-home's recorded home.
+Returning that pool slot would kill protected-home's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh survivor; bin/fm-crew-state.sh protected-home), then re-run teardown.
+Home collision refused; owner record and sentinel preserved.

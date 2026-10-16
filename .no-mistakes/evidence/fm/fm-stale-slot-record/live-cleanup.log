@@ -1,0 +1,44 @@
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/other
+SCENARIO: claim home different must refuse even with --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFUSED: task same's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project is also task same's recorded worktree.
+Returning that pool slot would kill same's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh same; bin/fm-crew-state.sh same), then re-run teardown.
+Both records and pool copy preserved.
+SCENARIO: claim home empty must refuse even with --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task same's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project is also task same's recorded worktree.
+Returning that pool slot would kill same's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh same; bin/fm-crew-state.sh same), then re-run teardown.
+Both records and pool copy preserved.
+SCENARIO: claim home missing must refuse even with --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task same's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project is also task same's recorded worktree.
+Returning that pool slot would kill same's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh same; bin/fm-crew-state.sh same), then re-run teardown.
+Both records and pool copy preserved.
+SCENARIO: current owner cleans up while parked record remains (canonical home alias)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+summary: stop-unlist=0 delete=0 ddev-removed=0 ddev-failed=0 orphan-container=0 orphan-network=0 orphan-volume=0 removed=0 residual=2 failed=0 volume-removed=0 volume-residual=14 volume-failed=0 cache-orphan=0 cache-removed=0 cache-bytes=0 cache-failed=0 protected=0 ambiguous=0 mode=worktree
+A new version of treehouse is available: v2.1.1 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown current complete (window lab:fm-current, worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project)
+Backlog: current just finished (this home keeps no markdown backlog at ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home/data/backlog.md). Update ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/home/data/backlog.md - move current to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+Current record removed; parked record preserved.
+A new version of treehouse is available: v2.1.1 → v3.1.4
+Run "treehouse update" to update
+
+1     available    ~/.no-mistakes/worktrees/dca6a1f2fc96/01M52ZW24Q3K1MSPWRJGKDBHS5/.test-tmp/live/.treehouse/project-34ec2f/1/project
