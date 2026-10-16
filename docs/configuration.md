@@ -538,10 +538,9 @@ It writes `state/ddev-bloat.check.sh` and binds it through the existing authenti
 Docker volumes are host-wide, so arm it in one home only, normally the primary.
 Use `bin/fm-ddev-bloat-check.sh disarm` to remove the check and its record.
 
-The check raises one notification when a threshold is first crossed, suggesting `/ddevclean`, and stays silent while the same thresholds stay crossed.
 It never deletes, prunes, or stops anything; cleanup remains the captain-approved `/ddevclean` path.
 
-The [check script header and `--help`](../bin/fm-ddev-bloat-check.sh) own the daily gate, measurement, and notification details.
+The [check script header and `--help`](../bin/fm-ddev-bloat-check.sh) own the fixed thresholds, daily gate, measurement, and notification details.
 
 ## Away-mode supervisor backend (FM_SUPERVISOR_BACKEND / FM_SUPERVISOR_TARGET)
 

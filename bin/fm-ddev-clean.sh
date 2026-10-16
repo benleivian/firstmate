@@ -7,7 +7,7 @@
 #
 # Dry-run is the default. --worktree deletes only projects inside that worktree,
 # and, when a task's recorded ddev_name= is available, only that exact name.
-# Both modes are allowlist-only: they consider recorded ddev_name values first,
+# Project selection in both modes is allowlist-only: it considers recorded ddev_name values first,
 # then task suffixes from state/*.meta or data/backlog.md via fm-ddev-name-lib.sh,
 # names matching (^|-)01[0-9a-hjkmnp-tv-z]{8,25}$,
 # or matching ^(nm|sa|smileadvantage|svvy|hub)[a-z0-9-]*-(test|review|pr[0-9]+)-[0-9a-hjkmnp-tv-z]{6,}$.
@@ -51,10 +51,14 @@
 # n_prefix/<name>-web and nvm_dir/<name>-web, which neither ddev delete nor the steps above remove;
 # bashhistory/ and mysqlhistory/ entries are never touched.
 # Worktree mode selects only those entries of the projects it selected or of --ddev-name/recorded ddev_name,
-# and only once a fresh ddev list no longer shows the name, no running container uses it, and its owner is eligible.
-# Fleet mode selects every entry whose name is not in ddev list, not used by a running container,
-# not protected or registered, and not a recorded ddev_name; apply re-reads that keep-list after DDEV cleanup.
-# A failed keep-list read, or an empty ddev list in fleet mode, refuses the cache step.
+# and requires an eligible owner.
+# Fleet mode selects entries without the project-name allowlist, but protects listed, running,
+# protected, registered, and recorded names, except recorded names successfully stop-unlisted
+# or deleted by this invocation and absent from the fresh ddev list.
+# Apply refreshes the DDEV list and running-container inventory after project cleanup;
+# either still listing a name protects its cache in both modes.
+# Dry-run anticipates selected project removals, including their running containers and recorded names.
+# A failed keep-list read, or an empty remaining DDEV keep-list in fleet mode, refuses the cache step.
 # Dry-run lists entries read-only and prints orphan-cache lines; apply removes them in one throwaway
 # alpine container and prints removed-cache or residual-cache per entry after checking absence.
 # cache-orphan counts selected entries, cache-removed verified removals, cache-bytes their du size
@@ -63,7 +67,7 @@
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
 # dangling-only operations; volume prune does not reclaim named database volumes.
 # It never uses -a/--all for cleanup.
-# Every ddev, docker, and JSON-parser call has FM_DDEV_CLEAN_TIMEOUT_SECS seconds
+# Except for cache container calls, every ddev, docker, and JSON-parser call has FM_DDEV_CLEAN_TIMEOUT_SECS seconds
 # (default 30); failed cleanup commands warn and do not stop later cleanup.
 # A zero exit status alone does not certify complete cleanup; inspect warnings and the summary.
 set -u
