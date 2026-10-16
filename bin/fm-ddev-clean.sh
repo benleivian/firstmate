@@ -47,6 +47,19 @@
 # volume-failed counts targeted volume removal command failures.
 # Applied failed counts DDEV command, targeted Docker removal, and inventory failures.
 # Inventory warnings mean verification is incomplete, even when the dry-run summary has residual=0.
+# DDEV keeps a per-project Node install and nvm dir in the ddev-global-cache volume as
+# n_prefix/<name>-web and nvm_dir/<name>-web, which neither ddev delete nor the steps above remove;
+# bashhistory/ and mysqlhistory/ entries are never touched.
+# Worktree mode selects only those entries of the projects it selected or of --ddev-name/recorded ddev_name,
+# and only once a fresh ddev list no longer shows the name, no running container uses it, and its owner is eligible.
+# Fleet mode selects every entry whose name is not in ddev list, not used by a running container,
+# not protected or registered, and not a recorded ddev_name; apply re-reads that keep-list after DDEV cleanup.
+# A failed keep-list read, or an empty ddev list in fleet mode, refuses the cache step.
+# Dry-run lists entries read-only and prints orphan-cache lines; apply removes them in one throwaway
+# alpine container and prints removed-cache or residual-cache per entry after checking absence.
+# cache-orphan counts selected entries, cache-removed verified removals, cache-bytes their du size
+# (planned in dry-run), and cache-failed entries not verified removed, which also count in failed.
+# Container calls on the cache are bounded by FM_DDEV_CLEAN_CACHE_TIMEOUT_SECS (default 600).
 # In fleet mode only, Docker volume prune, image prune, and DDEV image deletion are host-wide,
 # dangling-only operations; volume prune does not reclaim named database volumes.
 # It never uses -a/--all for cleanup.
@@ -63,6 +76,7 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 PROJECTS="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}"
 TIMEOUT_SECS="${FM_DDEV_CLEAN_TIMEOUT_SECS:-30}"
+CACHE_TIMEOUT_SECS="${FM_DDEV_CLEAN_CACHE_TIMEOUT_SECS:-600}"
 APPLY=0
 WORKTREE=
 DDEV_NAME=
@@ -84,6 +98,9 @@ die() {
 
 case "$TIMEOUT_SECS" in
   ''|*[!0-9]*|0) die "FM_DDEV_CLEAN_TIMEOUT_SECS must be a positive integer" ;;
+esac
+case "$CACHE_TIMEOUT_SECS" in
+  ''|*[!0-9]*|0) die "FM_DDEV_CLEAN_CACHE_TIMEOUT_SECS must be a positive integer" ;;
 esac
 
 while [ "$#" -gt 0 ]; do
@@ -284,12 +301,8 @@ select_project() {
   return 1
 }
 
-RUN_STATUS=0
-if ! run_capture ddev list --json-output; then
-  printf 'fm-ddev-clean: ddev list failed (exit %s): %s\n' "$RUN_STATUS" "$RUN_OUTPUT" >&2
-  exit 1
-fi
-PROJECTS_JSON=$(FM_DDEV_JSON="$RUN_OUTPUT" fm_run_timed "$TIMEOUT_SECS" python3 -c '
+parse_ddev_projects() {
+  FM_DDEV_JSON="$1" fm_run_timed "$TIMEOUT_SECS" python3 -c '
 import json, os
 text = os.environ["FM_DDEV_JSON"]
 decoder = json.JSONDecoder()
@@ -313,7 +326,15 @@ for project in raw:
     if not name:
         raise ValueError("ddev project lacks name")
     print("\x1f".join((name, os.path.realpath(approot) if approot else "", str(project.get("status") or ""))))
-') || {
+'
+}
+
+RUN_STATUS=0
+if ! run_capture ddev list --json-output; then
+  printf 'fm-ddev-clean: ddev list failed (exit %s): %s\n' "$RUN_STATUS" "$RUN_OUTPUT" >&2
+  exit 1
+fi
+PROJECTS_JSON=$(parse_ddev_projects "$RUN_OUTPUT") || {
   echo "fm-ddev-clean: could not parse ddev list JSON" >&2
   exit 1
 }
@@ -638,6 +659,152 @@ done <<EOF
 $NETWORK_INVENTORY
 EOF
 
+CACHE_PATHS=()
+CACHE_NAMES=()
+CACHE_ORPHAN_COUNT=0
+CACHE_BYTES=0
+CACHE_REMOVED_COUNT=0
+CACHE_FAILED_COUNT=0
+# Runs in a throwaway container whose working directory is the cache volume.
+# list prints entries; plan prints "<KiB>\tplanned\t<path>"; apply also removes
+# each path and reports it removed or residual.
+# shellcheck disable=SC2016 # Expanded by the container shell.
+CACHE_SCRIPT='mode=$1
+shift
+[ "$mode" != list ] || set -- n_prefix/* nvm_dir/*
+for d; do
+  [ -e "$d" ] || [ -L "$d" ] || continue
+  if [ "$mode" = list ]; then printf "%s\n" "$d"; continue; fi
+  s=$(du -sk -- "$d" 2>/dev/null | cut -f1)
+  st=planned
+  if [ "$mode" = apply ]; then
+    rm -rf -- "$d"
+    if [ -e "$d" ] || [ -L "$d" ]; then st=residual; else st=removed; fi
+  fi
+  printf "%s\t%s\t%s\n" "${s:-0}" "$st" "$d"
+done'
+
+cache_run() {  # <list|plan|apply> [path...]
+  local mount=ro
+  [ "$1" != apply ] || mount=rw
+  RUN_STATUS=0
+  RUN_OUTPUT=$(fm_run_timed "$CACHE_TIMEOUT_SECS" docker run --rm -v "ddev-global-cache:/mnt:$mount" -w /mnt \
+    alpine sh -c "$CACHE_SCRIPT" sh "$@" 2>&1) || RUN_STATUS=$?
+  return "$RUN_STATUS"
+}
+
+name_in() {  # <name> [names...]
+  local name=$1 candidate
+  shift
+  for candidate in "$@"; do
+    [ "$candidate" != "$name" ] || return 0
+  done
+  return 1
+}
+
+recorded_ddev_name() {
+  local meta line
+  for meta in "$STATE"/*.meta; do
+    [ -f "$meta" ] || continue
+    while IFS= read -r line || [ -n "$line" ]; do
+      [ "$line" != "ddev_name=$1" ] || return 0
+    done < "$meta"
+  done
+  return 1
+}
+
+cache_volume_present() {
+  local kind ident resource_name
+  while IFS=$'\x1f' read -r kind ident resource_name _; do
+    [ "$kind" = volume ] && [ "$resource_name" = ddev-global-cache ] && return 0
+  done <<< "$INITIAL_VOLUMES"
+  return 1
+}
+
+select_cache_orphans() {
+  local listed=() running=() candidates=() rows name path base
+  local kind ident resource_name site project service state networks mounts
+  if [ "$APPLY" -eq 1 ]; then
+    if ! run_capture ddev list --json-output || ! rows=$(parse_ddev_projects "$RUN_OUTPUT"); then
+      inventory_failed cache-keep-list
+      return 1
+    fi
+    while IFS=$'\x1f' read -r name _; do
+      [ -z "$name" ] || listed+=("$name")
+    done <<< "$rows"
+  else
+    for name in ${LIST_NAMES[@]+"${LIST_NAMES[@]}"}; do
+      selected_ddev_site "$name" || listed+=("$name")
+    done
+  fi
+  if [ "$MODE" = fleet ] && [ "${#listed[@]}" -eq 0 ]; then
+    printf 'warning: DDEV project keep-list is empty; ddev-global-cache cleanup refused\n' >&2
+    ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
+    return 1
+  fi
+  rows=$(container_inventory) || { inventory_failed cache-keep-list; return 1; }
+  while IFS=$'\x1f' read -r kind ident resource_name site project service state networks mounts; do
+    [ "$kind" = container ] && [ "$state" = running ] || continue
+    [ -z "$site" ] || running+=("$site")
+    case "$resource_name" in ddev-?*-web) name=${resource_name#ddev-}; running+=("${name%-web}") ;; esac
+  done <<< "$rows"
+  if [ "$MODE" = worktree ]; then
+    candidates=(${DELETE_NAMES[@]+"${DELETE_NAMES[@]}"} ${STOP_NAMES[@]+"${STOP_NAMES[@]}"})
+    [ -z "$DDEV_NAME" ] || candidates+=("$DDEV_NAME")
+    [ "${#candidates[@]}" -gt 0 ] || return 0
+  fi
+  if ! cache_run list; then
+    printf 'warning: ddev-global-cache listing failed (exit %s): %s\n' "$RUN_STATUS" "$RUN_OUTPUT" >&2
+    ORPHAN_FAILED_COUNT=$((ORPHAN_FAILED_COUNT + 1))
+    return 1
+  fi
+  while IFS= read -r path; do
+    case "$path" in n_prefix/?*-web|nvm_dir/?*-web) ;; *) continue ;; esac
+    base=${path#*/}
+    name=${base%-web}
+    case "$name" in */*) continue ;; esac
+    name_in "$name" ${listed[@]+"${listed[@]}"} ${running[@]+"${running[@]}"} && continue
+    if [ "$MODE" = worktree ]; then
+      name_in "$name" "${candidates[@]}" || continue
+      [ "$(current_owner_verdict "$name")" = eligible ] || continue
+    else
+      protected_by_config "$name" || registered_project_name "$name" || recorded_ddev_name "$name" && continue
+    fi
+    printf 'orphan-cache: %s (%s)\n' "$path" "$name"
+    CACHE_PATHS+=("$path")
+    CACHE_NAMES+=("$name")
+    CACHE_ORPHAN_COUNT=$((CACHE_ORPHAN_COUNT + 1))
+  done <<< "$RUN_OUTPUT"
+}
+
+# Dry-run sizes the selected entries; apply removes them and counts only verified absence.
+reclaim_cache() {
+  local mode=plan kib status path i found
+  cache_volume_present || return 0
+  select_cache_orphans || return 0
+  [ "$CACHE_ORPHAN_COUNT" -gt 0 ] || return 0
+  [ "$APPLY" -ne 1 ] || mode=apply
+  cache_run "$mode" "${CACHE_PATHS[@]}" \
+    || printf 'warning: ddev-global-cache %s failed (exit %s): %s\n' "$mode" "$RUN_STATUS" "$RUN_OUTPUT" >&2
+  for i in "${!CACHE_PATHS[@]}"; do
+    found=
+    while IFS=$'\t' read -r kib status path; do
+      [ "$path" = "${CACHE_PATHS[$i]}" ] || continue
+      case "$kib" in ''|*[!0-9]*) continue ;; esac
+      found=$status
+      [ "$status" = residual ] || CACHE_BYTES=$((CACHE_BYTES + kib * 1024))
+    done <<< "$RUN_OUTPUT"
+    [ "$APPLY" -eq 1 ] || continue
+    if [ "$found" = removed ]; then
+      printf 'removed-cache: %s (%s)\n' "${CACHE_PATHS[$i]}" "${CACHE_NAMES[$i]}"
+      CACHE_REMOVED_COUNT=$((CACHE_REMOVED_COUNT + 1))
+    else
+      printf 'residual-cache: %s (%s %s)\n' "${CACHE_PATHS[$i]}" "${CACHE_NAMES[$i]}" "${found:-unverified}"
+      CACHE_FAILED_COUNT=$((CACHE_FAILED_COUNT + 1))
+    fi
+  done
+}
+
 if [ "$APPLY" -ne 1 ]; then
   for i in "${!STOP_NAMES[@]}"; do print_project stop-unlist "${STOP_NAMES[$i]}" "${STOP_ROOTS[$i]}"; done
   for i in "${!DELETE_NAMES[@]}"; do print_project delete "${DELETE_NAMES[$i]}" "${DELETE_ROOTS[$i]}"; done
@@ -646,9 +813,10 @@ if [ "$APPLY" -ne 1 ]; then
     echo 'would: docker image prune -f (host-wide, dangling-only)'
     echo 'would: ddev delete images -y (host-wide, dangling-only)'
   fi
-  printf 'summary: stop-unlist=%s delete=%s orphan-container=%s orphan-network=%s orphan-volume=%s residual=%s volume-residual=%s protected=%s ambiguous=%s mode=%s\n' \
+  reclaim_cache
+  printf 'summary: stop-unlist=%s delete=%s orphan-container=%s orphan-network=%s orphan-volume=%s residual=%s volume-residual=%s cache-orphan=%s cache-bytes=%s protected=%s ambiguous=%s mode=%s\n' \
     "$STOP_COUNT" "$DELETE_COUNT" "$ORPHAN_CONTAINER_COUNT" "$ORPHAN_NETWORK_COUNT" "$ORPHAN_VOLUME_COUNT" "$ORPHAN_RESIDUAL_COUNT" "$VOLUME_EXCLUDED_COUNT" \
-    "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
+    "$CACHE_ORPHAN_COUNT" "$CACHE_BYTES" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
   exit 0
 fi
 
@@ -797,13 +965,15 @@ else
   inventory_failed final-volume
   VOLUME_REMAINING_COUNT=$((VOLUME_REMAINING_COUNT + ORPHAN_VOLUME_COUNT))
 fi
+reclaim_cache
 if [ -z "$WORKTREE" ]; then
   run_cleanup 'docker volume prune -f' docker volume prune -f
   run_cleanup 'docker image prune -f' docker image prune -f
   run_cleanup 'ddev delete images -y' ddev delete images -y
   run_cleanup 'docker system df' docker system df
 fi
-printf 'summary: stop-unlist=%s delete=%s ddev-removed=%s ddev-failed=%s orphan-container=%s orphan-network=%s orphan-volume=%s removed=%s residual=%s failed=%s volume-removed=%s volume-residual=%s volume-failed=%s protected=%s ambiguous=%s mode=%s\n' \
+printf 'summary: stop-unlist=%s delete=%s ddev-removed=%s ddev-failed=%s orphan-container=%s orphan-network=%s orphan-volume=%s removed=%s residual=%s failed=%s volume-removed=%s volume-residual=%s volume-failed=%s cache-orphan=%s cache-removed=%s cache-bytes=%s cache-failed=%s protected=%s ambiguous=%s mode=%s\n' \
   "$STOP_COUNT" "$DELETE_COUNT" "$DDEV_REMOVED_COUNT" "$DDEV_FAILED_COUNT" "$ORPHAN_CONTAINER_COUNT" \
   "$ORPHAN_NETWORK_COUNT" "$ORPHAN_VOLUME_COUNT" "$ORPHAN_REMOVED_COUNT" "$ORPHAN_RESIDUAL_COUNT" \
-  "$((DDEV_FAILED_COUNT + ORPHAN_FAILED_COUNT + VOLUME_FAILED_COUNT))" "$VOLUME_REMOVED_COUNT" "$((VOLUME_EXCLUDED_COUNT + VOLUME_REMAINING_COUNT))" "$VOLUME_FAILED_COUNT" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"
+  "$((DDEV_FAILED_COUNT + ORPHAN_FAILED_COUNT + VOLUME_FAILED_COUNT + CACHE_FAILED_COUNT))" "$VOLUME_REMOVED_COUNT" "$((VOLUME_EXCLUDED_COUNT + VOLUME_REMAINING_COUNT))" "$VOLUME_FAILED_COUNT" \
+  "$CACHE_ORPHAN_COUNT" "$CACHE_REMOVED_COUNT" "$CACHE_BYTES" "$CACHE_FAILED_COUNT" "$PROTECTED_COUNT" "$AMBIGUOUS_COUNT" "$MODE"

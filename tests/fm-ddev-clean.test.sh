@@ -19,6 +19,7 @@ DOCKER_PS="$TMP_ROOT/docker-ps"
 DOCKER_CONTAINER_INSPECT="$TMP_ROOT/docker-container-inspect.json"
 DOCKER_NETWORK_INSPECT="$TMP_ROOT/docker-network-inspect.json"
 DOCKER_VOLUME_INSPECT="$TMP_ROOT/docker-volume-inspect.json"
+DOCKER_CACHE_DIR="$TMP_ROOT/ddev-global-cache"
 mkdir -p "$HOME_DIR" "$STATE" "$DATA" "$CONFIG" "$PROJECTS_DIR"
 printf '[]\n' > "$DOCKER_VOLUME_INSPECT"
 : > "$DOCKER_PS"
@@ -26,11 +27,24 @@ printf '[]\n' > "$DOCKER_VOLUME_INSPECT"
 cat > "$FAKEBIN/ddev" <<'SH'
 #!/usr/bin/env bash
 if [ "${1:-}" = list ] && [ "${2:-}" = --json-output ]; then
+  if [ -n "${DDEV_LIST_FAIL_AFTER:-}" ]; then
+    count=$(( $(cat "$ACTION_LOG.lists" 2>/dev/null || echo 0) + 1 ))
+    echo "$count" > "$ACTION_LOG.lists"
+    [ "$count" -le "$DDEV_LIST_FAIL_AFTER" ] || exit 1
+  fi
   [ -z "${DDEV_JSON_PREFIX:-}" ] || printf '%s\n' "$DDEV_JSON_PREFIX"
   cat "$DDEV_JSON"
   exit 0
 fi
 printf 'ddev %s\n' "$*" >> "$ACTION_LOG"
+if [ -n "${DDEV_UNLIST_ON_DELETE:-}" ] && [ "${2:-}" != images ]; then
+  python3 -c '
+import json, sys
+data = json.load(open(sys.argv[1]))
+data["raw"] = [project for project in data["raw"] if project["name"] != sys.argv[2]]
+json.dump(data, open(sys.argv[1], "w"))
+' "$DDEV_JSON" "${!#}"
+fi
 if [ -n "${DDEV_TRANSITION:-}" ] && [ "${2:-}" != images ]; then
   python3 "$(dirname "$0")/ddev-transition"
 fi
@@ -95,6 +109,15 @@ elif args[:2] == ["network", "rm"]:
     log()
     if os.environ.get("DOCKER_NETWORK_RETAIN") != "1":
         networks.write_text(json.dumps([item for item in read(networks) if item["Id"] != args[2]]))
+elif args[0] == "run":
+    import subprocess
+    script_at = args.index("-c") + 1
+    rest = args[script_at + 1:]
+    with open(os.environ["ACTION_LOG"], "a") as output:
+        output.write("docker run " + args[args.index("-v") + 1] + " " + " ".join(rest[1:]) + "\n")
+    if os.environ.get("DOCKER_RUN_FAIL") == rest[1]:
+        sys.exit(1)
+    sys.exit(subprocess.call(["sh", "-c", args[script_at]] + rest, cwd=os.environ["DOCKER_CACHE_DIR"]))
 elif args[:2] == ["volume", "rm"]:
     log()
     if os.environ.get("DOCKER_VOLUME_RM_FAIL") == args[2]:
@@ -151,6 +174,8 @@ run_clean() {
     DOCKER_RM_RETAIN="${DOCKER_RM_RETAIN:-}" DOCKER_NETWORK_RETAIN="${DOCKER_NETWORK_RETAIN:-}" \
     DOCKER_VOLUME_RM_FAIL="${DOCKER_VOLUME_RM_FAIL:-}" DOCKER_VOLUME_RETAIN="${DOCKER_VOLUME_RETAIN:-}" \
     INVENTORY_FAILURE="${INVENTORY_FAILURE:-}" \
+    DOCKER_CACHE_DIR="$DOCKER_CACHE_DIR" DOCKER_RUN_FAIL="${DOCKER_RUN_FAIL:-}" \
+    DDEV_UNLIST_ON_DELETE="${DDEV_UNLIST_ON_DELETE:-}" DDEV_LIST_FAIL_AFTER="${DDEV_LIST_FAIL_AFTER:-}" \
     DDEV_TRANSITION="${DDEV_TRANSITION:-}" \
     DDEV_JSON_PREFIX='{"level":"info","msg":"table follows"}' PATH="$FAKEBIN:$PATH" \
     FM_DDEV_CLEAN_TIMEOUT_SECS=5 "$CLEAN" "$@"
@@ -742,6 +767,107 @@ test_refresh_inventory_failures_are_visible() {
   pass "fm-ddev-clean: inventory failures prevent unverified success"
 }
 
+prepare_cache_fixture() {
+  local entry
+  rm -rf "$STATE" "$DOCKER_CACHE_DIR" "$ACTION_LOG.lists"
+  mkdir -p "$STATE" "$HOME_DIR/Sites/kept" "$HOME_DIR/.treehouse/project/1/stale"
+  : > "$DATA/backlog.md"
+  printf 'protected-site\n' > "$CONFIG/ddev-protected-names"
+  fm_write_meta "$STATE/recorded-task.meta" "ddev_name=recorded-site"
+  cat > "$DDEV_JSON" <<EOF
+{"raw":[{"name":"kept-site","approot":"$HOME_DIR/Sites/kept"},{"name":"stale-review-01abcdefgh","approot":"$HOME_DIR/.treehouse/project/1/stale"}]}
+EOF
+  cat > "$DOCKER_CONTAINER_INSPECT" <<'EOF'
+[{"Id":"c-run","Name":"/ddev-running-site-web","Config":{"Labels":{"com.ddev.site-name":"running-site","com.docker.compose.project":"ddev-running-site","com.docker.compose.service":"web"}},"State":{"Running":true},"NetworkSettings":{"Networks":{}}}]
+EOF
+  printf 'c-run\n' > "$DOCKER_PS"
+  printf '[]\n' > "$DOCKER_NETWORK_INSPECT"
+  printf '[{"Name":"ddev-global-cache","Labels":{}}]\n' > "$DOCKER_VOLUME_INSPECT"
+  for entry in n_prefix/kept-site-web nvm_dir/kept-site-web n_prefix/orphan-site-web nvm_dir/orphan-site-web \
+    n_prefix/stale-review-01abcdefgh-web n_prefix/running-site-web n_prefix/protected-site-web \
+    n_prefix/recorded-site-web n_prefix/not-a-project bashhistory/orphan-site-web; do
+    mkdir -p "$DOCKER_CACHE_DIR/$entry"
+    head -c 8192 /dev/zero > "$DOCKER_CACHE_DIR/$entry/node"
+  done
+  : > "$ACTION_LOG"
+}
+
+assert_cache_kept() {
+  local entry
+  for entry in n_prefix/kept-site-web nvm_dir/kept-site-web n_prefix/running-site-web n_prefix/protected-site-web \
+    n_prefix/recorded-site-web n_prefix/not-a-project bashhistory/orphan-site-web "$@"; do
+    [ -d "$DOCKER_CACHE_DIR/$entry" ] || fail "cache cleanup removed kept entry $entry"
+  done
+}
+
+test_fleet_cache_reclaims_unregistered_entries_only() {
+  local out entry
+  prepare_cache_fixture
+  out=$(run_clean 2>&1) || fail "cache dry-run failed: $out"
+  for entry in 'n_prefix/orphan-site-web (orphan-site)' 'nvm_dir/orphan-site-web (orphan-site)' \
+    'n_prefix/stale-review-01abcdefgh-web (stale-review-01abcdefgh)'; do
+    assert_contains "$out" "orphan-cache: $entry" "dry-run did not select $entry"
+  done
+  for entry in kept-site running-site protected-site recorded-site not-a-project; do
+    assert_not_contains "$out" "orphan-cache: n_prefix/$entry" "dry-run selected kept $entry"
+  done
+  assert_contains "$out" 'cache-orphan=3 cache-bytes=' "dry-run summary lacks cache counts"
+  assert_not_contains "$out" 'cache-bytes=0 ' "dry-run did not size the selection"
+  assert_not_contains "$(cat "$ACTION_LOG")" ':rw' "dry-run mounted the cache writable"
+  assert_cache_kept n_prefix/orphan-site-web nvm_dir/orphan-site-web n_prefix/stale-review-01abcdefgh-web
+
+  prepare_cache_fixture
+  out=$(DDEV_UNLIST_ON_DELETE=1 run_clean --apply 2>&1) || fail "cache apply failed: $out"
+  for entry in n_prefix/orphan-site-web nvm_dir/orphan-site-web n_prefix/stale-review-01abcdefgh-web; do
+    [ ! -e "$DOCKER_CACHE_DIR/$entry" ] || fail "cache apply left $entry"
+    assert_contains "$out" "removed-cache: $entry" "cache apply did not report $entry"
+  done
+  assert_cache_kept
+  assert_grep 'docker run ddev-global-cache:/mnt:rw apply' "$ACTION_LOG" "cache apply did not use one removal container"
+  assert_contains "$out" 'cache-orphan=3 cache-removed=3 cache-bytes=' "apply summary lacks cache removals"
+  assert_contains "$out" 'cache-failed=0' "apply summary reported cache failures"
+  pass "fm-ddev-clean: fleet cache cleanup removes only unregistered, idle, unprotected entries"
+}
+
+test_fleet_cache_refuses_without_keep_list() {
+  local out
+  prepare_cache_fixture
+  printf '{"raw":[]}\n' > "$DDEV_JSON"
+  out=$(run_clean --apply 2>&1) || fail "$out"
+  assert_contains "$out" 'keep-list is empty; ddev-global-cache cleanup refused' "empty keep-list was not refused"
+  assert_contains "$out" 'failed=1' "empty keep-list refusal was not counted"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker run' "empty keep-list still touched the cache"
+  assert_cache_kept n_prefix/orphan-site-web
+
+  prepare_cache_fixture
+  out=$(DDEV_LIST_FAIL_AFTER=1 DDEV_UNLIST_ON_DELETE=1 run_clean --apply 2>&1) || fail "$out"
+  assert_contains "$out" 'cache-keep-list inventory incomplete' "failed keep-list read was not reported"
+  assert_not_contains "$(cat "$ACTION_LOG")" 'docker run' "failed keep-list read still touched the cache"
+  assert_cache_kept n_prefix/orphan-site-web
+  pass "fm-ddev-clean: cache cleanup refuses an empty or unreadable keep-list"
+}
+
+test_worktree_cache_removes_only_its_deleted_project() {
+  local wt out
+  prepare_cache_fixture
+  wt="$HOME_DIR/.treehouse/project/2/task"
+  mkdir -p "$wt" "$DOCKER_CACHE_DIR/n_prefix/inside-task-c1-web" "$DOCKER_CACHE_DIR/nvm_dir/inside-task-c1-web"
+  fm_write_meta "$STATE/task-c1.meta" "worktree=$wt" "ddev_name=inside-task-c1"
+  cat > "$DDEV_JSON" <<EOF
+{"raw":[{"name":"inside-task-c1","approot":"$wt"},{"name":"kept-site","approot":"$HOME_DIR/Sites/kept"}]}
+EOF
+  out=$(run_clean --worktree "$wt" --apply 2>&1) || fail "$out"
+  [ -d "$DOCKER_CACHE_DIR/n_prefix/inside-task-c1-web" ] || fail "cache removed while the project is still listed"
+  assert_contains "$out" 'cache-orphan=0' "still-listed project cache was selected"
+
+  out=$(DDEV_UNLIST_ON_DELETE=1 run_clean --worktree "$wt" --apply 2>&1) || fail "$out"
+  [ ! -e "$DOCKER_CACHE_DIR/n_prefix/inside-task-c1-web" ] && [ ! -e "$DOCKER_CACHE_DIR/nvm_dir/inside-task-c1-web" ] \
+    || fail "worktree cleanup left its deleted project's cache"
+  assert_contains "$out" 'cache-orphan=2 cache-removed=2' "worktree cache removal was not counted"
+  assert_cache_kept n_prefix/orphan-site-web nvm_dir/orphan-site-web n_prefix/stale-review-01abcdefgh-web
+  pass "fm-ddev-clean: worktree cache cleanup touches only its verified-gone project"
+}
+
 test_worktree_only_deletes_the_recorded_ddev_name
 test_fleet_cleanup_is_allowlist_only_and_safe
 test_sweep_apply_runs_generated_cleanup_and_host_prune
@@ -762,3 +888,7 @@ test_final_inventory_does_not_trust_command_success
 test_refresh_inventory_failures_are_visible
 
 test_legacy_teardown_cleans_only_selected_listed_resources
+
+test_fleet_cache_reclaims_unregistered_entries_only
+test_fleet_cache_refuses_without_keep_list
+test_worktree_cache_removes_only_its_deleted_project
