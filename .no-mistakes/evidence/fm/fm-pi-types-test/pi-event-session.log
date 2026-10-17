@@ -1,0 +1,85 @@
+Loaded real Pi 1.3.0 SDK and Firstmate extensions: [
+  '~/.no-mistakes/worktrees/dca6a1f2fc96/01M53KVK2JWFH11ZYSYYXX7YN6/.test-pi-event-lab/extensions/fm-branch-supervision.ts',
+  '~/.no-mistakes/worktrees/dca6a1f2fc96/01M53KVK2JWFH11ZYSYYXX7YN6/.test-pi-event-lab/extensions/fm-primary-pi-watch.ts',
+  '<inline:observe-contract>'
+]
+{
+  "events": [
+    {
+      "messageType": "user",
+      "hasPrompt": true,
+      "prompt": "ordinary prompt before custom event"
+    },
+    {
+      "messageType": "custom",
+      "hasPrompt": false
+    },
+    {
+      "messageType": "user",
+      "hasPrompt": true,
+      "prompt": "ordinary prompt after custom event"
+    }
+  ],
+  "extensionErrors": [],
+  "providerRequests": 3,
+  "transcript": [
+    {
+      "role": "system",
+      "content": ""
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "ordinary prompt before custom event"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "LAB_OK"
+        }
+      ],
+      "stopReason": "stop"
+    },
+    {
+      "role": "custom",
+      "customType": "lab-promptless",
+      "content": "custom context without a user prompt"
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "LAB_OK"
+        }
+      ],
+      "stopReason": "stop"
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "ordinary prompt after custom event"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "LAB_OK"
+        }
+      ],
+      "stopReason": "stop"
+    }
+  ]
+}
+PASS: ordinary prompts and a promptless custom turn complete through the real session, with both extensions loaded and no extension errors. Isolated non-owner home; no fleet lifecycle or credentials used.

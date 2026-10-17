@@ -1,0 +1,37 @@
+import {mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {createServer} from 'node:http';
+import assert from 'node:assert/strict';
+const root=process.cwd(), lab=resolve('.test-pi-event-lab'), home=lab+'/home', agentDir=lab+'/agent';
+for(const p of [home+'/state',home+'/config',agentDir,lab+'/project']) mkdirSync(p,{recursive:true});
+for(const k of ['FM_STATE_OVERRIDE','FM_DATA_OVERRIDE','FM_CONFIG_OVERRIDE','FM_PROJECTS_OVERRIDE']) delete process.env[k];
+process.env.FM_HOME=home; process.env.FM_ROOT_OVERRIDE=root; process.env.PI_CODING_AGENT_DIR=agentDir;
+const requests=[];
+const server=createServer(async(req,res)=>{let body='';for await(const c of req) body+=c;requests.push(JSON.parse(body));res.writeHead(200,{'Content-Type':'text/event-stream'});for(const [delta,finish] of [[{role:'assistant',content:'LAB_OK'},null],[{},'stop']])res.write('data: '+JSON.stringify({id:'lab',object:'chat.completion.chunk',created:1,model:'lab-model',choices:[{index:0,delta,finish_reason:finish}]})+'\n\n');res.end('data: [DONE]\n\n');});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+let session;
+try {
+writeFileSync(agentDir+'/models.json',JSON.stringify({providers:{lab:{baseUrl:`http://127.0.0.1:${server.address().port}/v1`,api:'openai-completions',apiKey:'disposable-local-only',models:[{id:'lab-model',name:'Lab',contextWindow:8192,maxTokens:512}]}}}));
+const {DefaultResourceLoader,ModelRegistry,ModelRuntime,SessionManager,SettingsManager,createAgentSession}=await import('./node_modules/@earendil-works/pi-coding-agent/dist/index.js');
+const events=[], errors=[];
+const settings=SettingsManager.create(lab+'/project',agentDir);
+settings.setCompactionEnabled(false);
+const loader=new DefaultResourceLoader({cwd:lab+'/project',agentDir,settingsManager:settings,additionalExtensionPaths:[lab+'/extensions/fm-branch-supervision.ts',lab+'/extensions/fm-primary-pi-watch.ts'],extensionFactories:[{name:'observe-contract',factory:pi=>{pi.on('before_agent_start',e=>events.push({messageType:e.messageType,hasPrompt:'prompt' in e,prompt:e.prompt}));}}],noSkills:true,noPromptTemplates:true,noThemes:true,noContextFiles:true});
+await loader.reload();
+const loaded=loader.getExtensions(); assert.equal(loaded.errors.length,0,JSON.stringify(loaded.errors));
+console.log('Loaded real Pi 1.3.0 SDK and Firstmate extensions:',loaded.extensions.map(e=>e.path));
+const runtime=await ModelRuntime.create({authPath:agentDir+'/auth.json',modelsPath:agentDir+'/models.json'});
+const registry=new ModelRegistry(runtime);await registry.refresh();
+({session}=await createAgentSession({cwd:lab+'/project',sessionManager:SessionManager.create(lab+'/project',lab+'/sessions'),settingsManager:settings,resourceLoader:loader,modelRuntime:runtime,model:registry.find('lab','lab-model'),noTools:'builtin'}));
+await session.bindExtensions({onError:e=>errors.push(e)});
+await session.prompt('ordinary prompt before custom event');
+await session.sendCustomMessage({customType:'lab-promptless',content:'custom context without a user prompt',display:false},{triggerTurn:true});
+await session.prompt('ordinary prompt after custom event');
+assert.deepEqual(events.map(e=>e.hasPrompt),[true,false,true]);
+assert.equal(requests.length,3);
+assert.equal(errors.length,0,JSON.stringify(errors));
+const messages=session.state.messages;
+assert.equal(messages.filter(m=>m.role==='assistant'&&m.stopReason==='stop').length,3,JSON.stringify(messages));
+console.log(JSON.stringify({events,extensionErrors:errors,providerRequests:requests.length,transcript:messages.map(m=>({role:m.role,customType:m.customType,content:m.content,stopReason:m.stopReason}))},null,2));
+console.log('PASS: ordinary prompts and a promptless custom turn complete through the real session, with both extensions loaded and no extension errors. Isolated non-owner home; no fleet lifecycle or credentials used.');
+} finally {if(session){await session.abort();session.dispose();}await new Promise(r=>server.close(r));}
