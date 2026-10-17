@@ -48,7 +48,9 @@
 # so a crash between stopping, wake presentation, and blocker handling fails
 # closed. It retains the presented wake, buffered-escalation, wedge-marker,
 # health, and posture-record evidence until every live open blocker is closed
-# and `check` succeeds. Repeated begin/check calls are idempotent. `guard` and
+# and `check` succeeds, including rendering the brief and publishing both the
+# brief and recovery evidence; output failure keeps catch-up pending.
+# Repeated begin/check calls are idempotent. `guard` and
 # `catchup-summary` never mutate state and are suitable for ordinary read
 # entrypoints such as fm-bearings-snapshot.sh. `guard` separates its two
 # refusal branches by exit status so a reporting surface can keep refusing
