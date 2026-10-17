@@ -359,7 +359,7 @@ The mirror never carries tool calls, tool results, operational injections, or th
 Mirroring happens at two points:
 
 - The idle path mirrors at main's turn end.
-- At `before_agent_start`, Pi's authoritative prompt is staged verbatim before SessionManager persists that user entry.
+- At `before_agent_start`, events carrying a `prompt` stage Pi's authoritative prompt verbatim before SessionManager persists that user entry; custom-message runs without a prompt are ignored.
   The complete current captain message therefore precedes any branch wake accepted after that boundary.
   The later persisted copy is suppressed, and older dialog entries remain bounded.
 
