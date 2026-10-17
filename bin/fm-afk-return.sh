@@ -855,15 +855,19 @@ EOF
   # failed stdout leaves stock macOS Bash 3.2's buffer dirty, and every later
   # command substitution's child would flush that stale text into its capture.
   brief=$(mktemp "$STATE/.afk-return-brief.XXXXXX") || { rm -f "$evidence" "$blockers" "$drain_err"; return 1; }
-  render_return_brief "$evidence" "$blockers" "$since" "$drain_ok" > "$brief"
-  cat "$brief"
-  rm -f "$brief"
-  if [ "$HELD_READ_FAILED" -eq 1 ]; then
-    append_evidence lifecycle "held set unreadable: $HELD_READ_PATH; catch-up stays gated" "$evidence"
+  if ! (
+    render_return_brief "$evidence" "$blockers" "$since" "$drain_ok" > "$brief" || exit 1
+    cat "$brief" || exit 1
+    if [ "$HELD_READ_FAILED" -eq 1 ]; then
+      append_evidence lifecycle "held set unreadable: $HELD_READ_PATH; catch-up stays gated" "$evidence"
+      exit 1
+    else
+      remove_evidence_prefix lifecycle 'held set unreadable:' "$evidence" || exit 1
+    fi
+  ); then
     lifecycle_ok=0
-  else
-    remove_evidence_prefix lifecycle 'held set unreadable:' "$evidence" || lifecycle_ok=0
   fi
+  rm -f "$brief"
   if [ "$lifecycle_ok" -ne 1 ] || grep -q "^blocker$(printf '\t')" "$blockers"; then
     write_gate "$evidence" "$blockers" || { rm -f "$evidence" "$blockers" "$drain_err"; return 1; }
     printf 'fm-afk-return: catch-up must finish before the captain request\n' >&2
