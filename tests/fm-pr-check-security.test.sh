@@ -1661,6 +1661,7 @@ group/apps/console
 $dir/fakebin
 $(printf '%s\n' "$BASE_PATH" | tr ':' '\n')
 EOF
+    hash -r
     ! PATH="$notool" command -v "$tool" >/dev/null 2>&1 \
       || fail "the $tool-free search path still resolved $tool"
     out=$(FM_TEST_GERRIT_STATUS=MERGED FM_TEST_GERRIT_AXI_LOG="$dir/gerrit-axi.log" \
@@ -2041,6 +2042,7 @@ group/subgroup/project
 $dir/fakebin
 $(printf '%s\n' "$BASE_PATH" | tr ':' '\n')
 EOF
+  hash -r
   ! PATH="$noglab" command -v glab >/dev/null 2>&1 \
     || fail "the glab-free search path still resolved glab"
   out=$(FM_TEST_GLAB_STATE=merged FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GLAB_LOG="$dir/glab.log" \

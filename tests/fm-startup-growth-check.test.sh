@@ -324,7 +324,11 @@ test_over_long_finding_set_is_capped_with_the_shared_marker() {
   while [ "${#deep}" -lt 1200 ]; do
     deep="$deep/$seg"
   done
-  mkdir -p "$deep"
+  # The over-long finding comes from a path past macOS's 1024-byte PATH_MAX.
+  mkdir -p "$deep" 2>/dev/null || {
+    printf 'note - a %s-character data path exceeds this host'"'"'s PATH_MAX; skipping\n' "${#deep}"
+    return 0
+  }
   ln -s "$home/data/captain.md" "$deep/learnings.md"
   out=$(FM_ROOT_OVERRIDE="$root" FM_HOME="$home" FM_DATA_OVERRIDE="$deep" FM_STARTUP_GROWTH_NOW=1000 \
     "$CHECK" check 2>/dev/null) || fail "capped check failed"

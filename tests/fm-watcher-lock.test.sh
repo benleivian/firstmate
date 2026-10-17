@@ -602,7 +602,12 @@ test_lock_stale_steal_single_winner_under_concurrency() {
     pids="$pids $!"
     i=$((i + 1))
   done
-  IFS= read -r winner < "$gate"
+  # Bash 3.2 does not restart a FIFO open that SIGCHLD from an exiting
+  # contender interrupts, so retry until the winner's pid actually arrives.
+  winner=
+  until [ -n "$winner" ]; do
+    IFS= read -r winner < "$gate" 2>/dev/null || true
+  done
   [ "$winner" = "$waiter" ] || { kill "$waiter" 2>/dev/null || true; wait "$waiter" 2>/dev/null || true; }
   for pid in $pids; do
     [ "$pid" = "$winner" ] || wait "$pid" 2>/dev/null || true

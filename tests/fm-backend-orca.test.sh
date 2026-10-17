@@ -370,6 +370,7 @@ test_kill_refuses_when_the_orca_cli_is_absent() {
   local out status orca_free
   orca_case kill-no-cli
   orca_free=$(fm_test_base_path_sans "$PATH" orca)
+  hash -r
   ! PATH="$orca_free" command -v orca >/dev/null 2>&1 \
     || fail "the orca-free search path still resolved orca"
   PATH="$orca_free" command -v bash >/dev/null 2>&1 \

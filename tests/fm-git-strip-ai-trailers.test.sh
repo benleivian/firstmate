@@ -260,6 +260,12 @@ test_unresolvable_project_hookspath_still_refuses() {
   printf 'note\n' >>"$repo/README.md"
   git -C "$repo" add README.md
   git -C "$repo" config core.hooksPath '~fm-no-such-user-6171/hooks'
+  # Older git (Apple Git 2.39) dies on every command in this repository, so no
+  # hook lookup can be skipped there and the case has nothing to exercise.
+  git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+    echo "skip - $(git --version) refuses every command with an unresolvable core.hooksPath"
+    return 0
+  }
   hooks="$TMP_ROOT/hooks-unresolvable"
   "$STRIP" install "$hooks" "$repo" || fail "install should succeed with an unresolvable core.hooksPath"
   head=$(git -C "$repo" rev-parse HEAD)
@@ -281,6 +287,11 @@ test_valueless_project_hookspath_still_refuses() {
   printf 'note\n' >>"$repo/README.md"
   git -C "$repo" add README.md
   printf '[core]\n\thooksPath\n' >>"$repo/.git/config"
+  # As above, older git dies on every command once this key is written.
+  git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+    echo "skip - $(git --version) refuses every command with a valueless core.hooksPath"
+    return 0
+  }
   err=$(with_hooks_env "$hooks" git -C "$repo" commit -q -m 'fix: valueless hooksPath' 2>&1) &&
     fail "a commit succeeded although core.hooksPath has no value"
   assert_contains "$err" "refusing to skip its pre-commit hook" "the refusal did not name the skipped hook"
