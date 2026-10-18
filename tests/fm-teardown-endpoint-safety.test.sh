@@ -31,7 +31,10 @@ printf ' <%s>' "$@" >> "${FM_RUNTIME_LOG:?}"
 printf '\n' >> "${FM_RUNTIME_LOG:?}"
 exit 0
 SH
-  chmod +x "$TMP_ROOT/$dir/fakebin/tmux" "$TMP_ROOT/$dir/fakebin/treehouse"
+  # Keep teardown's DDEV cleanup off any host ddev, whose bounded calls can
+  # outlast the timing these cases depend on.
+  printf '#!/usr/bin/env bash\nexit 1\n' > "$TMP_ROOT/$dir/fakebin/ddev"
+  chmod +x "$TMP_ROOT/$dir/fakebin/tmux" "$TMP_ROOT/$dir/fakebin/treehouse" "$TMP_ROOT/$dir/fakebin/ddev"
   printf '%s\n' "$TMP_ROOT/$dir"
 }
 
@@ -1391,6 +1394,7 @@ test_orca_close_failure_refuses_even_under_force() {
   local dir orca_free id=orca-strand rc
   dir=$(make_case orca-close-failure)
   orca_free=$(fm_test_base_path_sans "$PATH" orca)
+  hash -r
   ! PATH="$dir/fakebin:$orca_free" command -v orca >/dev/null 2>&1 \
     || fail "the orca-free search path still resolved orca"
   # The Orca arm reports a close its missing CLI never attempted, and the step

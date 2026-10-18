@@ -462,6 +462,8 @@ mirror_path_without() {
   done <<EOF
 $search
 EOF
+  # Bash 3.2 answers command -v from its hash table even under a temporary PATH.
+  hash -r
   ! PATH="$dir" command -v "$omit" >/dev/null 2>&1 \
     || fail "the $omit-free search path still resolved $omit"
 }

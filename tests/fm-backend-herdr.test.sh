@@ -3989,7 +3989,8 @@ test_composer_state_inactive_session_fails_fast_without_server_autostart() {
 # shellcheck disable=SC2016
 test_composer_state_piped_reader_does_not_hang() {
   local out rc=0
-  out=$( timeout 3s bash -c '. "$0/bin/fm-backend.sh"; ( fm_backend_composer_state herdr nonexistent-session:p2 ) 2>&1 | head -20' "$ROOT" ) || rc=$?
+  # shellcheck source=bin/fm-timeout-lib.sh
+  out=$( . "$ROOT/bin/fm-timeout-lib.sh"; fm_run_timed 3 bash -c '. "$0/bin/fm-backend.sh"; ( fm_backend_composer_state herdr nonexistent-session:p2 ) 2>&1 | head -20' "$ROOT" ) || rc=$?
   [ "$rc" -eq 0 ] || fail "piped composer probe on bad target hung or failed with rc=$rc"
   [ "$out" = unknown ] || fail "piped composer probe should print unknown, got '$out'"
   pass "fm_backend_composer_state (herdr): piped probe on bad target does not hang EOF-sensitive readers"

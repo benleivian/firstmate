@@ -48,7 +48,9 @@
 # so a crash between stopping, wake presentation, and blocker handling fails
 # closed. It retains the presented wake, buffered-escalation, wedge-marker,
 # health, and posture-record evidence until every live open blocker is closed
-# and `check` succeeds. Repeated begin/check calls are idempotent. `guard` and
+# and `check` succeeds, including rendering the brief and publishing both the
+# brief and recovery evidence; output failure keeps catch-up pending.
+# Repeated begin/check calls are idempotent. `guard` and
 # `catchup-summary` never mutate state and are suitable for ordinary read
 # entrypoints such as fm-bearings-snapshot.sh. `guard` separates its two
 # refusal branches by exit status so a reporting surface can keep refusing
@@ -243,10 +245,13 @@ write_gate() {  # <evidence-file> <blockers-file>
 }
 
 print_evidence() {  # <file>
-  local file=$1 kind text
-  while IFS="$(printf '\t')" read -r tag kind text; do
+  local file=$1 kind text tab
+  # The tab is captured before any write: after a failed write, Bash 3.2 leaks
+  # the unflushed text into later command substitutions.
+  tab=$(printf '\t')
+  while IFS="$tab" read -r tag kind text; do
     [ "$tag" = evidence ] || continue
-    printf 'catch-up %s: %s\n' "$kind" "$text"
+    printf 'catch-up %s: %s\n' "$kind" "$text" || return 1
   done < "$file"
 }
 
@@ -699,7 +704,7 @@ EOF
 
 return_reconcile() {
   local evidence blockers drain_err drained drain_ok=1 wake_ack_line wake_ack_through wake_ack_generation wedge escalations lifecycle_ok=1 since contract_since superseded_record retained_record
-  local archived_contract tag kind text retained_live restored_epoch
+  local archived_contract tag kind text retained_live restored_epoch brief
   evidence=$(mktemp "$STATE/.afk-return-evidence.XXXXXX") || return 1
   blockers=$(mktemp "$STATE/.afk-return-blockers.XXXXXX") || { rm -f "$evidence"; return 1; }
   drain_err=$(mktemp "$STATE/.afk-return-drain.XXXXXX") || { rm -f "$evidence" "$blockers"; return 1; }
@@ -848,13 +853,23 @@ EOF
     append_evidence lifecycle "status file unreadable: $STATUS_SCAN_ERROR; catch-up stays gated" "$evidence"
     lifecycle_ok=0
   fi
-  render_return_brief "$evidence" "$blockers" "$since" "$drain_ok"
-  if [ "$HELD_READ_FAILED" -eq 1 ]; then
-    append_evidence lifecycle "held set unreadable: $HELD_READ_PATH; catch-up stays gated" "$evidence"
+  # Stage the brief and publish it with an external cat: a builtin write to a
+  # failed stdout leaves stock macOS Bash 3.2's buffer dirty, and every later
+  # command substitution's child would flush that stale text into its capture.
+  brief=$(mktemp "$STATE/.afk-return-brief.XXXXXX") || { rm -f "$evidence" "$blockers" "$drain_err"; return 1; }
+  if ! (
+    render_return_brief "$evidence" "$blockers" "$since" "$drain_ok" > "$brief" || exit 1
+    cat "$brief" || exit 1
+    if [ "$HELD_READ_FAILED" -eq 1 ]; then
+      append_evidence lifecycle "held set unreadable: $HELD_READ_PATH; catch-up stays gated" "$evidence"
+      exit 1
+    else
+      remove_evidence_prefix lifecycle 'held set unreadable:' "$evidence" || exit 1
+    fi
+  ); then
     lifecycle_ok=0
-  else
-    remove_evidence_prefix lifecycle 'held set unreadable:' "$evidence" || lifecycle_ok=0
   fi
+  rm -f "$brief"
   if [ "$lifecycle_ok" -ne 1 ] || grep -q "^blocker$(printf '\t')" "$blockers"; then
     write_gate "$evidence" "$blockers" || { rm -f "$evidence" "$blockers" "$drain_err"; return 1; }
     printf 'fm-afk-return: catch-up must finish before the captain request\n' >&2
@@ -865,7 +880,8 @@ EOF
     return 3
   fi
 
-  if ! print_evidence "$evidence"; then
+  # The subshell keeps a failed write's dirty buffer out of this shell (above).
+  if ! (print_evidence "$evidence"); then
     append_evidence lifecycle 'recovery evidence publication failed; retry catch-up before ordinary work' "$evidence"
     write_gate "$evidence" "$blockers" || { rm -f "$evidence" "$blockers" "$drain_err"; return 1; }
     printf 'fm-afk-return: recovery evidence could not be published; catch-up remains pending\n' >&2
