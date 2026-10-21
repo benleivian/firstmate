@@ -76,8 +76,8 @@
 # arm would, and otherwise this arm owns a fresh cycle as a plain arm does.
 # Recovery restoration follows docs/watcher-continuity.md "Generation reuse";
 # an unconfirmed stop leaves downtime for the fresh cycle's recovery check.
-# Any other watcher, or one that outlives the stop,
-# is attached to exactly as a plain arm attaches.
+# Any other watcher, or one that outlives the stop past the attached-holder
+# stall bound, is attached to exactly as a plain arm attaches.
 #
 # --stop: the same home-scoped stop without re-arming, for an owner that ends
 # its own supervision cycle on purpose (the supervision host's park boundary,
@@ -552,18 +552,21 @@ fi
 # to exit (header, --take-over). Returns 3 after printing the reason that cycle
 # delivered before the stop landed, 0 once it stopped without delivering, and
 # 1 when it was not stopped (its handover state was unreadable, or it outlived
-# the stop), which leaves it to the plain attach below.
+# the stop past the stall bound), which leaves it to the plain attach below.
 take_over_cycle() {  # <watcher-pid> <identity>
-  local pid=$1 i owner_signal
+  local pid=$1 i owner_signal stop_started
   cycle_begin "$pid" attached "$2"
   fm_recovery_marker_handover_snapshot "$STATE/.watcher-down" || return 1
   if attached_holder_live "$pid"; then
     kill -TERM "$pid" 2>/dev/null || true
   fi
-  i=0
-  while [ "$i" -lt 50 ] && fm_pid_alive "$pid"; do
+  # Bash 3.2 holds a queued TERM until the watcher's running command
+  # substitution exits (watcher_stop_signals in bin/fm-watch.sh), so a short
+  # wait here gave up on a stop that was still landing and lost the handover
+  # restore below. Wait out the stall bound an attached arm also tolerates.
+  stop_started=$SECONDS
+  while fm_pid_alive "$pid" && [ $((SECONDS - stop_started)) -lt "$STALL_BOUND" ]; do
     sleep 0.1
-    i=$((i + 1))
   done
   if fm_pid_alive "$pid"; then
     return 1
