@@ -1,0 +1,97 @@
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/.live-watch-lab
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/.live-watch-lab
+exit=0
+$ bash -c . bin/fm-wake-lib.sh; fm_wake_append signal live-check "signal: pending operator work"
+exit=0
+$ bin/fm-wake-drain.sh
+1792561743	1	signal	live-check	signal: pending operator work
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 80036.1792561743.yE7RJC
+exit=0
+$ bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 80036.1792561743.yE7RJC
+exit=0
+idle turn 1: old watcher 78830, owner exit 143; watcher: started pid=86569 (beacon fresh); empty queue; acknowledged recovery; successor still running
+idle turn 2: old watcher 86569, owner exit 143; watcher: started pid=89249 (beacon fresh); empty queue; acknowledged recovery; successor still running
+idle turn 3: old watcher 89249, owner exit 143; watcher: started pid=94571 (beacon fresh); empty queue; acknowledged recovery; successor still running
+idle turn 4: old watcher 94571, owner exit 143; watcher: started pid=99110 (beacon fresh); empty queue; acknowledged recovery; successor still running
+idle turn 5: old watcher 99110, owner exit 143; watcher: started pid=3614 (beacon fresh); empty queue; acknowledged recovery; successor still running
+idle turn 6: old watcher 3614, owner exit 143; watcher: started pid=6541 (beacon fresh); empty queue; acknowledged recovery; successor still running
+six idle handovers .watcher-down
+acked:handling:80036.1792561743.yE7RJC
+
+six idle handovers .wake-queue
+
+six idle handovers .watch-cycle-exits.log
+arm_pid=78786	watcher_pid=78830	origin=started	started_at=1792561742	ended_at=1792561753	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:78830|identity:Tue Oct 20 22:49:02 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=82334	watcher_pid=78830	origin=attached	started_at=1792561745	ended_at=1792561753	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:78830|identity:Tue Oct 20 22:49:02 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:86569
+arm_pid=82334	watcher_pid=86569	origin=started	started_at=1792561753	ended_at=1792561764	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:86569|identity:Tue Oct 20 22:49:13 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=87628	watcher_pid=86569	origin=attached	started_at=1792561756	ended_at=1792561764	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:86569|identity:Tue Oct 20 22:49:13 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:89249
+arm_pid=87628	watcher_pid=89249	origin=started	started_at=1792561764	ended_at=1792561775	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:89249|identity:Tue Oct 20 22:49:24 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=90881	watcher_pid=89249	origin=attached	started_at=1792561767	ended_at=1792561776	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=10	lock_before=pid:89249|identity:Tue Oct 20 22:49:24 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:94571
+arm_pid=90881	watcher_pid=94571	origin=started	started_at=1792561776	ended_at=1792561787	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:94571|identity:Tue Oct 20 22:49:36 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=96456	watcher_pid=94571	origin=attached	started_at=1792561779	ended_at=1792561787	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:94571|identity:Tue Oct 20 22:49:36 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:99110
+arm_pid=96456	watcher_pid=99110	origin=started	started_at=1792561787	ended_at=1792561798	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:99110|identity:Tue Oct 20 22:49:47 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=1236	watcher_pid=99110	origin=attached	started_at=1792561790	ended_at=1792561798	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:99110|identity:Tue Oct 20 22:49:47 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:3614
+arm_pid=1236	watcher_pid=3614	origin=started	started_at=1792561798	ended_at=1792561809	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:3614|identity:Tue Oct 20 22:49:58 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=4603	watcher_pid=3614	origin=attached	started_at=1792561801	ended_at=1792561809	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:3614|identity:Tue Oct 20 22:49:58 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:6541
+
+$ bash -c . bin/fm-wake-lib.sh; fm_wake_append signal live-check "signal: pending operator work"
+exit=0
+queued work after delayed stop: check: rearm-resurface
+
+queued work .watcher-down
+announced:downtime:7449.1792561812.qUmFzy
+
+queued work .wake-queue
+1792561812	2	signal	live-check	signal: pending operator work
+
+queued work .watch-cycle-exits.log
+arm_pid=78786	watcher_pid=78830	origin=started	started_at=1792561742	ended_at=1792561753	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:78830|identity:Tue Oct 20 22:49:02 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=82334	watcher_pid=78830	origin=attached	started_at=1792561745	ended_at=1792561753	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:78830|identity:Tue Oct 20 22:49:02 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:86569
+arm_pid=82334	watcher_pid=86569	origin=started	started_at=1792561753	ended_at=1792561764	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:86569|identity:Tue Oct 20 22:49:13 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=87628	watcher_pid=86569	origin=attached	started_at=1792561756	ended_at=1792561764	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:86569|identity:Tue Oct 20 22:49:13 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:89249
+arm_pid=87628	watcher_pid=89249	origin=started	started_at=1792561764	ended_at=1792561775	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:89249|identity:Tue Oct 20 22:49:24 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=90881	watcher_pid=89249	origin=attached	started_at=1792561767	ended_at=1792561776	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=10	lock_before=pid:89249|identity:Tue Oct 20 22:49:24 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:94571
+arm_pid=90881	watcher_pid=94571	origin=started	started_at=1792561776	ended_at=1792561787	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:94571|identity:Tue Oct 20 22:49:36 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=96456	watcher_pid=94571	origin=attached	started_at=1792561779	ended_at=1792561787	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:94571|identity:Tue Oct 20 22:49:36 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:99110
+arm_pid=96456	watcher_pid=99110	origin=started	started_at=1792561787	ended_at=1792561798	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:99110|identity:Tue Oct 20 22:49:47 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=1236	watcher_pid=99110	origin=attached	started_at=1792561790	ended_at=1792561798	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:99110|identity:Tue Oct 20 22:49:47 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:3614
+arm_pid=1236	watcher_pid=3614	origin=started	started_at=1792561798	ended_at=1792561809	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:3614|identity:Tue Oct 20 22:49:58 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=4603	watcher_pid=3614	origin=attached	started_at=1792561801	ended_at=1792561809	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:3614|identity:Tue Oct 20 22:49:58 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:6541
+arm_pid=4603	watcher_pid=6541	origin=started	started_at=1792561810	ended_at=1792561821	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=10	lock_before=pid:6541|identity:Tue Oct 20 22:50:10 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=7535	watcher_pid=6541	origin=attached	started_at=1792561813	ended_at=1792561821	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=10	lock_before=pid:6541|identity:Tue Oct 20 22:50:10 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=7535	watcher_pid=8801	origin=started	started_at=1792561821	ended_at=1792561822	exit_code=0	signal=none	reason=actionable-check	beacon_age=1	lock_before=pid:none|identity:none	lock_after=pid:none|identity:none	successor=none
+
+$ bin/fm-wake-drain.sh
+1792561812	2	signal	live-check	signal: pending operator work
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 7449.1792561812.qUmFzy
+exit=0
+$ bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 7449.1792561812.qUmFzy
+exit=0
+unexpected watcher exit retains recovery: watcher: started pid=12105 (beacon fresh)
+check: rearm-resurface
+
+unexpected exit .watcher-down
+announced:downtime:12105.1792561824.QPx3EQ
+
+unexpected exit .wake-queue
+
+unexpected exit .watch-cycle-exits.log
+arm_pid=78786	watcher_pid=78830	origin=started	started_at=1792561742	ended_at=1792561753	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:78830|identity:Tue Oct 20 22:49:02 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=82334	watcher_pid=78830	origin=attached	started_at=1792561745	ended_at=1792561753	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:78830|identity:Tue Oct 20 22:49:02 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:86569
+arm_pid=82334	watcher_pid=86569	origin=started	started_at=1792561753	ended_at=1792561764	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:86569|identity:Tue Oct 20 22:49:13 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=87628	watcher_pid=86569	origin=attached	started_at=1792561756	ended_at=1792561764	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:86569|identity:Tue Oct 20 22:49:13 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:89249
+arm_pid=87628	watcher_pid=89249	origin=started	started_at=1792561764	ended_at=1792561775	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:89249|identity:Tue Oct 20 22:49:24 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=90881	watcher_pid=89249	origin=attached	started_at=1792561767	ended_at=1792561776	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=10	lock_before=pid:89249|identity:Tue Oct 20 22:49:24 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:94571
+arm_pid=90881	watcher_pid=94571	origin=started	started_at=1792561776	ended_at=1792561787	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:94571|identity:Tue Oct 20 22:49:36 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=96456	watcher_pid=94571	origin=attached	started_at=1792561779	ended_at=1792561787	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:94571|identity:Tue Oct 20 22:49:36 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:99110
+arm_pid=96456	watcher_pid=99110	origin=started	started_at=1792561787	ended_at=1792561798	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:99110|identity:Tue Oct 20 22:49:47 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=1236	watcher_pid=99110	origin=attached	started_at=1792561790	ended_at=1792561798	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:99110|identity:Tue Oct 20 22:49:47 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:3614
+arm_pid=1236	watcher_pid=3614	origin=started	started_at=1792561798	ended_at=1792561809	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=9	lock_before=pid:3614|identity:Tue Oct 20 22:49:58 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=4603	watcher_pid=3614	origin=attached	started_at=1792561801	ended_at=1792561809	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=9	lock_before=pid:3614|identity:Tue Oct 20 22:49:58 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:6541
+arm_pid=4603	watcher_pid=6541	origin=started	started_at=1792561810	ended_at=1792561821	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=10	lock_before=pid:6541|identity:Tue Oct 20 22:50:10 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=7535	watcher_pid=6541	origin=attached	started_at=1792561813	ended_at=1792561821	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=10	lock_before=pid:6541|identity:Tue Oct 20 22:50:10 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=7535	watcher_pid=8801	origin=started	started_at=1792561821	ended_at=1792561822	exit_code=0	signal=none	reason=actionable-check	beacon_age=1	lock_before=pid:none|identity:none	lock_after=pid:none|identity:none	successor=none
+arm_pid=10172	watcher_pid=10218	origin=started	started_at=1792561823	ended_at=1792561823	exit_code=137	signal=KILL	reason=signal-exit	beacon_age=0	lock_before=pid:10218|identity:Tue Oct 20 22:50:23 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:10218|identity:Tue Oct 20 22:50:23 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	successor=none
+arm_pid=12064	watcher_pid=12105	origin=started	started_at=1792561824	ended_at=1792561825	exit_code=0	signal=none	reason=actionable-check	beacon_age=1	lock_before=pid:12105|identity:Tue Oct 20 22:50:24 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+
+ALL LIVE SCENARIOS PASSED

@@ -1,0 +1,4 @@
+watcher: started pid=10218 (beacon fresh)
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch-arm.sh: line 769: 10218 Killed: 9               "$WATCH" > "$child_out"
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh: line 1985: echo: write error: Broken pipe
+watcher: FAILED - watcher cycle exited 137 without an actionable reason

@@ -1,0 +1,27 @@
+$ bin/fm-lab-home.sh create ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/aprobe-baseline20
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/aprobe-baseline20
+exit=0
+$ bash -c . bin/fm-wake-lib.sh; fm_wake_append signal live-check "signal: pending operator work"
+exit=0
+$ bin/fm-wake-drain.sh
+1792561853	1	signal	live-check	signal: pending operator work
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 29455.1792561853.PDqVCz
+exit=0
+$ bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 29455.1792561853.PDqVCz
+exit=0
+old takeover exit=1 watcher: attached pid=28975 (beacon 9s)
+watcher: FAILED - cycle ended without an actionable reason
+
+after old takeover .watcher-down
+pending:downtime:28975.1792561874.GCtYi3
+
+after old takeover .wake-queue
+
+after old takeover .watch-cycle-exits.log
+arm_pid=28955	watcher_pid=28975	origin=started	started_at=1792561852	ended_at=1792561874	exit_code=143	signal=TERM	reason=signal-exit	beacon_age=20	lock_before=pid:28975|identity:Tue Oct 20 22:50:52 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=30681	watcher_pid=28975	origin=attached	started_at=1792561863	ended_at=1792561905	exit_code=unknown	signal=unknown	reason=attached-cycle-ended	beacon_age=51	lock_before=pid:28975|identity:Tue Oct 20 22:50:52 2026     bash ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFY9G488CQ5FFF1X7003H2/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+
+next idle rearm: watcher: started pid=43386 (beacon fresh)
+check: rearm-resurface
+
+REPRODUCED: old implementation emits recovery with an empty queue after delayed idle handover
