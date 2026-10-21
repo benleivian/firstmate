@@ -1196,6 +1196,81 @@ test_take_over_owns_a_fresh_cycle_and_keeps_queued_work_surfacing() {
   pass "watch-arm: --take-over owns a fresh cycle without a recovery wake and still surfaces queued work"
 }
 
+# A stopped watcher can take longer than a few seconds to exit: bash 3.2 holds a
+# queued TERM until a running command substitution returns. Hold the stopped
+# watcher in its own downtime publication instead, which is portable to every
+# bash, so its exit lands well after the stop. The takeover must still restore
+# main's acknowledgement rather than leave fresh downtime that turns every idle
+# turn end into a recovery wake, and work still queued must still resurface.
+test_take_over_waits_out_a_slow_stop() {
+  local dir state fakebin armout owner real_chmod status i
+  dir=$(make_case take-over-slow-stop)
+  state="$dir/state"
+  fakebin="$dir/fakebin"
+  armout="$dir/arm.out"
+  real_chmod=$(command -v chmod)
+  # One-shot: the first downtime write after the flag appears holds for the
+  # seconds the flag names.
+  # shellcheck disable=SC2016  # single quotes are deliberate: the shim expands its own variables.
+  printf '#!/usr/bin/env bash\ncase "${2:-}" in\n  */.watcher-down.tmp.*) if mv "%s/slow-stop" "%s/slow-stop.held" 2>/dev/null; then sleep "$(cat "%s/slow-stop.held")"; fi ;;\nesac\nexec "%s" "$@"\n' \
+    "$dir" "$dir" "$dir" "$real_chmod" > "$fakebin/chmod"
+  "$real_chmod" +x "$fakebin/chmod"
+
+  # Main acknowledged everything: the takeover stays quiet.
+  start_rearm_arm "$dir" "$state" "$fakebin" "$dir/owner.out" "$$"
+  owner=$ARM_PID
+  SEED_PID=$(cat "$state/.watch.lock/pid")
+  append_wake "$state" signal take-over "signal: fixture handled by main"
+  ack_wakes "$state" >/dev/null || fail "fixture: main could not acknowledge the handled wake"
+  case "$(cat "$state/.watcher-down" 2>/dev/null)" in acked:*) ;; *) fail "fixture: the episode was not acknowledged" ;; esac
+  # Well past the five-second wait that used to give up on the stop.
+  printf '12\n' > "$dir/slow-stop"
+  PATH="$fakebin:$PATH" FM_HOME="$dir" FM_STATE_OVERRIDE="$state" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+    FM_ARM_CONFIRM_TIMEOUT="$REARM_CONFIRM_SECONDS" "$WATCH_ARM" --take-over "$owner" > "$armout" &
+  ARM_PID=$!
+  i=0
+  while [ "$i" -lt "$REARM_REPORT_POLLS" ]; do
+    grep -q '^watcher: started pid=' "$armout" && break
+    is_live_non_zombie "$ARM_PID" || break
+    sleep 0.05
+    i=$((i + 1))
+  done
+  grep -q '^watcher: started pid=' "$armout" \
+    || fail "--take-over gave up on a slow stop: $(cat "$armout")"
+  [ -e "$dir/slow-stop.held" ] || fail "fixture: the stopped watcher's exit was not held"
+  ! is_live_non_zombie "$SEED_PID" || fail "--take-over left the watcher it took over running"
+  sleep 3
+  is_live_non_zombie "$ARM_PID" || fail "the taken-over cycle closed with no new work: $(cat "$armout")"
+  case "$(cat "$state/.watcher-down" 2>/dev/null)" in
+    acked:*) ;;
+    *) fail "a slow stop left a downtime episode for an idle re-arm: $(cat "$state/.watcher-down" 2>/dev/null)" ;;
+  esac
+  grep -q 'reason=taken-over	.*successor=started:' "$state/.watch-cycle-exits.log" \
+    || fail "the slow stop was not recorded as taken over: $(cat "$state/.watch-cycle-exits.log")"
+  kill -TERM "$ARM_PID" 2>/dev/null || true
+  wait_for_exit "$ARM_PID" 50 >/dev/null 2>&1 || true
+
+  # A wake still queued for main resurfaces after the same slow stop.
+  start_rearm_arm "$dir" "$state" "$fakebin" "$dir/owner2.out" "$$"
+  owner=$ARM_PID
+  SEED_PID=$(cat "$state/.watch.lock/pid")
+  append_wake "$state" signal take-over "signal: fixture still queued for main"
+  rm -f "$dir/slow-stop.held"
+  printf '3\n' > "$dir/slow-stop"
+  PATH="$fakebin:$PATH" FM_HOME="$dir" FM_STATE_OVERRIDE="$state" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+    FM_ARM_CONFIRM_TIMEOUT="$REARM_CONFIRM_SECONDS" "$WATCH_ARM" --take-over "$owner" > "$armout" &
+  ARM_PID=$!
+  wait_for_exit "$ARM_PID" "$REARM_EXIT_POLLS"
+  status=$?
+  expect_code 0 "$status" "a takeover that resurfaces queued work closes cleanly"
+  [ -e "$dir/slow-stop.held" ] || fail "fixture: the second stopped watcher's exit was not held"
+  grep -q '^check: rearm-resurface' "$armout" \
+    || fail "work queued for main did not resurface after a slow stop: $(cat "$armout")"
+  pass "watch-arm: --take-over waits out a slow stop, stays quiet when acknowledged, and still surfaces queued work"
+}
+
 # Pause just after handover releases its snapshot locks, then fail the old
 # watcher's secondmate tick write so it exits through cleanup before TERM lands.
 # The ledger and recovery wake are public output contracts, not source probes.
@@ -1742,5 +1817,6 @@ test_handling_delivered_accepts_already_acked_generation
 test_handling_delivered_rejects_a_superseded_generation
 test_take_over_attaches_to_a_cycle_the_named_arm_does_not_own
 test_take_over_owns_a_fresh_cycle_and_keeps_queued_work_surfacing
+test_take_over_waits_out_a_slow_stop
 test_take_over_preserves_downtime_from_watcher_self_exit
 test_opencode_arm_plugin_decides_with_the_shared_predicate
