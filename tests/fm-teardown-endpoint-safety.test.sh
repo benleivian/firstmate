@@ -1083,6 +1083,73 @@ test_claimant_tears_down_beside_previous_holders_record() {
   pass "fm-teardown: a slot's claimant tears down beside its previous holder's surviving record"
 }
 
+# The reuse collision on slots taken before claims existed: each of two pool
+# slots carries a finished task's record and the later live task's record, and
+# no claim says which is current. The newer incarnation that prepared the slot,
+# beside a gone endpoint and a merged PR, proves each finished record stale, so
+# it retires records-only; each live task then tears down and returns its slot.
+# Without any one of those proofs the finished record still refuses.
+test_unclaimed_duplicate_slot_records_retire_by_newer_incarnation() {
+  local dir slot stale live drop rc
+  dir=$(make_case slot-unclaimed-duplicates)
+  mark_case_as_treehouse_pool "$dir"
+  mkdir -p "$dir/pool/2"
+  git -C "$dir/project" worktree add -q --detach "$dir/pool/2/project"
+  : > "$dir/pool/2/project/sentinel"
+  printf '#!/usr/bin/env bash\nprintf "MERGED\\n"\n' > "$dir/fakebin/gh"
+  chmod +x "$dir/fakebin/gh"
+  write_slot_pair() {  # <slot> [field-to-drop]
+    local slot=$1 drop=${2:-}
+    fm_write_meta "$dir/home/state/stale-$slot.meta" \
+      "window=firstmate:fm-stale-$slot" "endpoint_task_id=stale-$slot" \
+      "worktree=$dir/pool/$slot/project" "project=$dir/project" "kind=ship" \
+      "spawn_gen=s1000.1.1" "ddev_name=slot-$slot" "pr=https://github.com/o/r/pull/$slot"
+    fm_write_meta "$dir/home/state/live-$slot.meta" \
+      "window=firstmate:fm-live-$slot" "endpoint_task_id=live-$slot" \
+      "worktree=$dir/pool/$slot/project" "project=$dir/project" "kind=scout" \
+      "spawn_gen=s2000.1.1" "ddev_name=slot-$slot"
+    [ -z "$drop" ] || sed -i.bak "/^$drop=/d" "$dir/home/state/$([ "$drop" = ddev_name ] && echo live || echo stale)-$slot.meta"
+  }
+
+  # Each missing proof keeps the record-exclusivity refusal.
+  for drop in ddev_name pr; do
+    write_slot_pair 1 "$drop"
+    assert_refused_without_mutation "$dir" stale-1 "unclaimed duplicate without $drop"
+    assert_contains "$(cat "$dir/stderr")" "also task live-1's recorded worktree" \
+      "unclaimed duplicate without $drop should keep the exclusivity refusal"
+  done
+  write_slot_pair 1
+  sed -i.bak 's/^spawn_gen=.*/spawn_gen=s3000.1.1/' "$dir/home/state/stale-1.meta"
+  assert_refused_without_mutation "$dir" stale-1 "unclaimed duplicate with an older other record"
+  rm -f "$dir"/home/state/*.bak
+
+  for slot in 1 2; do write_slot_pair "$slot"; done
+  for slot in 1 2; do
+    stale=stale-$slot live=live-$slot
+    : > "$dir/runtime.log"
+    set +e
+    run_case "$dir" "$stale" > "$dir/stdout" 2> "$dir/stderr"
+    rc=$?
+    set -e
+    [ "$rc" -eq 0 ] || fail "stale record on unclaimed slot $slot did not retire: $(cat "$dir/stderr")"
+    assert_absent "$dir/home/state/$stale.meta" "slot $slot: stale record was not removed"
+    assert_present "$dir/home/state/$live.meta" "slot $slot: live record was removed"
+    assert_present "$dir/pool/$slot/project/sentinel" "slot $slot: stale teardown reset the live copy"
+    ! grep -Fq "treehouse <return>" "$dir/runtime.log" \
+      || fail "slot $slot: stale teardown returned the live slot: $(cat "$dir/runtime.log")"
+    assert_contains "$(cat "$dir/stderr")" "reassigned to task $live" \
+      "slot $slot: the warning should name the newer holder"
+
+    : > "$dir/runtime.log"
+    run_case "$dir" "$live" > "$dir/stdout" 2> "$dir/stderr" \
+      || fail "live task on slot $slot could not tear down after the stale record retired: $(cat "$dir/stderr")"
+    assert_absent "$dir/home/state/$live.meta" "slot $slot: live teardown left its record"
+    grep -Fq "treehouse <return>" "$dir/runtime.log" \
+      || fail "slot $slot: live teardown did not return its slot: $(cat "$dir/runtime.log")"
+  done
+  pass "fm-teardown: unclaimed duplicate slot records retire by a newer incarnation, then the live tasks tear down"
+}
+
 # The two states that must never become a false refusal: the task's own claim,
 # and no claim at all (a slot taken before claims existed, or already returned).
 test_own_and_absent_slot_claims_still_tear_down() {
@@ -1507,6 +1574,7 @@ test_reassigned_pool_slot_finishes_own_cleanup_without_touching_the_slot
 test_stale_record_on_claimed_slot_retires_then_claimant_tears_down
 test_same_task_claim_requires_matching_home
 test_claimant_tears_down_beside_previous_holders_record
+test_unclaimed_duplicate_slot_records_retire_by_newer_incarnation
 test_own_and_absent_slot_claims_still_tear_down
 test_recorded_endpoint_that_changed_directory_still_tears_down
 test_project_lock_anchors_at_the_local_root_across_home_layouts

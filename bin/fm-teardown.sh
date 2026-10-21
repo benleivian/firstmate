@@ -148,8 +148,14 @@
 # repair the claim file at the printed path and re-run - never remove it, since
 # an absent claim proceeds and would return a slot that may be another task's. An
 # absent claim - a slot taken before claims existed, or already returned - keeps
-# exactly the record-scan protection it had before, because refusing it would
-# strand every task in flight across that change on no evidence at all.
+# the record-scan protection, because refusing it would strand every task in
+# flight across that change on no evidence at all. Without a claim, a finished
+# record and the live record that took its slot next would each refuse the
+# other forever, so the other record stands in for the claim: when it is a newer
+# incarnation (spawn_gen's epoch) that prepared the slot itself (its own
+# ddev_name), and this record's endpoint is confidently gone and its recorded PR
+# is merged, this teardown is records-only exactly as for a claim naming that
+# task; the live task's own teardown then finds the slot exclusive.
 # Why Treehouse's own state cannot answer this for crewmate slots, and why the
 # claim file sits on top of it, is owned by bin/fm-wake-lib.sh's slot-owner
 # claim comment.
@@ -2420,7 +2426,7 @@ collect_local_firstmate_states() {
 
 require_exclusive_worktree_slot_record() {
   local record_meta=$1 record_id=$2 record_state=$3 worktree=$4 record_home=$5
-  local slot state_dir other other_id field other_path other_slot
+  local slot state_dir other other_id field other_path other_slot conflict=
   slot=$(canonical_existing_dir "$worktree") || return 0
   # A slot whose owner claim names another task was reassigned, so this record's
   # teardown is records-only and touches nothing under it; another record naming
@@ -2447,13 +2453,53 @@ require_exclusive_worktree_slot_record() {
         if [ "$field" = worktree ] && fm_treehouse_slot_record_superseded "$slot" "$record_id" "$other_slot" "$record_home"; then
           continue
         fi
-        echo "REFUSED: task $record_id's recorded worktree $slot is also task $other_id's recorded $field." >&2
-        echo "Returning that pool slot would kill $other_id's processes and reset its copy, so nothing was changed - not even with --force." >&2
-        echo "Reconcile whichever record is wrong (bin/fm-crew-state.sh $record_id; bin/fm-crew-state.sh $other_id), then re-run teardown." >&2
-        return 1
+        # A newer holder's record proves this one reassigned, which makes every
+        # other conflict moot, so keep scanning for it before refusing.
+        if [ "$field" = worktree ] && [ "$record_meta" = "$META" ] \
+           && [ "$FM_TREEHOUSE_SLOT_OWNER" = absent ] && teardown_record_reassigned_to "$other"; then
+          TEARDOWN_SLOT_REASSIGNED=1
+          TEARDOWN_SLOT_REASSIGNED_TO=$other_id
+          TEARDOWN_SLOT_REASSIGNED_HOME=${state_dir%/state}
+          echo "warning: task $record_id's recorded worktree $slot was reassigned to task $other_id (home $TEARDOWN_SLOT_REASSIGNED_HOME), a newer incarnation that prepared that pool slot while $record_id's endpoint is gone and its PR is merged; that slot is no longer $record_id's, so its processes and copy are left untouched and only $record_id's own cleanup runs." >&2
+          return 0
+        fi
+        [ -n "$conflict" ] || conflict="$other_id $field"
       done
     done
   done
+  [ -n "$conflict" ] || return 0
+  other_id=${conflict% *}
+  field=${conflict##* }
+  echo "REFUSED: task $record_id's recorded worktree $slot is also task $other_id's recorded $field." >&2
+  echo "Returning that pool slot would kill $other_id's processes and reset its copy, so nothing was changed - not even with --force." >&2
+  echo "Reconcile whichever record is wrong (bin/fm-crew-state.sh $record_id; bin/fm-crew-state.sh $other_id), then re-run teardown." >&2
+  return 1
+}
+
+# The script header owns when another record proves this one reassigned; any
+# missing or unreadable proof keeps the refusal.
+teardown_record_reassigned_to() {  # <other-meta>
+  local mine theirs
+  mine=$(fm_meta_get "$META" spawn_gen)
+  mine=${mine#s}
+  mine=${mine%%.*}
+  theirs=$(fm_meta_get "$1" spawn_gen)
+  theirs=${theirs#s}
+  theirs=${theirs%%.*}
+  case "$mine,$theirs" in
+    ,*|*,|*[!0-9,]*) return 1 ;;
+  esac
+  [ "$theirs" -gt "$mine" ] || return 1
+  [ -n "$(fm_meta_get "$1" ddev_name)" ] || return 1
+  [ -n "$PR_URL" ] || return 1
+  case "$(gh pr view "$PR_URL" --json state -q .state 2>/dev/null)" in
+    MERGED|merged) ;;
+    *) return 1 ;;
+  esac
+  case "$(fm_backend_agent_state "$BACKEND" "$T")" in
+    dead|missing) ;;
+    *) return 1 ;;
+  esac
 }
 
 require_exclusive_task_worktree_slot() {
