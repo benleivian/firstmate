@@ -120,10 +120,12 @@
 # this home or any locally registered Firstmate home may name the same live path
 # in its worktree= or home=. One live path with two task records is the reuse
 # collision itself, whichever record is stale. The exceptions follow the slot's
-# owner claim (below). A claim naming another task makes this teardown
-# records-only, touching nothing under the slot, so the scan is skipped rather
+# owner claim or the unclaimed-slot reassignment proof below. A claim naming
+# another task makes this teardown records-only, touching nothing under the
+# slot, so the scan is skipped rather
 # than stranding the stale record and, with it, the claimant's own teardown.
-# Another record's worktree= is passed over only when
+# Unless this teardown is records-only, another record's worktree= is passed
+# over only when
 # fm_treehouse_slot_record_superseded (bin/fm-wake-lib.sh) proves it superseded;
 # another record's home= still refuses.
 # That scan alone cannot prove THIS record is the current owner, because the task
@@ -155,7 +157,9 @@
 # incarnation (spawn_gen's epoch) that prepared the slot itself (its own
 # ddev_name), and this record's endpoint is confidently gone and its recorded PR
 # is merged, this teardown is records-only exactly as for a claim naming that
-# task; the live task's own teardown then finds the slot exclusive.
+# task; after all stale records retire, the live task's own teardown finds the
+# slot exclusive. This record-based proof applies only to the task being torn
+# down directly, not descendants checked during secondmate retirement.
 # Why Treehouse's own state cannot answer this for crewmate slots, and why the
 # claim file sits on top of it, is owned by bin/fm-wake-lib.sh's slot-owner
 # claim comment.
@@ -2527,10 +2531,8 @@ require_exclusive_task_worktree_slot() {
 # state so each caller gates its slot steps on one determination; the claimant
 # stays in FM_TREEHOUSE_SLOT_OWNER_ID and FM_TREEHOUSE_SLOT_OWNER_HOME.
 #
-# An absent claim proceeds as the slot's owner: a slot taken before claims
-# existed, or already returned to the pool, carries none, and refusing those
-# would strand every task in flight across the change for no evidence at all.
-# Those keep exactly the record-scan protection they had before.
+# An absent claim defers to the record scan and its reassignment exception;
+# the script header owns that contract.
 TEARDOWN_SLOT_REASSIGNED_RC=3
 require_owned_worktree_slot_record() {  # <task-id> <worktree>
   local record_id=$1 worktree=$2 marker
