@@ -1,0 +1,11 @@
+# Duplicate-slot cleanup validation
+
+Oracle: the supplied author intent requires old records to retire only when the successor has a newer spawn generation and DDEV ownership evidence, the old PR is merged, and its endpoint is confidently gone. Retirement must preserve successor records, processes, and files; subsequent ordinary cleanup must release the slot.
+
+Live driver exit: 0. Real fm-teardown, tmux, Git, Treehouse and GitHub PR queries were used, with no replacement executables. Two Treehouse leases were seeded with four historical records, no owner claims, and active successor sleep processes. Seven adversarial cases used --force: missing DDEV metadata, missing PR, older successor, equal generation, malformed generation, a real open PR, and an occupied endpoint. All refused while preserving records and slot contents. Both stale records then retired without --force. Each successor committed its disposable result, landed it into local main/master, and cleaned up without --force. Both slots were reacquired. The private tmux server was stopped successfully and the disposable workspace was removed.
+
+The public GitHub PRs were read-only external fixtures: cli/cli#1 was merged and cli/cli#14768 was open at validation time. This does not test a PR merge operation. DDEV and Docker were absent from the curated live PATH to avoid the shared daemon; actual container deletion and a full DDEV-enabled spawn were not exercised. The changed record scan and pool release/reacquisition were exercised live.
+
+Focused new regression: exit 0. Same regression against the base teardown script: expected exit 1, reproducing the original record-exclusivity refusal even with --force. This comparison uses boundary mocks and is not live evidence.
+
+Endpoint safety test file: initial attempt with TMPDIR nested inside the worktree exited 1 because a non-Git fixture inherited the enclosing Git repository and git clean failed. A focused diagnostic reproduced that setup problem. Rerunning the unchanged test file with TMPDIR under this evidence directory exited 0. No source/test changes were retained. The initial live successor cleanup also exposed a scout completion setup requirement; final live validation used landed local-only ship tasks instead, matching the requested cleanup-after-landing scenario.

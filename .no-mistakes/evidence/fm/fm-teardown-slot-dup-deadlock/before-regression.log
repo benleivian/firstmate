@@ -1,0 +1,4 @@
+not ok - stale record on unclaimed slot 1 did not retire: WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/evidence/01M5EFP6S6QATE9Z6D1CGR0048/.test-tmp/fm-teardown-endpoint-safety.a2SXCq/slot-unclaimed-duplicates/pool/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.

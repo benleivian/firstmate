@@ -1,0 +1,12 @@
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-ddev-clean: ddev list failed (exit 1): 
+warning: DDEV cleanup failed for task metadata-locked-task; continuing teardown
+warning: failed to remove ./: Invalid argument
+error: could not clean scratch in worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.test-tmp/fm-teardown-endpoint-safety.gqtnKu/metadata-lock/worktree before returning it; teardown aborted
+not ok - teardown should complete after the metadata writer releases: expected exit 0, got 1

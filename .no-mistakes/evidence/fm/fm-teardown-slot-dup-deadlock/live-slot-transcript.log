@@ -1,0 +1,210 @@
+$ tmux -S ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.s -f /dev/null new-session -d -s fm-lab-slot -x 120 -y 40 sleep 900
+exit=0
+$ tmux new-window -d -t fm-lab-slot: -n fm-live-1 -c ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project sleep 900
+exit=0
+$ tmux set-window-option -t fm-lab-slot:fm-live-1 automatic-rename off
+exit=0
+$ tmux new-window -d -t fm-lab-slot: -n fm-live-2 -c ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project sleep 900
+exit=0
+$ tmux set-window-option -t fm-lab-slot:fm-live-2 automatic-rename off
+exit=0
+
+SCENARIO missing DDEV proof
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1 --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.
+exit=1
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+VERIFIED refusal preserves both task records, live endpoint, and slot sentinel
+
+SCENARIO missing PR proof
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1 --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.
+exit=1
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+VERIFIED refusal preserves both task records, live endpoint, and slot sentinel
+
+SCENARIO older successor
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1 --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.
+exit=1
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+VERIFIED refusal preserves both task records, live endpoint, and slot sentinel
+
+SCENARIO equal generation
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1 --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.
+exit=1
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+VERIFIED refusal preserves both task records, live endpoint, and slot sentinel
+
+SCENARIO malformed generation
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1 --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.
+exit=1
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+VERIFIED refusal preserves both task records, live endpoint, and slot sentinel
+
+SCENARIO unmerged PR
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1 --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.
+exit=1
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+VERIFIED refusal preserves both task records, live endpoint, and slot sentinel
+
+SCENARIO endpoint still occupied
+$ tmux new-window -d -t fm-lab-slot: -n fm-stale-1 -c ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project sleep 900
+exit=0
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1 --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project is also task live-1's recorded worktree.
+Returning that pool slot would kill live-1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-1; bin/fm-crew-state.sh live-1), then re-run teardown.
+exit=1
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+$ tmux kill-window -t fm-lab-slot:fm-stale-1
+exit=0
+VERIFIED refusal preserves both task records, live endpoint, and slot sentinel
+
+SCENARIO retire stale-1 while live-1 owns slot
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: task stale-1's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project was reassigned to task live-1 (home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home), a newer incarnation that prepared that pool slot while stale-1's endpoint is gone and its PR is merged; that slot is no longer stale-1's, so its processes and copy are left untouched and only stale-1's own cleanup runs.
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project: skipped: no origin remote
+teardown stale-1 complete (window fm-lab-slot:fm-stale-1; pool slot ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project left to task live-1 (home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home), which it was reassigned to)
+Backlog: stale-1 just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home/data/backlog.md - move stale-1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+exit=0
+$ tmux has-session -t fm-lab-slot:fm-live-1
+exit=0
+VERIFIED old record removed; successor record, process, and dirty worktree preserved
+
+SCENARIO retire stale-2 while live-2 owns slot
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh stale-2
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+warning: task stale-2's recorded worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project was reassigned to task live-2 (home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home), a newer incarnation that prepared that pool slot while stale-2's endpoint is gone and its PR is merged; that slot is no longer stale-2's, so its processes and copy are left untouched and only stale-2's own cleanup runs.
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project: skipped: no origin remote
+teardown stale-2 complete (window fm-lab-slot:fm-stale-2; pool slot ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project left to task live-2 (home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home), which it was reassigned to)
+Backlog: stale-2 just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home/data/backlog.md - move stale-2 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+exit=0
+$ tmux has-session -t fm-lab-slot:fm-live-2
+exit=0
+VERIFIED old record removed; successor record, process, and dirty worktree preserved
+
+SCENARIO clean current holder live-1 and reacquire slot
+$ git add result-1.txt
+exit=0
+$ git -c user.name=Lab -c user.email=lab@example.invalid commit -qm completed task
+exit=0
+$ git rev-parse HEAD
+e5cf87422dbd1e9958e50b7b4119c142d76ec818
+exit=0
+$ git -c user.name=Lab -c user.email=lab@example.invalid merge --no-edit e5cf87422dbd1e9958e50b7b4119c142d76ec818
+Updating 6a3ab37..e5cf874
+Fast-forward
+ result-1.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 result-1.txt
+exit=0
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh live-1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for live-1: 45245
+fm-ddev-clean: ddev is not installed; no DDEV cleanup ran
+A new version of treehouse is available: v2.1.1 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown live-1 complete (window fm-lab-slot:fm-live-1, worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project)
+Backlog: live-1 just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home/data/backlog.md - move live-1 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+exit=0
+$ tmux has-session -t fm-lab-slot:fm-live-1
+can't find window: fm-live-1
+exit=1
+VERIFIED current record and endpoint removed; slot reset
+
+SCENARIO clean current holder live-2 and reacquire slot
+$ git add result-2.txt
+exit=0
+$ git -c user.name=Lab -c user.email=lab@example.invalid commit -qm completed task
+exit=0
+$ git rev-parse HEAD
+c17f4aef9a18fcfdd570004efb19b9f6f79c3e75
+exit=0
+$ git -c user.name=Lab -c user.email=lab@example.invalid merge --no-edit c17f4aef9a18fcfdd570004efb19b9f6f79c3e75
+Merge made by the 'ort' strategy.
+ result-2.txt | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 result-2.txt
+exit=0
+$ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/bin/fm-teardown.sh live-2
+fm-gate-refuse: gate agent lifecycle permitted only against lab home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for live-2: 45255
+fm-ddev-clean: ddev is not installed; no DDEV cleanup ran
+A new version of treehouse is available: v2.1.1 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown live-2 complete (window fm-lab-slot:fm-live-2, worktree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project)
+Backlog: live-2 just finished (config/backlog-backend selects manual editing). Update ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/home/data/backlog.md - move live-2 to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+exit=0
+$ tmux has-session -t fm-lab-slot:fm-live-2
+can't find window: fm-live-2
+exit=1
+VERIFIED current record and endpoint removed; slot reset
+$ treehouse get --lease --json
+A new version of treehouse is available: v2.1.1 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project. Run 'treehouse return ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project' to release it.
+{"path":"~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project","lease_id":"b43c7bff1ff2b0f4f98d224366170751","lease_holder":"","leased_at":"2026-10-20T22:46:39.055681-07:00"}
+exit=0
+VERIFIED pool slot reacquired: ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/1/project
+$ treehouse get --lease --json
+A new version of treehouse is available: v2.1.1 → v3.1.4
+Run "treehouse update" to update
+
+🌳 Setting up worktree...
+🌳 Leased worktree at ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project. Run 'treehouse return ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project' to release it.
+{"path":"~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project","lease_id":"7844de7179d67a440bf01d38a962ebaf","lease_holder":"","leased_at":"2026-10-20T22:46:39.364737-07:00"}
+exit=0
+VERIFIED pool slot reacquired: ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.live-slot/project/.treehouse/project-872e7f/2/project
+ALL LIVE SCENARIOS PASSED
+$ tmux -S ~/.no-mistakes/worktrees/dca6a1f2fc96/01M5EFP6S6QATE9Z6D1CGR0048/.s kill-server
+exit=0
