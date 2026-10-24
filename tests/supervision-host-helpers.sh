@@ -4,8 +4,8 @@
 # docs/supervision-host.md): its report surface (bin/fm-branch-report.sh), its
 # dispatch entry (bin/fm-branch-dispatch.mjs), and the host loop itself.
 # tests/fm-supervision-host.test.sh and
-# tests/fm-supervision-host-lifecycle.test.sh each run part of the cases, so
-# the suite never fills one serial CI shard on its own.
+# tests/fm-supervision-host-lifecycle.test.sh each run part of the cases to
+# let the runner distribute the suite across serial CI shards.
 #
 # The loop cases run the real host, arm, watcher, wake grant, drain, outcome
 # store, and lease scripts in a fixture home. The host runs as a child of a fake
