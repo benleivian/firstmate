@@ -1,0 +1,177 @@
+{
+  "placement": {
+    "tests/fm-supervision-host.test.sh": [
+      "portable-serial-2of9"
+    ],
+    "tests/fm-supervision-host-lifecycle.test.sh": [
+      "portable-serial-3of9"
+    ]
+  },
+  "checks": [
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-lanes"
+      ],
+      "exit": 0,
+      "stdout": "portable-parallel-1\nportable-parallel-2\nportable-serial\nportable-serial-1of9\nportable-serial-2of9\nportable-serial-3of9\nportable-serial-4of9\nportable-serial-5of9\nportable-serial-6of9\nportable-serial-7of9\nportable-serial-8of9\nportable-serial-9of9\nreal-herdr-gated\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-1of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-watch-triage.test.sh\ntests/fm-secondmate-liveness.test.sh\ntests/fm-guard-stale-banner.test.sh\ntests/fm-watch-checkpoint.test.sh\ntests/fm-wake-drain-open-decisions.test.sh\ntests/fm-inbox.test.sh\ntests/fm-backend-cmux.test.sh\ntests/fm-test-isolation-proof.test.sh\ntests/fm-git-strip-ai-trailers.test.sh\ntests/fm-pr-state.test.sh\ntests/fm-remote-entrypoint.test.sh\ntests/fm-composer-codex-idle-live-e2e.test.sh\ntests/fm-herdr-pi-stale-registration-live-e2e.test.sh\ntests/fm-bearings-board-lavish-live-e2e.test.sh\ntests/fm-supervision-host-attended-live-e2e.test.sh\ntests/fm-backend-zellij-smoke.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-2of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-supervision-host.test.sh\ntests/fm-daemon.test.sh\ntests/fm-backend-orca.test.sh\ntests/fm-branch-supervision.test.sh\ntests/fm-tool-update-check.test.sh\ntests/fm-timeout-lib.test.sh\ntests/fm-shared-captain-inheritance.test.sh\ntests/fm-ci-workflow.test.sh\ntests/fm-tmux-agent-liveness.test.sh\ntests/fm-stow-cascade.test.sh\ntests/fm-documentation-audiences.test.sh\ntests/fm-lint-workflows.test.sh\ntests/fm-backend-tmux-smoke.test.sh\ntests/fm-codex-continuity-live-e2e.test.sh\ntests/fm-cursor-primary-live-e2e.test.sh\ntests/fm-harness-adapter-references.test.sh\ntests/fm-herdr-submit-confirm-live-e2e.test.sh\ntests/fm-pi-branch-live-e2e.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-3of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-supervision-host-lifecycle.test.sh\ntests/fm-wake-drain-open-decisions-cursor.test.sh\ntests/fm-pipeline-spend.test.sh\ntests/fm-slack-notify.test.sh\ntests/fm-teardown-endpoint-safety.test.sh\ntests/fm-task-delivery.test.sh\ntests/fm-procevent-when.test.sh\ntests/fm-fleet-ledger.test.sh\ntests/fm-claude-trust.test.sh\ntests/fm-backend-zellij.test.sh\ntests/fm-send-secondmate-marker.test.sh\ntests/fm-harness-precedence.test.sh\ntests/fm-quota-choose.test.sh\ntests/fm-test-fixtures.test.sh\ntests/fm-fork-free-helpers.test.sh\ntests/fm-send-inbox-doorbell-live-e2e.test.sh\ntests/fm-omp-primary-live-e2e.test.sh\ntests/fm-muse-signals-live-e2e.test.sh\ntests/fm-devin-signals-live-e2e.test.sh\ntests/fm-pi-seeded-home-trust-live-e2e.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-4of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-public-followup.test.sh\ntests/fm-contributions.test.sh\ntests/fm-secondmate-reconcile.test.sh\ntests/fm-startup-network.test.sh\ntests/fm-remote-transport-lanes.test.sh\ntests/fm-trace-context-spawn.test.sh\ntests/fm-secondmate-restart.test.sh\ntests/fm-wake-drain-outcome-backstop.test.sh\ntests/fm-remote-job-claim-retention.test.sh\ntests/fm-send-inbox.test.sh\ntests/fm-bearings-board.test.sh\ntests/fm-cursor-harness.test.sh\ntests/fm-backend.test.sh\ntests/fm-rovo-harness.test.sh\ntests/fm-on.test.sh\ntests/fm-gate-refuse.test.sh\ntests/fm-wake-daemon-lifecycle-e2e.test.sh\ntests/fm-worker-account-live-e2e.test.sh\ntests/fm-spawn-orca-worktree.test.sh\ntests/fm-ddev-clean.test.sh\ntests/fm-subagent-pretool-check.test.sh\ntests/fm-check-unregister.test.sh\ntests/fm-codex-hook-layer-live-e2e.test.sh\ntests/fm-stat-shadowing.test.sh\ntests/fm-agy-signals-live-e2e.test.sh\ntests/fm-quota-array-dispatch-live-e2e.test.sh\ntests/fm-pr-state-live-e2e.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-5of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-session-start.test.sh\ntests/fm-wake-queue.test.sh\ntests/fm-secondmate-busy-contract-live-e2e.test.sh\ntests/fm-control.test.sh\ntests/fm-spawn-pool-base-freshen.test.sh\ntests/fm-kimi-harness.test.sh\ntests/fm-bootstrap.test.sh\ntests/fm-muse-harness.test.sh\ntests/fm-remote-delta-read.test.sh\ntests/fm-remote-secondmate-parent-binding.test.sh\ntests/fm-fleet-sync.test.sh\ntests/fm-bootstrap-network-parallel.test.sh\ntests/fm-fleet-snapshot-view.test.sh\ntests/fm-live-lab-up-mate.test.sh\ntests/fm-secondmate-lifecycle-e2e.test.sh\ntests/fm-spawn-worktree-settle.test.sh\ntests/fm-turnend-foreign-owner-arm-fix.test.sh\ntests/fm-classify-decision-key.test.sh\ntests/fm-calm-claude-mod.test.sh\ntests/fm-dod-lib.test.sh\ntests/fm-supervision-events.test.sh\ntests/fm-calm-claude-mod-plugin.test.sh\ntests/fm-harness-adapter-instructions-live-e2e.test.sh\ntests/fm-herdr-version-floor-live-e2e.test.sh\ntests/fm-calm-claude-mod-live-e2e.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-6of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-remote-secondmate-lifecycle-e2e.test.sh\ntests/fm-bearings-snapshot.test.sh\ntests/fm-remote-backlog-handoff.test.sh\ntests/fm-remote-secondmate-trace-context.test.sh\ntests/fm-secondmate-safety.test.sh\ntests/fm-watch-recovery-loop.test.sh\ntests/fm-secondmate-sync.test.sh\ntests/fm-ddev-bloat-check.test.sh\ntests/fm-remote-job-claim-reap.test.sh\ntests/fm-afk-inject-e2e.test.sh\ntests/fm-spawn-compact-adviser-disable-remote.test.sh\ntests/fm-send-remote-delivery.test.sh\ntests/fm-wake-drain-unread-status.test.sh\ntests/fm-remote-doctor.test.sh\ntests/fm-update.test.sh\ntests/fm-dispatch-resolve.test.sh\ntests/fm-mail-check.test.sh\ntests/fm-devin-harness.test.sh\ntests/fm-tasks-axi.test.sh\ntests/fm-peek-remote.test.sh\ntests/fm-gemini-harness.test.sh\ntests/fm-jev-mem-guard.test.sh\ntests/fm-ask-user-authority.test.sh\ntests/fm-host-mirror-live-e2e.test.sh\ntests/fm-claude-stop-autoarm-live-e2e.test.sh\ntests/fm-rovo-signals-live-e2e.test.sh\ntests/fm-sessionstart-instruction-refresh-live-e2e.test.sh\ntests/fm-backend-cmux-smoke.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-7of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-pr-check-security.test.sh\ntests/fm-secondmate-harness.test.sh\ntests/fm-control-relaunch.test.sh\ntests/fm-pi-branch-extension.test.sh\ntests/fm-sessionstart-nudge.test.sh\ntests/fm-claude-stop-autoarm.test.sh\ntests/fm-pi-watch-extension.test.sh\ntests/fm-send-resolve-key.test.sh\ntests/fm-primary-busy-herdr-live-e2e.test.sh\ntests/fm-startup-growth-check.test.sh\ntests/fm-home-summary-refresh.test.sh\ntests/fm-busy-adapter-wiring.test.sh\ntests/fm-classify-corr-token.test.sh\ntests/fm-session-lock-ancestry.test.sh\ntests/fm-afk-contract.test.sh\ntests/fm-startup-memory-budget.test.sh\ntests/fm-pi-windows-shell-invocation.test.sh\ntests/fm-send-agy-confirm.test.sh\ntests/fm-remote-job-orphan-reap.test.sh\ntests/fm-gotmp.test.sh\ntests/fm-nm-test-contract.test.sh\ntests/fm-forge-detect.test.sh\ntests/fm-send-secondmate-marker-herdr-e2e.test.sh\ntests/fm-supervision-host-live-e2e.test.sh\ntests/fm-afk-pi-herdr-return-e2e.test.sh\ntests/fm-sessionstart-hook-live-e2e.test.sh\ntests/fm-grok-continuity-live-e2e.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-8of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-procevent.test.sh\ntests/fm-spawn-dispatch-profile.test.sh\ntests/fm-watch-arm.test.sh\ntests/fm-live-lab.test.sh\ntests/fm-cursor-primary.test.sh\ntests/fm-inactive-reconcile.test.sh\ntests/fm-calm-pi-extension.test.sh\ntests/fm-afk-return.test.sh\ntests/fm-project-capacity.test.sh\ntests/fm-vendor-auth-probe.test.sh\ntests/fm-worker-account.test.sh\ntests/fm-task-inbox.test.sh\ntests/fm-backlog-read-bound.test.sh\ntests/fm-bearings-board-render.test.sh\ntests/fm-host-mirror.test.sh\ntests/fm-mail.test.sh\ntests/fm-live-gate.test.sh\ntests/fm-busy-state.test.sh\ntests/fm-procevent-quota.test.sh\ntests/fm-harness-liveness-drift-live-e2e.test.sh\ntests/fm-remote-secondmate-relaunch.test.sh\ntests/fm-no-mistakes-required.test.sh\ntests/fm-project-origin.test.sh\ntests/fm-cmux-claude-composer-live-e2e.test.sh\ntests/fm-pi-primary-live-e2e.test.sh\ntests/fm-launch-prompt-signals-live-e2e.test.sh\ntests/fm-opencode-primary-live-e2e.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list-scheduled",
+        "--lane",
+        "portable-serial-9of9"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-backlog-atomicity.test.sh\ntests/fm-teardown.test.sh\ntests/fm-remote-reply.test.sh\ntests/fm-remote-job.test.sh\ntests/fm-watcher-lock.test.sh\ntests/fm-omp-harness.test.sh\ntests/fm-backlog-handoff.test.sh\ntests/fm-agy-harness.test.sh\ntests/fm-parent-channel-scan-exclusion.test.sh\ntests/fm-remote-job-launchagent.test.sh\ntests/fm-pending-reply.test.sh\ntests/fm-turnend-guard.test.sh\ntests/fm-voice-relay.test.sh\ntests/fm-spawn-compact-adviser-disable.test.sh\ntests/fm-pi-branch-responsiveness-live-e2e.test.sh\ntests/fm-extension-binding.test.sh\ntests/fm-tangle-guard.test.sh\ntests/fm-herdr-session-cleanup.test.sh\ntests/fm-remote-herdr-guard.test.sh\ntests/fm-operational-input.test.sh\ntests/fm-calm-pi-queue-retention-live-e2e.test.sh\ntests/fm-test-fixture-cleanup.test.sh\ntests/fm-trace-context-lib.test.sh\ntests/fm-pr-reviewers.test.sh\ntests/fm-pi-codex-native.test.sh\ntests/fm-gitignore-config.test.sh\ntests/fm-composer-matrix-live-e2e.test.sh\ntests/fm-grok-stop-live-e2e.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list",
+        "--lane",
+        "portable-serial"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-afk-contract.test.sh\ntests/fm-afk-inject-e2e.test.sh\ntests/fm-afk-pi-herdr-return-e2e.test.sh\ntests/fm-afk-return.test.sh\ntests/fm-agy-harness.test.sh\ntests/fm-agy-signals-live-e2e.test.sh\ntests/fm-ask-user-authority.test.sh\ntests/fm-backend-cmux-smoke.test.sh\ntests/fm-backend-cmux.test.sh\ntests/fm-backend-orca.test.sh\ntests/fm-backend-tmux-smoke.test.sh\ntests/fm-backend-zellij-smoke.test.sh\ntests/fm-backend-zellij.test.sh\ntests/fm-backend.test.sh\ntests/fm-backlog-atomicity.test.sh\ntests/fm-backlog-handoff.test.sh\ntests/fm-backlog-read-bound.test.sh\ntests/fm-bearings-board-lavish-live-e2e.test.sh\ntests/fm-bearings-board-render.test.sh\ntests/fm-bearings-board.test.sh\ntests/fm-bearings-snapshot.test.sh\ntests/fm-bootstrap-network-parallel.test.sh\ntests/fm-bootstrap.test.sh\ntests/fm-branch-supervision.test.sh\ntests/fm-busy-adapter-wiring.test.sh\ntests/fm-busy-state.test.sh\ntests/fm-calm-claude-mod-live-e2e.test.sh\ntests/fm-calm-claude-mod-plugin.test.sh\ntests/fm-calm-claude-mod.test.sh\ntests/fm-calm-pi-extension.test.sh\ntests/fm-calm-pi-queue-retention-live-e2e.test.sh\ntests/fm-check-unregister.test.sh\ntests/fm-ci-workflow.test.sh\ntests/fm-classify-corr-token.test.sh\ntests/fm-classify-decision-key.test.sh\ntests/fm-claude-stop-autoarm-live-e2e.test.sh\ntests/fm-claude-stop-autoarm.test.sh\ntests/fm-claude-trust.test.sh\ntests/fm-cmux-claude-composer-live-e2e.test.sh\ntests/fm-codex-continuity-live-e2e.test.sh\ntests/fm-codex-hook-layer-live-e2e.test.sh\ntests/fm-composer-codex-idle-live-e2e.test.sh\ntests/fm-composer-matrix-live-e2e.test.sh\ntests/fm-contributions.test.sh\ntests/fm-control-relaunch.test.sh\ntests/fm-control.test.sh\ntests/fm-cursor-harness.test.sh\ntests/fm-cursor-primary-live-e2e.test.sh\ntests/fm-cursor-primary.test.sh\ntests/fm-daemon.test.sh\ntests/fm-ddev-bloat-check.test.sh\ntests/fm-ddev-clean.test.sh\ntests/fm-devin-harness.test.sh\ntests/fm-devin-signals-live-e2e.test.sh\ntests/fm-dispatch-resolve.test.sh\ntests/fm-documentation-audiences.test.sh\ntests/fm-dod-lib.test.sh\ntests/fm-extension-binding.test.sh\ntests/fm-fleet-ledger.test.sh\ntests/fm-fleet-snapshot-view.test.sh\ntests/fm-fleet-sync.test.sh\ntests/fm-forge-detect.test.sh\ntests/fm-fork-free-helpers.test.sh\ntests/fm-gate-refuse.test.sh\ntests/fm-gemini-harness.test.sh\ntests/fm-git-strip-ai-trailers.test.sh\ntests/fm-gitignore-config.test.sh\ntests/fm-gotmp.test.sh\ntests/fm-grok-continuity-live-e2e.test.sh\ntests/fm-grok-stop-live-e2e.test.sh\ntests/fm-guard-stale-banner.test.sh\ntests/fm-harness-adapter-instructions-live-e2e.test.sh\ntests/fm-harness-adapter-references.test.sh\ntests/fm-harness-liveness-drift-live-e2e.test.sh\ntests/fm-harness-precedence.test.sh\ntests/fm-herdr-pi-stale-registration-live-e2e.test.sh\ntests/fm-herdr-session-cleanup.test.sh\ntests/fm-herdr-submit-confirm-live-e2e.test.sh\ntests/fm-herdr-version-floor-live-e2e.test.sh\ntests/fm-home-summary-refresh.test.sh\ntests/fm-host-mirror-live-e2e.test.sh\ntests/fm-host-mirror.test.sh\ntests/fm-inactive-reconcile.test.sh\ntests/fm-inbox.test.sh\ntests/fm-jev-mem-guard.test.sh\ntests/fm-kimi-harness.test.sh\ntests/fm-launch-prompt-signals-live-e2e.test.sh\ntests/fm-lint-workflows.test.sh\ntests/fm-live-gate.test.sh\ntests/fm-live-lab-up-mate.test.sh\ntests/fm-live-lab.test.sh\ntests/fm-mail-check.test.sh\ntests/fm-mail.test.sh\ntests/fm-muse-harness.test.sh\ntests/fm-muse-signals-live-e2e.test.sh\ntests/fm-nm-test-contract.test.sh\ntests/fm-no-mistakes-required.test.sh\ntests/fm-omp-harness.test.sh\ntests/fm-omp-primary-live-e2e.test.sh\ntests/fm-on.test.sh\ntests/fm-opencode-primary-live-e2e.test.sh\ntests/fm-operational-input.test.sh\ntests/fm-parent-channel-scan-exclusion.test.sh\ntests/fm-peek-remote.test.sh\ntests/fm-pending-reply.test.sh\ntests/fm-pi-branch-extension.test.sh\ntests/fm-pi-branch-live-e2e.test.sh\ntests/fm-pi-branch-responsiveness-live-e2e.test.sh\ntests/fm-pi-codex-native.test.sh\ntests/fm-pi-primary-live-e2e.test.sh\ntests/fm-pi-seeded-home-trust-live-e2e.test.sh\ntests/fm-pi-watch-extension.test.sh\ntests/fm-pi-windows-shell-invocation.test.sh\ntests/fm-pipeline-spend.test.sh\ntests/fm-pr-check-security.test.sh\ntests/fm-pr-reviewers.test.sh\ntests/fm-pr-state-live-e2e.test.sh\ntests/fm-pr-state.test.sh\ntests/fm-primary-busy-herdr-live-e2e.test.sh\ntests/fm-procevent-quota.test.sh\ntests/fm-procevent-when.test.sh\ntests/fm-procevent.test.sh\ntests/fm-project-capacity.test.sh\ntests/fm-project-origin.test.sh\ntests/fm-public-followup.test.sh\ntests/fm-quota-array-dispatch-live-e2e.test.sh\ntests/fm-quota-choose.test.sh\ntests/fm-remote-backlog-handoff.test.sh\ntests/fm-remote-delta-read.test.sh\ntests/fm-remote-doctor.test.sh\ntests/fm-remote-entrypoint.test.sh\ntests/fm-remote-herdr-guard.test.sh\ntests/fm-remote-job-claim-reap.test.sh\ntests/fm-remote-job-claim-retention.test.sh\ntests/fm-remote-job-launchagent.test.sh\ntests/fm-remote-job-orphan-reap.test.sh\ntests/fm-remote-job.test.sh\ntests/fm-remote-reply.test.sh\ntests/fm-remote-secondmate-lifecycle-e2e.test.sh\ntests/fm-remote-secondmate-parent-binding.test.sh\ntests/fm-remote-secondmate-relaunch.test.sh\ntests/fm-remote-secondmate-trace-context.test.sh\ntests/fm-remote-transport-lanes.test.sh\ntests/fm-rovo-harness.test.sh\ntests/fm-rovo-signals-live-e2e.test.sh\ntests/fm-secondmate-busy-contract-live-e2e.test.sh\ntests/fm-secondmate-harness.test.sh\ntests/fm-secondmate-lifecycle-e2e.test.sh\ntests/fm-secondmate-liveness.test.sh\ntests/fm-secondmate-reconcile.test.sh\ntests/fm-secondmate-restart.test.sh\ntests/fm-secondmate-safety.test.sh\ntests/fm-secondmate-sync.test.sh\ntests/fm-send-agy-confirm.test.sh\ntests/fm-send-inbox-doorbell-live-e2e.test.sh\ntests/fm-send-inbox.test.sh\ntests/fm-send-remote-delivery.test.sh\ntests/fm-send-resolve-key.test.sh\ntests/fm-send-secondmate-marker-herdr-e2e.test.sh\ntests/fm-send-secondmate-marker.test.sh\ntests/fm-session-lock-ancestry.test.sh\ntests/fm-session-start.test.sh\ntests/fm-sessionstart-hook-live-e2e.test.sh\ntests/fm-sessionstart-instruction-refresh-live-e2e.test.sh\ntests/fm-sessionstart-nudge.test.sh\ntests/fm-shared-captain-inheritance.test.sh\ntests/fm-slack-notify.test.sh\ntests/fm-spawn-compact-adviser-disable-remote.test.sh\ntests/fm-spawn-compact-adviser-disable.test.sh\ntests/fm-spawn-dispatch-profile.test.sh\ntests/fm-spawn-orca-worktree.test.sh\ntests/fm-spawn-pool-base-freshen.test.sh\ntests/fm-spawn-worktree-settle.test.sh\ntests/fm-startup-growth-check.test.sh\ntests/fm-startup-memory-budget.test.sh\ntests/fm-startup-network.test.sh\ntests/fm-stat-shadowing.test.sh\ntests/fm-stow-cascade.test.sh\ntests/fm-subagent-pretool-check.test.sh\ntests/fm-supervision-events.test.sh\ntests/fm-supervision-host-attended-live-e2e.test.sh\ntests/fm-supervision-host-lifecycle.test.sh\ntests/fm-supervision-host-live-e2e.test.sh\ntests/fm-supervision-host.test.sh\ntests/fm-tangle-guard.test.sh\ntests/fm-task-delivery.test.sh\ntests/fm-task-inbox.test.sh\ntests/fm-tasks-axi.test.sh\ntests/fm-teardown-endpoint-safety.test.sh\ntests/fm-teardown.test.sh\ntests/fm-test-fixture-cleanup.test.sh\ntests/fm-test-fixtures.test.sh\ntests/fm-test-isolation-proof.test.sh\ntests/fm-timeout-lib.test.sh\ntests/fm-tmux-agent-liveness.test.sh\ntests/fm-tool-update-check.test.sh\ntests/fm-trace-context-lib.test.sh\ntests/fm-trace-context-spawn.test.sh\ntests/fm-turnend-foreign-owner-arm-fix.test.sh\ntests/fm-turnend-guard.test.sh\ntests/fm-update.test.sh\ntests/fm-vendor-auth-probe.test.sh\ntests/fm-voice-relay.test.sh\ntests/fm-wake-daemon-lifecycle-e2e.test.sh\ntests/fm-wake-drain-open-decisions-cursor.test.sh\ntests/fm-wake-drain-open-decisions.test.sh\ntests/fm-wake-drain-outcome-backstop.test.sh\ntests/fm-wake-drain-unread-status.test.sh\ntests/fm-wake-queue.test.sh\ntests/fm-watch-arm.test.sh\ntests/fm-watch-checkpoint.test.sh\ntests/fm-watch-recovery-loop.test.sh\ntests/fm-watch-triage.test.sh\ntests/fm-watcher-lock.test.sh\ntests/fm-worker-account-live-e2e.test.sh\ntests/fm-worker-account.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list",
+        "--family",
+        "afk"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-afk-contract.test.sh\ntests/fm-afk-inject-e2e.test.sh\ntests/fm-afk-return.test.sh\ntests/fm-host-mirror.test.sh\ntests/fm-supervision-host-lifecycle.test.sh\ntests/fm-supervision-host.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list",
+        "--changed",
+        "--base",
+        "ec2ce322fad7266727d58a8150a5f6e92b2f0667"
+      ],
+      "exit": 0,
+      "stdout": "tests/fm-agy-harness.test.sh\ntests/fm-arm-pretool-check.test.sh\ntests/fm-ask-user-authority.test.sh\ntests/fm-bearings-board.test.sh\ntests/fm-brief.test.sh\ntests/fm-calm-claude-mod.test.sh\ntests/fm-calm-pi-extension.test.sh\ntests/fm-captain-hold-lifecycle.test.sh\ntests/fm-cd-pretool-check.test.sh\ntests/fm-classify-decision-key.test.sh\ntests/fm-composer-ghost.test.sh\ntests/fm-composer-lib.test.sh\ntests/fm-crew-state.test.sh\ntests/fm-devin-harness.test.sh\ntests/fm-documentation-audiences.test.sh\ntests/fm-dod-lib.test.sh\ntests/fm-ensure-agents-md.test.sh\ntests/fm-forge-detect.test.sh\ntests/fm-fork-free-helpers.test.sh\ntests/fm-grok-harness.test.sh\ntests/fm-harness-adapter-references.test.sh\ntests/fm-harness-precedence.test.sh\ntests/fm-herdr-lab.test.sh\ntests/fm-kimi-harness.test.sh\ntests/fm-lint-workflows.test.sh\ntests/fm-lint.test.sh\ntests/fm-muse-harness.test.sh\ntests/fm-omp-harness.test.sh\ntests/fm-operational-input.test.sh\ntests/fm-pi-primary-types.test.sh\ntests/fm-rovo-harness.test.sh\ntests/fm-send-popup-settle.test.sh\ntests/fm-send-settle.test.sh\ntests/fm-subagent-pretool-check.test.sh\ntests/fm-supervision-instructions.test.sh\ntests/fm-task-delivery.test.sh\ntests/fm-test-isolation-proof.test.sh\ntests/fm-test-run.test.sh\ntests/fm-timeout-lib.test.sh\ntests/fm-tmux-submit-busy.test.sh\ntests/fm-trace-context-lib.test.sh\ntests/fm-transition-lib.test.sh\ntests/fm-vendor-auth-probe.test.sh\ntests/fm-afk-contract.test.sh\ntests/fm-afk-inject-e2e.test.sh\ntests/fm-afk-return.test.sh\ntests/fm-host-mirror.test.sh\ntests/fm-supervision-host-lifecycle.test.sh\ntests/fm-supervision-host.test.sh\ntests/fm-test-fixtures.test.sh\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--list",
+        "--lane",
+        "portable-serial-1of8"
+      ],
+      "exit": 2,
+      "stdout": "",
+      "stderr": "fm-test-run: lane 'portable-serial-1of8' asks for 8 portable serial shards but this runner is configured for 9 (see --list-lanes)\n"
+    },
+    {
+      "command": [
+        "bin/fm-test-run.sh",
+        "--jobs",
+        "2",
+        "--lane",
+        "portable-serial-1of9"
+      ],
+      "exit": 2,
+      "stdout": "",
+      "stderr": "fm-test-run: --jobs 2 refused: portable serial lanes stay serial; use --jobs 1\n"
+    }
+  ]
+}
