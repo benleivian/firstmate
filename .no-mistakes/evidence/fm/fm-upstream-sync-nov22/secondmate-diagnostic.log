@@ -1,0 +1,833 @@
++ set -u
+++ dirname tests/fm-secondmate-liveness.test.sh
++ . tests/lib.sh
+++ '[' -n '' ']'
+++ FM_TEST_LIB_SOURCED=1
+++ umask 022
++++ dirname tests/lib.sh
+++ . tests/git-config-helpers.sh
++++ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
++++ GIT_CONFIG_GLOBAL=/dev/null
++++ GIT_CONFIG_NOSYSTEM=1
++++ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
+++ export FM_GATE_REFUSE_BYPASS=1
+++ FM_GATE_REFUSE_BYPASS=1
+++ export FM_TEST_SEAM=1
+++ FM_TEST_SEAM=1
+++ unset FM_TASK_ID
+++ unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH HERDR_SESSION HERDR_BIN_PATH TERM_PROGRAM FM_BACKEND FM_HOME FM_ROOT FM_ROOT_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE FM_CONFIG_OVERRIDE FM_PROJECTS_OVERRIDE
+++ unset TASKS_AXI_FILE TASKS_AXI_BACKEND
+++ unset REX_SESSION REX_BLOCK
+++++ dirname tests/lib.sh
++++ cd tests/..
++++ pwd
+++ ROOT=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++++ fm_test_tmpdir
++++ local base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp physical
++++ base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ '[' -n ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++++ pwd -P
++++ physical=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.git ']'
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++ FM_TEST_TMPDIR=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++ FM_TEST_CLEANUP_DIRS=()
++++ mktemp ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-cleanup.13945.XXXXXX
+++ FM_TEST_CLEANUP_REGISTRY=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-cleanup.13945.byzHWr
++++ fm_test_pid_identity 13945
++++ local pid=13945
++++ FM_STATE_OVERRIDE=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ bash -c '. "$1"; fm_pid_identity "$2"' _ ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/bin/fm-wake-lib.sh 13945
+++ FM_TEST_OWNER_IDENTITY='Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh'
++++ mktemp ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-procevent.13945.XXXXXX
+++ FM_TEST_PROCEVENT_REGISTRY=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-procevent.13945.qgjHhQ
++++ mktemp ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-watcher.13945.XXXXXX
+++ FM_TEST_WATCHER_REGISTRY=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-watcher.13945.X8R3Hp
+++ FM_TEST_STUB_MAX_BLOCK_SECONDS=120
+++ export FM_TEST_STUB_MAX_BLOCK_SECONDS
+++ FM_TEST_SUITE_PID=13945
+++ export FM_TEST_SUITE_PID
+++ trap fm_test_cleanup EXIT
+++ trap 'fm_test_cleanup; exit 130' INT
+++ trap 'fm_test_cleanup; exit 143' TERM
+++ trap 'fm_test_cleanup; exit 129' HUP
+++ trap 'fm_test_cleanup; exit 131' QUIT
++++ fm_test_tmproot fm-treehouse-pool
++++ local prefix=fm-treehouse-pool root tmp_base
+++++ fm_test_tmpdir
+++++ local base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp physical
+++++ base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++++ '[' -n ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp ']'
+++++ case "$base" in
++++++ CDPATH=
++++++ cd -- ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++++ pwd -P
+++++ physical=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++++ base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.git ']'
+++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ tmp_base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ tmp_base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++++ mktemp -d ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.XXXXXX
++++ root=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
+++++ cd -P -- ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
+++++ pwd -P
++++ root=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
++++ printf '%s\n%s\n' 13945 'Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh'
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
+++ TREEHOUSE_ROOT=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
+++ export TREEHOUSE_ROOT
+++ FM_TEST_ORPHAN_MAX_AGE_SECONDS=3600
+++ '[' 0 '!=' 1 ']'
+++ fm_test_reap_orphans
+++ local marker dir mtime now owner_pid owner_identity current_identity
++++ date +%s
+++ now=1795387939
+++ for marker in '"$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture'
+++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-ddev-clean.tEQpAZ/.fm-test-fixture ']'
++++ sed -n 1p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-ddev-clean.tEQpAZ/.fm-test-fixture
+++ owner_pid=71174
++++ sed -n '2,$p' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-ddev-clean.tEQpAZ/.fm-test-fixture
+++ owner_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 71174
+++ current_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh'
+++ '[' -n 'Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh' ']'
+++ '[' 'Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh' = 'Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh' ']'
+++ continue
+++ for marker in '"$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture'
+++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-pr-merge-tests.a9l8HW/.fm-test-fixture ']'
++++ sed -n 1p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-pr-merge-tests.a9l8HW/.fm-test-fixture
+++ owner_pid=71176
++++ sed -n '2,$p' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-pr-merge-tests.a9l8HW/.fm-test-fixture
+++ owner_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 71176
+++ current_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh'
+++ '[' -n 'Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh' ']'
+++ '[' 'Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh' = 'Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh' ']'
+++ continue
+++ for marker in '"$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture'
+++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.5VhOVY/.fm-test-fixture ']'
++++ sed -n 1p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.5VhOVY/.fm-test-fixture
+++ owner_pid=71174
++++ sed -n '2,$p' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.5VhOVY/.fm-test-fixture
+++ owner_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 71174
+++ current_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh'
+++ '[' -n 'Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh' ']'
+++ '[' 'Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh' = 'Sun Nov 22 22:51:29 2026     bash tests/fm-ddev-clean.test.sh' ']'
+++ continue
+++ for marker in '"$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture'
+++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bOjLK8/.fm-test-fixture ']'
++++ sed -n 1p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bOjLK8/.fm-test-fixture
+++ owner_pid=71176
++++ sed -n '2,$p' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bOjLK8/.fm-test-fixture
+++ owner_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 71176
+++ current_identity='Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh'
+++ '[' -n 'Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh' ']'
+++ '[' 'Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh' = 'Sun Nov 22 22:51:29 2026     bash tests/fm-pr-merge.test.sh' ']'
+++ continue
+++ for marker in '"$FM_TEST_TMPDIR"/fm-*/.fm-test-fixture'
+++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV/.fm-test-fixture ']'
++++ sed -n 1p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV/.fm-test-fixture
+++ owner_pid=13945
++++ sed -n '2,$p' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV/.fm-test-fixture
+++ owner_identity='Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh'
+++ case "$owner_pid" in
++++ fm_test_pid_identity 13945
+++ current_identity='Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh'
+++ '[' -n 'Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh' ']'
+++ '[' 'Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh' = 'Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh' ']'
+++ continue
++ BASE_PATH=/usr/bin:/bin:/usr/sbin:/sbin
++ fm_git_identity fmtest fmtest@example.com
++ export GIT_AUTHOR_NAME=fmtest GIT_AUTHOR_EMAIL=fmtest@example.com
++ GIT_AUTHOR_NAME=fmtest
++ GIT_AUTHOR_EMAIL=fmtest@example.com
++ export GIT_COMMITTER_NAME=fmtest GIT_COMMITTER_EMAIL=fmtest@example.com
++ GIT_COMMITTER_NAME=fmtest
++ GIT_COMMITTER_EMAIL=fmtest@example.com
+++ fm_test_tmproot fm-secondmate-liveness
+++ local prefix=fm-secondmate-liveness root tmp_base
++++ fm_test_tmpdir
++++ local base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp physical
++++ base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ '[' -n ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp ']'
++++ case "$base" in
+++++ CDPATH=
+++++ cd -- ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++++ pwd -P
++++ physical=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ '[' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.git ']'
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++ tmp_base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
+++ tmp_base=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp
++++ mktemp -d ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.XXXXXX
+++ root=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++++ cd -P -- ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++++ pwd -P
+++ root=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
+++ printf '%s\n%s\n' 13945 'Sun Nov 22 22:52:19 2026     bash -x tests/fm-secondmate-liveness.test.sh'
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++ TMP_ROOT=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++ test_tmux_agent_state_classifies
++ local fb out
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude claude
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude comm=claude fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-claude/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex codex
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex comm=codex fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-codex/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode opencode
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode comm=opencode fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-opencode/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok grok
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok comm=grok fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-grok/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi kimi
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi comm=kimi fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-kimi/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi pi
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi comm=pi fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed pi-signed
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed comm=pi-signed fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-signed/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher pi-launcher
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher comm=pi-launcher fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-pi-launcher/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for harness in claude codex opencode grok kimi pi pi-signed pi-launcher Pi
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi Pi
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi comm=Pi fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-Pi/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for shell in zsh bash -zsh
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh zsh
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh comm=zsh fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=dead
++ '[' dead = dead ']'
++ for shell in zsh bash -zsh
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash bash
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash comm=bash fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-bash/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=dead
++ '[' dead = dead ']'
++ for shell in zsh bash -zsh
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh -zsh
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh comm=-zsh fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-zsh/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=dead
++ '[' dead = dead ']'
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node node
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node comm=node fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=ambiguous
++ '[' ambiguous = ambiguous ']'
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-node/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_alive tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ '[' unknown = unknown ']'
+++ make_failed_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing missing
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing inventory=missing fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:fm-sm1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=missing
++ '[' missing = missing ']'
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_alive tmux sess:fm-sm1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ '[' dead = dead ']'
++ for inventory in present unreadable
+++ make_failed_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present present
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present inventory=present fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-present/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:fm-sm1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=unreadable
++ '[' unreadable = unreadable ']'
++ for inventory in present unreadable
+++ make_failed_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable unreadable
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable inventory=unreadable fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-unreadable/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:fm-sm1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=unreadable
++ '[' unreadable = unreadable ']'
++ for inventory in missing-session missing-server missing-socket
+++ make_failed_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session missing-session
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session inventory=missing-session fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-session/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:fm-sm1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=missing
++ '[' missing = missing ']'
++ for inventory in missing-session missing-server missing-socket
+++ make_failed_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server missing-server
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server inventory=missing-server fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-server/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:fm-sm1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=missing
++ '[' missing = missing ']'
++ for inventory in missing-session missing-server missing-socket
+++ make_failed_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket missing-socket
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket inventory=missing-socket fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-missing-socket/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:fm-sm1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=missing
++ '[' missing = missing ']'
++ pass 'fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable'
++ printf 'ok - %s\n' 'fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable'
+ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
++ test_tmux_agent_state_rejects_malformed_targets_before_probe
++ local fakebin marker target out
+++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin
+++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin
++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin
++ marker=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called
++ cat
++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin/tmux
++ for target in sess sess: :win sess:win:extra
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ FM_TEST_TMUX_MARKER=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux "$1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN sess
++ out=unreadable
++ '[' unreadable = unreadable ']'
++ '[' '!' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called ']'
++ for target in sess sess: :win sess:win:extra
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ FM_TEST_TMUX_MARKER=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux "$1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN sess:
++ out=unreadable
++ '[' unreadable = unreadable ']'
++ '[' '!' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called ']'
++ for target in sess sess: :win sess:win:extra
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ FM_TEST_TMUX_MARKER=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux "$1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN :win
++ out=unreadable
++ '[' unreadable = unreadable ']'
++ '[' '!' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called ']'
++ for target in sess sess: :win sess:win:extra
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ FM_TEST_TMUX_MARKER=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux "$1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN sess:win:extra
++ out=unreadable
++ '[' unreadable = unreadable ']'
++ '[' '!' -e ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/tmux-malformed-called ']'
++ pass 'fm_backend_tmux_agent_state: rejects malformed targets before probing tmux'
++ printf 'ok - %s\n' 'fm_backend_tmux_agent_state: rejects malformed targets before probing tmux'
+ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
++ test_herdr_agent_state_preserves_husk_classifier
++ local pane_state expected out
++ for row in ''\''dead missing'\''' ''\''no-agent dead'\''' ''\''live alive'\''' ''\''unknown unreadable'\'''
++ pane_state=dead
++ expected=missing
+++ FM_TEST_PANE_STATE=dead
+++ bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_pane_agent_state() { printf "%s" "$FM_TEST_PANE_STATE"; }; fm_backend_herdr_server_running_state() { printf running; }; fm_backend_herdr_agent_state "sess:p1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=missing
++ '[' missing = missing ']'
++ for row in ''\''dead missing'\''' ''\''no-agent dead'\''' ''\''live alive'\''' ''\''unknown unreadable'\'''
++ pane_state=no-agent
++ expected=dead
+++ FM_TEST_PANE_STATE=no-agent
+++ bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_pane_agent_state() { printf "%s" "$FM_TEST_PANE_STATE"; }; fm_backend_herdr_server_running_state() { printf running; }; fm_backend_herdr_agent_state "sess:p1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=dead
++ '[' dead = dead ']'
++ for row in ''\''dead missing'\''' ''\''no-agent dead'\''' ''\''live alive'\''' ''\''unknown unreadable'\'''
++ pane_state=live
++ expected=alive
+++ FM_TEST_PANE_STATE=live
+++ bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_pane_agent_state() { printf "%s" "$FM_TEST_PANE_STATE"; }; fm_backend_herdr_server_running_state() { printf running; }; fm_backend_herdr_agent_state "sess:p1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
++ for row in ''\''dead missing'\''' ''\''no-agent dead'\''' ''\''live alive'\''' ''\''unknown unreadable'\'''
++ pane_state=unknown
++ expected=unreadable
+++ FM_TEST_PANE_STATE=unknown
+++ bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_pane_agent_state() { printf "%s" "$FM_TEST_PANE_STATE"; }; fm_backend_herdr_server_running_state() { printf running; }; fm_backend_herdr_agent_state "sess:p1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=unreadable
++ '[' unreadable = unreadable ']'
+++ bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_agent_state "no-colon-target"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=unreadable
++ '[' unreadable = unreadable ']'
+++ bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_pane_agent_state() { printf "no-agent"; }; fm_backend_herdr_agent_alive "sess:p1"' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=dead
++ '[' dead = dead ']'
++ pass 'fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior'
++ printf 'ok - %s\n' 'fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior'
+ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
++ test_agent_state_dispatcher_and_compatibility
++ local fb out
+++ make_probe_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux claude
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux comm=claude fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/dispatch-tmux/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state tmux sess:win' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_source herdr; fm_backend_herdr_pane_agent_state() { printf "live"; }; fm_backend_agent_state herdr sess:p1' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=alive
++ '[' alive = alive ']'
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_state zellij sess:7' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=unverified
++ '[' unverified = unverified ']'
+++ bash -c '. "$0/bin/fm-backend.sh"; fm_backend_agent_alive zellij sess:7' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN
++ out=unknown
++ '[' unknown = unknown ']'
++ pass 'fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified'
++ printf 'ok - %s\n' 'fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified'
+ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
++ test_sweep_respawns_confirmed_dead_secondmate
++ local w fb tmuxfb log out
+++ new_world sweep-dead
+++ local name=sweep-dead w
+++ w=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead
+++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/home/state ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/home/config
+++ touch ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/home/state/.last-watcher-beat
+++ printf 'codex\n'
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead
++ w=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead
++ add_sm_home ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead sm1 firstmate:fm-sm1
++ local w=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead id=sm1 window=firstmate:fm-sm1 harness=claude
++ local home=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1
++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1/bin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1/data ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1/state ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1/config ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1/projects
++ printf '%s\n' sm1
++ printf '# Firstmate\n'
++ printf 'charter\n'
++ printf '%s\n' projects/ state/ data/ config/ .no-mistakes/
++ git -C ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1 init -q -b main
++ printf 'window=%s\n' firstmate:fm-sm1
++ printf 'kind=secondmate\n'
++ printf 'harness=%s\n' claude
++ printf 'home=%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1
+++ make_toolchain ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
+++ fm_fake_exit0 ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin node chrome-devtools-axi pi-signed
+++ local fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin tool
+++ shift
+++ for tool in '"$@"'
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/node
+++ for tool in '"$@"'
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/chrome-devtools-axi
+++ for tool in '"$@"'
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/pi-signed
+++ fm_fake_version_tool ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin lavish-axi FM_FAKE_LAVISH_AXI_VERSION 0.1.80
+++ local fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin tool=lavish-axi override=FM_FAKE_LAVISH_AXI_VERSION default=0.1.80
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/lavish-axi
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/gh-axi
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/gh
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/treehouse
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/no-mistakes
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/tasks-axi
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/quota-axi
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
++ fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
+++ make_liveness_tmux ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead
+++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead fakebin
++++ fm_fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead
++++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
++++ mkdir -p ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
++++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
+++ fakebin=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
+++ cat
+++ chmod +x ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin/tmux
+++ printf '%s\n' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
++ tmuxfb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin
++ log=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/calls.log
++ :
+++ run_bootstrap ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin:~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/home zsh ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/calls.log
+++ local fb=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin:~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin home=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/home cmd=zsh log=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/calls.log
+++ shift 4
+++ PATH=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin:~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/fakebin:/usr/bin:/bin:/usr/sbin:/sbin
+++ TMUX=
+++ FM_BACKEND=tmux
+++ FM_HOME=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/home
+++ FM_TEST_PANE_CMD=zsh
+++ FM_TMUX_CALL_LOG=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/calls.log
+++ env ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/bin/fm-bootstrap.sh
++ out='SECONDMATE_LIVENESS: secondmate sm1: respawn failed after confirmed agent absence on existing endpoint: error: secondmate home cannot be inside the firstmate repo: ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1
+SECONDMATE_SYNC: secondmate sm1: skipped: primary default-branch commit cannot be resolved'
++ assert_not_contains 'SECONDMATE_LIVENESS: secondmate sm1: respawn failed after confirmed agent absence on existing endpoint: error: secondmate home cannot be inside the firstmate repo: ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/sm1
+SECONDMATE_SYNC: secondmate sm1: skipped: primary default-branch commit cannot be resolved' 'SECONDMATE_LIVENESS: secondmate sm1: respawned' 'a successfully respawned secondmate should be handled silently'
++ case "$1" in
++ :
+++ cat ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/calls.log
++ assert_contains 'kill-window -t =firstmate:=fm-sm1' 'kill-window -t =firstmate:=fm-sm1' 'the stale endpoint must be killed before respawn (tmux refuses a same-named window over a live one)'
++ case "$1" in
++ :
+++ cat ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/sweep-dead/calls.log
++ assert_contains 'kill-window -t =firstmate:=fm-sm1' new-window 'a confirmed-dead secondmate should actually be relaunched'
++ case "$1" in
++ fail 'a confirmed-dead secondmate should actually be relaunched (missing: '\''new-window'\'')
+--- output ---
+kill-window -t =firstmate:=fm-sm1'
++ printf 'not ok - %s\n' 'a confirmed-dead secondmate should actually be relaunched (missing: '\''new-window'\'')
+--- output ---
+kill-window -t =firstmate:=fm-sm1'
+not ok - a confirmed-dead secondmate should actually be relaunched (missing: 'new-window')
+--- output ---
+kill-window -t =firstmate:=fm-sm1
++ exit 1
++ fm_test_cleanup
++ local d
++ fm_test_reap_watchers
++ local state lock_home 'seen=
+'
++ '[' -f ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-watcher.13945.X8R3Hp ']'
++ IFS=
++ read -r state
++ rm -f ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-watcher.13945.X8R3Hp
++ fm_test_reap_procevent_homes
++ local home claim_root 'seen=
+'
++ '[' -f ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-procevent.13945.qgjHhQ ']'
++ IFS='	'
++ read -r home claim_root
++ rm -f ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-procevent.13945.qgjHhQ
++ for d in '"${FM_TEST_CLEANUP_DIRS[@]:-}"'
++ '[' -n '' ']'
++ '[' -f ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-cleanup.13945.byzHWr ']'
++ IFS=
++ read -r d
++ '[' -n ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV ']'
++ fm_test_reap_root_processes ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
++ local root=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV chain pid pids signal i
++ '[' -n ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV ']'
++ '[' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV '!=' / ']'
++ chain=' '
++ pid=13945
++ '[' -n 13945 ']'
++ '[' 13945 -gt 1 ']'
++ chain=' 13945 '
+++ ps -o ppid= -p 13945
+++ tr -d '[:space:]'
++ pid=58829
++ '[' -n 58829 ']'
++ '[' 58829 -gt 1 ']'
++ chain=' 13945 58829 '
+++ ps -o ppid= -p 58829
+++ tr -d '[:space:]'
++ pid=58822
++ '[' -n 58822 ']'
++ '[' 58822 -gt 1 ']'
++ chain=' 13945 58829 58822 '
+++ ps -o ppid= -p 58822
+++ tr -d '[:space:]'
++ pid=951
++ '[' -n 951 ']'
++ '[' 951 -gt 1 ']'
++ chain=' 13945 58829 58822 951 '
+++ ps -o ppid= -p 951
+++ tr -d '[:space:]'
++ pid=1
++ '[' -n 1 ']'
++ '[' 1 -gt 1 ']'
++ for signal in TERM KILL
++ i=0
++ '[' 0 -lt 20 ']'
+++ ps -ww -eo pid=,args=
+++ FM_TEST_REAP_ROOT=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV/
+++ awk -v 'chain= 13945 58829 58822 951 ' 'index($0, ENVIRON["FM_TEST_REAP_ROOT"]) && index(chain, " " $1 " ") == 0 { print $1 }'
++ pids=
++ '[' -n '' ']'
++ return 0
++ fm_test_remove_tree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
++ '[' -d ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV ']'
++ '[' '!' -L ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV ']'
++ find ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV -type d -exec chmod u+rwx '{}' +
++ rm -rf ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-treehouse-pool.bxozPV
++ IFS=
++ read -r d
++ '[' -n ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD ']'
++ fm_test_reap_root_processes ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++ local root=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD chain pid pids signal i
++ '[' -n ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD ']'
++ '[' ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD '!=' / ']'
++ chain=' '
++ pid=13945
++ '[' -n 13945 ']'
++ '[' 13945 -gt 1 ']'
++ chain=' 13945 '
+++ ps -o ppid= -p 13945
+++ tr -d '[:space:]'
++ pid=58829
++ '[' -n 58829 ']'
++ '[' 58829 -gt 1 ']'
++ chain=' 13945 58829 '
+++ ps -o ppid= -p 58829
+++ tr -d '[:space:]'
++ pid=58822
++ '[' -n 58822 ']'
++ '[' 58822 -gt 1 ']'
++ chain=' 13945 58829 58822 '
+++ ps -o ppid= -p 58822
+++ tr -d '[:space:]'
++ pid=951
++ '[' -n 951 ']'
++ '[' 951 -gt 1 ']'
++ chain=' 13945 58829 58822 951 '
+++ ps -o ppid= -p 951
+++ tr -d '[:space:]'
++ pid=1
++ '[' -n 1 ']'
++ '[' 1 -gt 1 ']'
++ for signal in TERM KILL
++ i=0
++ '[' 0 -lt 20 ']'
+++ ps -ww -eo pid=,args=
+++ FM_TEST_REAP_ROOT=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD/
+++ awk -v 'chain= 13945 58829 58822 951 ' 'index($0, ENVIRON["FM_TEST_REAP_ROOT"]) && index(chain, " " $1 " ") == 0 { print $1 }'
++ pids=
++ '[' -n '' ']'
++ return 0
++ fm_test_remove_tree ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++ local dir=~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++ '[' -d ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD ']'
++ '[' '!' -L ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD ']'
++ find ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD -type d -exec chmod u+rwx '{}' +
++ rm -rf ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/fm-secondmate-liveness.H0VWeD
++ IFS=
++ read -r d
++ rm -f ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/tmp/.fm-test-cleanup.13945.byzHWr

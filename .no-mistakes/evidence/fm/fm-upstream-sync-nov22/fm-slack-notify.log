@@ -1,0 +1,9 @@
+ok - absent configuration is a silent no-op with no notification state
+ok - setup atomically replaces an existing symlink with one private local secret
+ok - setup rejects a directory target without mutating it
+ok - setup rejects a symlinked directory without mutating its target
+ok - shell tracing stays disabled throughout webhook handling
+ok - direct send posts exactly the supplied concise notification
+ok - each explicit invocation is one attempt with no scanner or deduplication infrastructure
+ok - delivery failure is bounded, generic, and best-effort
+ok - explicit setup test sends the exact harmless setup message

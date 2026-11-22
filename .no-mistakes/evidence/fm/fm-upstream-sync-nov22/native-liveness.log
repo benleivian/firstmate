@@ -1,0 +1,7 @@
+fm_backend_agent_state tmux primary:codex
+alive
+fm_backend_agent_state tmux primary:bare
+dead
+fm_backend_agent_state tmux primary:absent
+missing
+Private tmux script exited 0; its EXIT trap killed the owned server and removed .l.

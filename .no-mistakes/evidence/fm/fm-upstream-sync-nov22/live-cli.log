@@ -1,0 +1,74 @@
+$ fm-lab-home.sh create ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/live-home
+~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/live-home
+exit=0
+$ fm-captain-hold.sh hold validation-call --title Choose fixture release date --reason Release today or tomorrow?
+validation-call
+exit=0
+$ fm-tasks-axi.sh show validation-call
+task:
+  id: validation-call
+  title: Choose fixture release date
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: yes
+  hold_reason: "Release today or tomorrow?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: 2026-11-22
+  closed: "-"
+  deps: none
+  links: none
+  body: "Captain hold set: 2026-11-22T22:53:36Z"
+exit=0
+$ fm-captain-hold.sh answer validation-call --decision-file ~/.no-mistakes/worktrees/dca6a1f2fc96/01M82NHW5MMJN064FSKB1M5FXN/.local-validation/live-home/answer.txt
+answered: validation-call
+exit=0
+$ fm-tasks-axi.sh show validation-call
+task:
+  id: validation-call
+  title: Choose fixture release date
+  state: done
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "Release today or tomorrow?"
+  hold_kind: captain
+  hold_until: "-"
+  kind: captain
+  repo: firstmate
+  priority: "-"
+  created: "-"
+  closed: 2026-11-22
+  deps: none
+  links: none
+  body: "Resolution recorded by fm-captain-hold.\nDecision digest: 6fac5d484e9b10445c4dcd4a8b168443ec2c6feea563b64e199ced191065badb\nResolution mode: answered\n\nCaptain decision:\nRelease tomorrow."
+exit=0
+$ fm-record-export.sh sync
+exit=0
+$ fm-record-export.sh sync
+exit=0
+Exported paths: ["data/backlog.md", "state/task-a.meta", "state/task-a.status"]
+$ fm-record-export.sh archive-task task-a
+exit=0
+$ fm-record-export.sh archive-task task-a
+exit=0
+$ fm-record-export.sh sync
+error: state/task-a.status is not a regular non-symlink file
+exit=1
+Rejected symlink; previous published snapshot retained.
+$ fm-afk-return.sh guard
+exit=0
+$ fm-afk-return.sh guard
+fm-afk-return: away mode is still active; run bin/fm-afk-return.sh before ordinary captain work
+exit=3
+$ fm-afk-return.sh guard
+fm-afk-return: return catch-up is pending with no open blocker; clear the retention reason below, then run bin/fm-afk-return.sh check
+catch-up retained: the durable gate recorded no retention reason
+exit=4
+$ fm-afk-return.sh guard
+exit=0
+LIVE CLI SCENARIOS COMPLETE

@@ -1,0 +1,22 @@
+{
+  "schema": "firstmate-record-export-archive.v1",
+  "schema_version": 1,
+  "task": "task-a",
+  "spawn_gen": "validation-one",
+  "captured_at": "2026-11-22T22:53:39Z",
+  "complete": true,
+  "files": [
+    {
+      "source": "state/task-a.meta",
+      "archive": "meta",
+      "bytes": 47,
+      "sha256": "e5c97684ec18959cbb4ca11fd022f2bc61d0d553214723e9e90eeebc50c5316f"
+    },
+    {
+      "source": "state/task-a.status",
+      "archive": "status",
+      "bytes": 47,
+      "sha256": "40e704c3aebfbd7ecd1cea1d85832f75e57007aaceefc75f3e8d559b8eb9c7f3"
+    }
+  ]
+}
