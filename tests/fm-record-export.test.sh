@@ -506,10 +506,10 @@ test_archive_refuses_a_corrupt_committed_manifest() {
     case "$case_name" in
       wrong-task) sed 's/"task": "task-a"/"task": "another-task"/' "$manifest" > "$home/manifest.tmp" ;;
       trailing-garbage) cp "$manifest" "$home/manifest.tmp"; printf 'not-json\n' >> "$home/manifest.tmp" ;;
-      duplicate-key) sed '/"captured_at":/a\  "captured_at": "2000-01-01T00:00:00Z",' "$manifest" > "$home/manifest.tmp" ;;
+      duplicate-key) python3 -c 'import sys; text = open(sys.argv[1]).read(); print(text.replace("{", "{\n  \"captured_at\": \"2000-01-01T00:00:00Z\",", 1))' "$manifest" > "$home/manifest.tmp" ;;
       wrong-type) sed 's/"captured_at": "[^"]*"/"captured_at": 1/' "$manifest" > "$home/manifest.tmp" ;;
-      extra-root) sed '/"complete": true/a\  "unexpected": true,' "$manifest" > "$home/manifest.tmp" ;;
-      extra-entry) sed '0,/"sha256": "[^"]*"/s//& , "unexpected": true/' "$manifest" > "$home/manifest.tmp" ;;
+      extra-root) python3 -c 'import json, sys; value = json.load(open(sys.argv[1])); value["unexpected"] = True; json.dump(value, sys.stdout)' "$manifest" > "$home/manifest.tmp" ;;
+      extra-entry) python3 -c 'import json, sys; value = json.load(open(sys.argv[1])); value["files"][0]["unexpected"] = True; json.dump(value, sys.stdout)' "$manifest" > "$home/manifest.tmp" ;;
     esac
     mv "$home/manifest.tmp" "$manifest"
     rc=0
@@ -520,8 +520,56 @@ test_archive_refuses_a_corrupt_committed_manifest() {
   pass "teardown archive rejects a corrupt committed manifest"
 }
 
+# Pause the actual filesystem engine by its owned PID, before publication.
+# Shell polling plus a separate ps lookup can miss this short window on APFS.
+archive_source_race() {  # <home> <archive> <capture|replace> [replacement target]
+  FM_HOME="$1" python3 - "$ROOT/bin/fm-record-export.py" "$1" "$2" "$3" "${4:-}" <<'PYRACE'
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+
+engine, home, archive, mode, target = sys.argv[1:]
+home, archive = Path(home), Path(archive)
+watched = None
+if mode == "replace":
+    watched = archive / "inbox" / os.listdir(archive / "inbox")[0]
+with (home / "race.stdout").open("w") as out, (home / "race.stderr").open("w") as err:
+    child = subprocess.Popen([sys.executable, engine, "archive-task", "task-a"], stdout=out, stderr=err)
+    try:
+        deadline = time.monotonic() + 10
+        while child.poll() is None and time.monotonic() < deadline:
+            ready = (not watched.exists()) if watched else any(archive.parent.glob(".archive-stage-*"))
+            if ready:
+                os.kill(child.pid, signal.SIGSTOP)
+                _, status = os.waitpid(child.pid, os.WUNTRACED)
+                assert os.WIFSTOPPED(status), "race fixture missed the running engine"
+                assert not (archive / "manifest.v1.json").exists(), "race fixture missed the publication window"
+                source = home / "state/task-a.status"
+                if mode == "capture":
+                    source.unlink()
+                    source.symlink_to(target)
+                else:
+                    with source.open("a") as output:
+                        output.write("changed during stale-generation replacement\n")
+                os.kill(child.pid, signal.SIGCONT)
+                assert child.wait(timeout=10) != 0, "archive committed after its source changed"
+                assert not (archive / "manifest.v1.json").exists(), "source race committed a manifest"
+                break
+            time.sleep(0.001)
+        else:
+            raise AssertionError("race fixture never observed the mutation window")
+    finally:
+        if child.poll() is None:
+            child.kill()
+        child.wait()
+PYRACE
+}
+
 test_archive_detects_a_source_change_during_capture() {
-  local home export_root archive outside archive_pid worker_pid rc=0 wait_count=0 stage=
+  local home export_root archive outside
   home=$(make_home archive-source-race)
   export_root="$TMP_ROOT/export-archive-source-race"
   outside="$TMP_ROOT/outside-archive-source-race"
@@ -531,25 +579,8 @@ test_archive_detects_a_source_change_during_capture() {
   mkdir -p "$outside"
   printf 'outside sentinel\n' > "$outside/sentinel"
   dd if=/dev/zero of="$home/state/task-a.status" bs=1048576 count=64 status=none
-  run_export "$home" archive-task task-a > "$home/stdout" 2> "$home/stderr" &
-  archive_pid=$!
-  while kill -0 "$archive_pid" 2>/dev/null; do
-    stage=$(find "$export_root/archive/task-a" -maxdepth 1 -name '.archive-stage-*' -print -quit 2>/dev/null || true)
-    [ -z "$stage" ] || break
-    wait_count=$((wait_count + 1))
-    [ "$wait_count" -le 500 ] || break
-    sleep 0.01
-  done
-  [ -n "$stage" ] || { wait "$archive_pid" || true; fail "archive source-race fixture never observed staging"; }
-  worker_pid=$(ps -eo pid=,args= | awk -v pattern="$ROOT/bin/fm-record-export.py archive-task task-a" \
-    'index($0, pattern) { print $1; exit }')
-  [ -n "$worker_pid" ] || { wait "$archive_pid" || true; fail "archive source-race fixture could not identify the filesystem worker"; }
-  kill -STOP "$worker_pid"
-  rm "$home/state/task-a.status"
-  ln -s "$outside/sentinel" "$home/state/task-a.status"
-  kill -CONT "$worker_pid"
-  wait "$archive_pid" || rc=$?
-  [ "$rc" -ne 0 ] || fail "archive committed while a source changed during capture"
+  archive_source_race "$home" "$archive" capture "$outside/sentinel" \
+    || fail "archive source-change race failed"
   assert_absent "$archive/manifest.v1.json" "source race committed a manifest"
   assert_present "$home/state/task-a.meta" "source race removed live metadata"
   assert_grep 'outside sentinel' "$outside/sentinel" "source race changed the replacement target"
@@ -597,7 +628,7 @@ test_archive_retry_removes_stale_files_from_a_partial_generation() {
 }
 
 test_archive_revalidates_sources_immediately_before_publication() {
-  local home export_root archive archive_pid rc=0 wait_count=0 index
+  local home export_root archive index
   home=$(make_home archive-final-revalidate)
   export_root="$TMP_ROOT/export-archive-final-revalidate"
   printf '%s\n' "$export_root" > "$home/config/record-export-root"
@@ -611,20 +642,8 @@ test_archive_revalidates_sources_immediately_before_publication() {
     printf 'stale %s\n' "$index" > "$archive/inbox/$(printf '%05d' "$index").msg"
     index=$((index + 1))
   done
-
-  run_export "$home" archive-task task-a > "$home/archive.out" 2> "$home/archive.err" &
-  archive_pid=$!
-  while [ -e "$archive/inbox/00000.msg" ]; do
-    kill -0 "$archive_pid" 2>/dev/null || break
-    wait_count=$((wait_count + 1))
-    [ "$wait_count" -le 1000 ] || break
-    sleep 0.01
-  done
-  [ ! -e "$archive/inbox/00000.msg" ] \
-    || { wait "$archive_pid" || true; fail "archive did not begin replacing its stale partial generation"; }
-  printf 'changed after final comparison\n' >> "$home/state/task-a.status"
-  wait "$archive_pid" || rc=$?
-  [ "$rc" -ne 0 ] || fail "archive committed after a source changed during stale-generation replacement"
+  archive_source_race "$home" "$archive" replace \
+    || fail "archive stale-generation replacement race failed"
   assert_absent "$archive/manifest.v1.json" "archive committed a manifest after its final source comparison"
   assert_present "$home/state/task-a.meta" "final comparison race removed live metadata"
   pass "teardown archive revalidates sources immediately before publication"
